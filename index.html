@@ -1285,25 +1285,42 @@ function processVoiceInput(text) {
         return;
     }
     
+    // Check for "mic off" command anytime
+    if (text.includes('mic off') || text.includes('microphone off') || text.includes('stop listening')) {
+        stopVoiceListening();
+        voiceSpeak('Microphone off');
+        return;
+    }
+    
     if (voiceState === 'LISTENING') {
-        // Search all tanks for keyword match
+        // Build list of all tanks with their keywords
         const allTanks = [
             ...data.pumpTanks.map(t => ({...t, side: 'pump'})),
             ...data.returnTanks.map(t => ({...t, side: 'return'}))
         ];
+        
+        // Build flat list of all keyword-tank pairs, then sort by keyword length (longest first)
+        const keywordMatches = [];
         for (const tank of allTanks) {
             const keywords = tank.voiceKeywords || [];
             for (const kw of keywords) {
-                if (text.includes(kw.toLowerCase())) {
-                    voiceCurrentTank = tank;
-                    voiceCurrentSide = tank.side;
-                    voiceState = 'WAITING_NUMBER';
-                    voicePlayDing();
-                    document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
-                    updateVoiceStatus(tank.name, 'Say the inches');
-                    highlightTankCard(tank.side, tank.id);
-                    return;
-                }
+                keywordMatches.push({ keyword: kw.toLowerCase(), tank: tank });
+            }
+        }
+        // Sort by keyword length descending - longer keywords checked first
+        keywordMatches.sort((a, b) => b.keyword.length - a.keyword.length);
+        
+        // Now check for matches (longer/more specific keywords get priority)
+        for (const match of keywordMatches) {
+            if (text.includes(match.keyword)) {
+                voiceCurrentTank = match.tank;
+                voiceCurrentSide = match.tank.side;
+                voiceState = 'WAITING_NUMBER';
+                voicePlayDing();
+                document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
+                updateVoiceStatus(match.tank.name, 'Say the inches');
+                highlightTankCard(match.tank.side, match.tank.id);
+                return;
             }
         }
     } else if (voiceState === 'WAITING_NUMBER') {
