@@ -1439,7 +1439,7 @@ function startVoiceListening() {
     voiceState = 'LISTENING';
     voiceCurrentTank = null;
     
-    // Request wake lock to keep screen on
+    // Request wake lock + audio keepalive to keep mic alive
     requestWakeLock();
     startAudioKeepAlive();
     
@@ -1447,19 +1447,26 @@ function startVoiceListening() {
     updateVoiceStatus('Listening...', 'Say a tank keyword');
     document.getElementById('voice-status').classList.add('show');
     
-    voiceRecognition = new SpeechRecognition();
-    voiceRecognition.continuous = true;
-    voiceRecognition.interimResults = false;
-    voiceRecognition.lang = 'en-US';
+    // REUSE existing recognition object - creating new ones triggers Chrome permission prompts
+    if (!voiceRecognition) {
+        voiceRecognition = new SpeechRecognition();
+        voiceRecognition.continuous = true;
+        voiceRecognition.interimResults = false;
+        voiceRecognition.lang = 'en-US';
+        
+        voiceRecognition.onresult = (event) => {
+            const last = event.results[event.results.length - 1];
+            if (last.isFinal) processVoiceInput(last[0].transcript.toLowerCase().trim());
+        };
+        voiceRecognition.onend = () => { if (voiceIsListening && !voiceSpeaking) { setTimeout(() => { try { voiceRecognition.start(); } catch(e) {} }, 150); } };
+        voiceRecognition.onerror = (e) => { if (voiceIsListening && !voiceSpeaking && e.error !== 'aborted' && e.error !== 'not-allowed') { setTimeout(() => { try { voiceRecognition.start(); } catch(e) {} }, 300); } };
+    }
     
-    voiceRecognition.onresult = (event) => {
-        const last = event.results[event.results.length - 1];
-        if (last.isFinal) processVoiceInput(last[0].transcript.toLowerCase().trim());
-    };
-    voiceRecognition.onend = () => { if (voiceIsListening && !voiceSpeaking) try { voiceRecognition.start(); } catch(e) {} };
-    voiceRecognition.onerror = (e) => { if (voiceIsListening && !voiceSpeaking && e.error !== 'aborted') setTimeout(() => { try { voiceRecognition.start(); } catch(e) {} }, 100); };
-    
-    try { voiceRecognition.start(); } catch(e) {}
+    try { voiceRecognition.start(); } catch(e) { 
+        // If already running, abort and restart
+        try { voiceRecognition.abort(); } catch(e2) {}
+        setTimeout(() => { try { voiceRecognition.start(); } catch(e3) {} }, 200);
+    }
     setTimeout(() => voicePlayDing(), 100);
 }
 
@@ -1476,7 +1483,8 @@ function stopVoiceListening() {
     document.getElementById('voice-master-btn').className = 'voice-master-btn';
     document.getElementById('voice-status').classList.remove('show');
     
-    if (voiceRecognition) try { voiceRecognition.stop(); } catch(e) {}
+    // Stop but don't destroy the recognition object
+    if (voiceRecognition) try { voiceRecognition.abort(); } catch(e) {}
 }
 
 // Convert tank name for speech (# -> pound)
@@ -1490,14 +1498,13 @@ function updateVoiceStatus(main, sub) {
 }
 
 // === ENHANCED MIC PERSISTENCE (3-layer) ===
-// Layer 1: Wake lock with auto-reacquire
+// Layer 1: Wake lock with auto-reacquire on release
 let wakeLock = null;
 async function requestWakeLock() {
     try {
         if ('wakeLock' in navigator) {
             wakeLock = await navigator.wakeLock.request('screen');
             wakeLock.addEventListener('release', () => { wakeLock = null; });
-            console.log('Wake lock acquired');
         }
     } catch (e) { console.log('Wake lock failed:', e); }
 }
@@ -1505,10 +1512,11 @@ function releaseWakeLock() {
     if (wakeLock) { wakeLock.release(); wakeLock = null; }
 }
 
-// Layer 2: Silent audio keepalive - tricks Android into treating browser as active media
+// Layer 2: Silent audio keepalive - Android treats browser as active media player
 let silentAudioCtx = null;
 let silentOscillator = null;
 function startAudioKeepAlive() {
+    if (silentOscillator) return; // already running
     try {
         silentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         silentOscillator = silentAudioCtx.createOscillator();
@@ -1518,22 +1526,23 @@ function startAudioKeepAlive() {
         silentOscillator.connect(g);
         g.connect(silentAudioCtx.destination);
         silentOscillator.start();
-        console.log('Audio keepalive started');
     } catch(e) { console.log('Audio keepalive failed:', e); }
 }
 function stopAudioKeepAlive() {
     if (silentOscillator) { try { silentOscillator.stop(); } catch(e) {} silentOscillator = null; }
     if (silentAudioCtx) { try { silentAudioCtx.close(); } catch(e) {} silentAudioCtx = null; }
-    console.log('Audio keepalive stopped');
 }
 
-// Layer 3: Visibility change handler - auto-restart mic when app regains focus
+// Layer 3: Auto-restore mic when app regains focus
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && voiceIsListening) {
-        console.log('App regained focus - restoring mic');
         requestWakeLock();
         startAudioKeepAlive();
-        if (voiceRecognition) { try { voiceRecognition.start(); } catch(e) {} }
+        // Restart recognition on the EXISTING object (no new permission prompt)
+        if (voiceRecognition) {
+            try { voiceRecognition.abort(); } catch(e) {}
+            setTimeout(() => { try { voiceRecognition.start(); } catch(e) {} }, 200);
+        }
     }
 });
 
