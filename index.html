@@ -864,9 +864,27 @@ function saveProfile() {
 }
 
 function loadData() {
-    const s = localStorage.getItem('ipsTrackerV3'); if (s) data = JSON.parse(s);
-    const t = localStorage.getItem('ipsTitrationV3'); if (t) titData = JSON.parse(t);
-    loadTitrationUI();
+    const s = localStorage.getItem('ipsTrackerV3'); 
+    if (s) {
+        try {
+            data = JSON.parse(s);
+        } catch(e) {
+            console.error('Failed to parse data:', e);
+        }
+    }
+    const t = localStorage.getItem('ipsTitrationV3'); 
+    if (t) {
+        try {
+            titData = JSON.parse(t);
+        } catch(e) {
+            console.error('Failed to parse titData:', e);
+        }
+    }
+    try {
+        loadTitrationUI();
+    } catch(e) {
+        console.error('Failed to loadTitrationUI:', e);
+    }
 }
 function saveData() { localStorage.setItem('ipsTrackerV3', JSON.stringify(data)); }
 function saveTitrationData() {
@@ -1010,7 +1028,34 @@ function logGainLossCheck() {
 
 function hasContentsDropdown(tank) { const t=returnTypes.find(x=>x.value===tank.type); return t&&t.hasContents; }
 function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';badges+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} const keywords=tank.voiceKeywords||[]; const micClass=keywords.length?'configured':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'" onclick="openVoiceKeywordModal(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; return '<div class="tank-card border-'+color+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+'</div></div></div>'; }
-function render() { document.getElementById('pump-tanks').innerHTML=data.pumpTanks.length===0?'<div class="empty-state">No pump tanks<br>Tap + Add Tank</div>':data.pumpTanks.map(t=>renderTankCard(t,'pump')).join(''); document.getElementById('return-tanks').innerHTML=data.returnTanks.length===0?'<div class="empty-state">No return tanks<br>Tap + Add Tank</div>':data.returnTanks.map(t=>renderTankCard(t,'return')).join(''); const jetSel=document.getElementById('jet-source'); jetSel.innerHTML='<option value="">Select tank...</option>'; [...data.pumpTanks,...data.returnTanks].forEach(t=>{jetSel.innerHTML+='<option value="'+t.id+'">'+t.name+' ('+t.bbls+')</option>';}); const totals=calculateTotals(); document.getElementById('total-brine').textContent=totals.brine; document.getElementById('total-packer').textContent=totals.packer; document.getElementById('total-mud').textContent=totals.mud; document.getElementById('total-recirc').textContent=totals.recirc; document.getElementById('total-freshwater').textContent=totals.freshwater; document.getElementById('total-other').textContent=totals.other; document.getElementById('system-total').textContent=totals.system+' BBL'; document.getElementById('jetted-total').textContent=data.jetsShift+' BBL'; document.getElementById('jets-hour').textContent=data.jetsHour; document.getElementById('transfer-shift-total').textContent=data.jetsShift+' BBL';
+function render() { 
+    const pumpEl = document.getElementById('pump-tanks');
+    const returnEl = document.getElementById('return-tanks');
+    if (!pumpEl || !returnEl) {
+        console.error('Tank containers not found, retrying in 100ms');
+        setTimeout(render, 100);
+        return;
+    }
+    pumpEl.innerHTML=data.pumpTanks.length===0?'<div class="empty-state">No pump tanks<br>Tap + Add Tank</div>':data.pumpTanks.map(t=>renderTankCard(t,'pump')).join(''); 
+    returnEl.innerHTML=data.returnTanks.length===0?'<div class="empty-state">No return tanks<br>Tap + Add Tank</div>':data.returnTanks.map(t=>renderTankCard(t,'return')).join(''); 
+    const jetSel=document.getElementById('jet-source'); 
+    if(jetSel) {
+        jetSel.innerHTML='<option value="">Select tank...</option>'; 
+        [...data.pumpTanks,...data.returnTanks].forEach(t=>{jetSel.innerHTML+='<option value="'+t.id+'">'+t.name+' ('+t.bbls+')</option>';});
+    }
+    const totals=calculateTotals(); 
+    const el = (id) => document.getElementById(id);
+    if(el('total-brine')) el('total-brine').textContent=totals.brine; 
+    if(el('total-packer')) el('total-packer').textContent=totals.packer; 
+    if(el('total-mud')) el('total-mud').textContent=totals.mud; 
+    if(el('total-recirc')) el('total-recirc').textContent=totals.recirc; 
+    if(el('total-freshwater')) el('total-freshwater').textContent=totals.freshwater; 
+    if(el('total-other')) el('total-other').textContent=totals.other; 
+    if(el('system-total')) el('system-total').textContent=totals.system+' BBL'; 
+    if(el('jetted-total')) el('jetted-total').textContent=data.jetsShift+' BBL'; 
+    if(el('jets-hour')) el('jets-hour').textContent=data.jetsHour; 
+    if(el('transfer-shift-total')) el('transfer-shift-total').textContent=data.jetsShift+' BBL';
+}
     // Gain/Loss display
     const lastCheckEl=document.getElementById('last-check-time'),elapsedEl=document.getElementById('elapsed-time'),truEl=document.getElementById('true-change'),rateEl=document.getElementById('rate-per-hour');
     if(data.lastCheckTime){
