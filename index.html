@@ -9,6 +9,7 @@
     <meta name="theme-color" content="#0d1b2a">
     <meta name="application-name" content="IPS Tracker">
     <link rel="manifest" href="manifest.json">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <title>IPS Fluid Tracker</title>
     
     <!-- App Icons -->
@@ -1432,7 +1433,78 @@ function showTurnoverReport() {
 }
 function hideTurnoverReport() { document.getElementById('turnover-report').classList.remove('show'); }
 function sendTurnoverReport() {
-    // Generate text version for sharing
+    const content = document.getElementById('turnover-report-content');
+    const btn = document.querySelector('#turnover-report [onclick="sendTurnoverReport()"]');
+    const origText = btn.textContent;
+    btn.textContent = '⏳ Generating...';
+    btn.disabled = true;
+    
+    // Create a wrapper div with proper background for the screenshot
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;width:400px;background:#1b2838;padding:16px;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,sans-serif';
+    // Add header
+    const header = document.createElement('div');
+    header.style.cssText = 'text-align:center;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #2d4a6f';
+    header.innerHTML = '<div style="font-size:16px;font-weight:700;color:#4fc3f7">SHIFT TURNOVER REPORT</div><div style="font-size:11px;color:#888;margin-top:4px">' + new Date().toLocaleString() + '</div>';
+    wrapper.appendChild(header);
+    // Clone content
+    const clone = content.cloneNode(true);
+    wrapper.appendChild(clone);
+    // Add footer
+    const footer = document.createElement('div');
+    footer.style.cssText = 'text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #2d4a6f;font-size:9px;color:#666';
+    footer.textContent = 'IPS Fluid Tracker — ' + (profileData.name || 'Report');
+    wrapper.appendChild(footer);
+    document.body.appendChild(wrapper);
+    
+    html2canvas(wrapper, {
+        backgroundColor: '#1b2838',
+        scale: 2,
+        useCORS: true,
+        logging: false
+    }).then(canvas => {
+        document.body.removeChild(wrapper);
+        canvas.toBlob(blob => {
+            const file = new File([blob], 'shift-turnover-' + Date.now() + '.png', { type: 'image/png' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    title: 'Shift Turnover Report',
+                    files: [file]
+                }).then(() => {
+                    hideTurnoverReport();
+                }).catch(() => {
+                    // Share cancelled, fallback to download
+                    downloadImage(canvas);
+                    hideTurnoverReport();
+                });
+            } else {
+                // No share API, download directly
+                downloadImage(canvas);
+                hideTurnoverReport();
+            }
+            btn.textContent = origText;
+            btn.disabled = false;
+        }, 'image/png');
+    }).catch(err => {
+        console.error('Screenshot failed:', err);
+        document.body.removeChild(wrapper);
+        btn.textContent = origText;
+        btn.disabled = false;
+        // Fallback to text share
+        sendTurnoverReportText();
+    });
+}
+
+function downloadImage(canvas) {
+    const link = document.createElement('a');
+    link.download = 'shift-turnover-' + Date.now() + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    alert('Report image saved!');
+}
+
+function sendTurnoverReportText() {
+    // Fallback text version
     const totals = calculateTotals();
     const now = new Date();
     let text = '📋 SHIFT TURNOVER REPORT\n';
@@ -1453,12 +1525,7 @@ function sendTurnoverReport() {
             const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
             let tanks = '';
             if (h.tankChanges && h.tankChanges.length) { tanks = ' [' + h.tankChanges.map(tc => tc.name).join(', ') + ']'; }
-            let fluidInfo = '';
-            if (h.tankChanges && h.tankChanges.length && h.totals) {
-                const changedFluids = [...new Set(h.tankChanges.map(tc => tc.fluid).filter(Boolean))];
-                if (changedFluids.length) { fluidInfo = ' (' + changedFluids.map(f => (fluidLabels[f]||f) + ' ' + (h.totals[f]!==undefined?h.totals[f]:'?')).join(', ') + ')'; }
-            }
-            text += t + ':' + tanks + ' True ' + (h.trueChange!==null ? ((h.trueChange >= 0 ? '+' : '') + h.trueChange + ' bbl') : '--') + (h.ratePerHour ? ' (' + h.ratePerHour + '/hr)' : '') + fluidInfo + '\n';
+            text += t + ':' + tanks + ' True ' + (h.trueChange!==null ? ((h.trueChange >= 0 ? '+' : '') + h.trueChange + ' bbl') : '--') + (h.ratePerHour ? ' (' + h.ratePerHour + '/hr)' : '') + '\n';
         });
     }
     if(titrationLog && titrationLog.length) {
@@ -1470,7 +1537,6 @@ function sendTurnoverReport() {
             text += '\n';
         });
     }
-    // Try to share, fallback to copy
     if(navigator.share) {
         navigator.share({ title: 'Shift Turnover', text: text }).catch(() => {});
     } else {
