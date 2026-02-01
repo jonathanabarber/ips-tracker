@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0d1b2a">
+    <title>IPS Fluid Tracker</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1b2838; color: #e0e0e0; min-height: 100vh; }
+        
+        /* Header - Compact */
+        .app-header { background: linear-gradient(135deg, #0d1b2a, #1b2838); padding: 8px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #2d4a6f; }
+        .app-logo { height: 30px; width: auto; }
+        .app-title { color: #e0e0e0; flex: 1; }
+        .app-title h1 { font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+        .app-title p { font-size: 9px; opacity: 0.7; }
+        .header-actions { display: flex; gap: 6px; }
+        .header-btn { background: #2d4a6f; border: none; color: #4fc3f7; padding: 6px 10px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+        .header-btn.turnover { background: #1565c0; color: white; }
+        .header-btn.newshift { background: #c62828; color: white; }
+        
+        /* Main Tabs */
+        .main-tabs { display: flex; background: #0d1b2a; }
+        .main-tab { flex: 1; padding: 12px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; }
+        .main-tab.active { background: #1b2838; color: #4fc3f7; border-bottom: 2px solid #4fc3f7; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Controls */
+        .controls { display: flex; gap: 8px; padding: 10px; background: #243447; border-bottom: 1px solid #2d4a6f; }
+        .ctrl-btn { flex: 1; border: none; padding: 10px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .ctrl-btn.green { background: #2e7d32; color: white; }
+        .ctrl-btn.blue { background: #1565c0; color: white; }
+        
+        /* Side Toggle */
+        .side-toggle, .modal-tabs { display: flex; background: #0d1b2a; border-radius: 8px; padding: 4px; margin: 10px; }
+        .side-tab, .modal-tab { flex: 1; padding: 10px; border: none; background: transparent; font-size: 14px; font-weight: 600; color: #888; border-radius: 6px; cursor: pointer; }
+        .side-tab.active, .modal-tab.active { background: #2d4a6f; color: #4fc3f7; }
+        
+        /* Tank Cards */
+        .tanks-container { padding: 8px; display: none; }
+        .tanks-container.active { display: block; }
+        .tank-card { background: #243447; border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 4px solid #546e7a; box-shadow: 0 2px 4px rgba(0,0,0,0.3); position: relative; }
+        .tank-card.border-brine10 { border-left-color: #42a5f5; }
+        .tank-card.border-brine119 { border-left-color: #1e88e5; }
+        .tank-card.border-aphron { border-left-color: #8d6e63; }
+        .tank-card.border-recirc { border-left-color: #ab47bc; }
+        .tank-card.border-freshwater { border-left-color: #26a69a; }
+        .tank-card.border-mud { border-left-color: #8d6e63; }
+        .tank-card.border-mixed { border-left-color: #78909c; }
+        .tank-card.border-trash { border-left-color: #ef5350; }
+        .tank-card.border-sandcat { border-left-color: #ffa726; }
+        .tank-card.border-processed { border-left-color: #ab47bc; }
+        .tank-card.border-packer { border-left-color: #ff7043; }
+        .tank-card.border-other { border-left-color: #78909c; }
+        
+        .tank-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .tank-name { font-size: 15px; font-weight: 600; color: #e0e0e0; }
+        .tank-name.color-brine10 { color: #42a5f5; }
+        .tank-name.color-brine119 { color: #1e88e5; }
+        .tank-name.color-aphron { color: #a1887f; }
+        .tank-name.color-recirc { color: #ba68c8; }
+        .tank-name.color-freshwater { color: #4db6ac; }
+        .tank-name.color-mud { color: #a1887f; }
+        .tank-name.color-mixed { color: #90a4ae; }
+        .tank-name.color-trash { color: #ef5350; }
+        .tank-name.color-sandcat { color: #ffa726; }
+        .tank-name.color-processed { color: #ba68c8; }
+        .tank-name.color-packer { color: #ff7043; }
+        .tank-name.color-return { color: #ffd54f; }
+        
+        .tank-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+        .badge-brine10 { background: rgba(66,165,245,0.2); color: #42a5f5; }
+        .badge-brine119 { background: rgba(30,136,229,0.2); color: #1e88e5; }
+        .badge-aphron { background: rgba(141,110,99,0.2); color: #a1887f; }
+        .badge-recirc { background: rgba(171,71,188,0.2); color: #ba68c8; }
+        .badge-freshwater { background: rgba(38,166,154,0.2); color: #4db6ac; }
+        .badge-mud { background: rgba(141,110,99,0.2); color: #a1887f; }
+        .badge-mixed { background: rgba(120,144,156,0.2); color: #90a4ae; }
+        .badge-trash { background: rgba(239,83,80,0.2); color: #ef5350; }
+        .badge-sandcat { background: rgba(255,167,38,0.2); color: #ffa726; }
+        .badge-processed { background: rgba(171,71,188,0.2); color: #ba68c8; }
+        .badge-packer { background: rgba(255,112,67,0.2); color: #ff7043; }
+        .badge-other { background: rgba(120,144,156,0.2); color: #90a4ae; }
+        .badge-estimated { background: rgba(255,167,38,0.3); color: #ffa726; border: 1px dashed #ffa726; }
+        
+        .delete-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #666; font-size: 18px; cursor: pointer; }
+        
+        .tank-inputs { display: flex; gap: 10px; align-items: flex-end; }
+        .input-group { flex: 0 0 auto; }
+        .input-group.inches-group { flex: 0 0 80px; }
+        .input-group.contains-group { flex: 0 0 100px; }
+        .input-group label { display: block; font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
+        .input-group input, .input-group select { width: 100%; padding: 8px; border: 1px solid #2d4a6f; border-radius: 6px; font-size: 16px; background: #1b2838; color: #e0e0e0; }
+        .input-group input.estimated { background: rgba(255,167,38,0.15); border-color: #ffa726; }
+        
+        .bbl-mic-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .bbl-display { text-align: right; min-width: 60px; }
+        .bbl-label { font-size: 10px; color: #888; text-transform: uppercase; }
+        .bbl-value { font-size: 24px; font-weight: 700; color: #ffd54f; }
+        
+        .full-btn { position: absolute; top: 10px; right: 40px; background: #ff9800; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; }
+        
+        /* Jet Section - Matching dark aesthetic */
+        .jet-section { background: #243447; padding: 12px; margin: 8px; border-radius: 8px; border: 1px solid #2d4a6f; }
+        .jet-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #4fc3f7; text-transform: uppercase; letter-spacing: 0.5px; }
+        .jet-toggle { display: flex; background: #0d1b2a; border-radius: 6px; padding: 3px; margin-bottom: 10px; }
+        .jet-toggle-btn { flex: 1; padding: 8px; border: none; background: transparent; font-size: 12px; font-weight: 600; color: #888; border-radius: 4px; cursor: pointer; }
+        .jet-toggle-btn.active.out { background: #c62828; color: white; }
+        .jet-toggle-btn.active.in { background: #2e7d32; color: white; }
+        .jet-row { display: flex; gap: 8px; align-items: center; }
+        .jet-row select, .jet-row input { flex: 1; padding: 8px; border: 1px solid #2d4a6f; border-radius: 6px; font-size: 14px; background: #1b2838; color: #e0e0e0; }
+        .jet-btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; color: white; }
+        .jet-btn.out { background: #c62828; }
+        .jet-btn.in { background: #2e7d32; }
+        
+        /* Totals Bar */
+        .totals-bar { display: flex; justify-content: space-around; padding: 10px 8px; background: #243447; border-top: 1px solid #2d4a6f; flex-wrap: wrap; gap: 6px; }
+        .total-item { text-align: center; padding: 6px 8px; border-radius: 6px; min-width: 48px; background: #1b2838; }
+        .total-label { font-size: 8px; color: #888; text-transform: uppercase; font-weight: 600; }
+        .total-value { font-size: 15px; font-weight: 700; }
+        .total-value.brine { color: #42a5f5; }
+        .total-value.packer { color: #ff7043; }
+        .total-value.mud { color: #a1887f; }
+        .total-value.recirc { color: #ba68c8; }
+        .total-value.freshwater { color: #4db6ac; }
+        .total-value.other { color: #90a4ae; }
+        
+        /* System Totals */
+        .system-totals { display: flex; justify-content: space-around; padding: 12px; background: #0d1b2a; align-items: center; gap: 10px; }
+        .system-total { text-align: center; }
+        .system-total-label { font-size: 9px; color: #888; text-transform: uppercase; }
+        .system-total-value { font-size: 20px; font-weight: 700; color: #e0e0e0; }
+        .system-total-value.jetted { color: #ffa726; }
+        .reset-shift-btn { background: #2d4a6f; border: none; color: #e0e0e0; padding: 8px 14px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600; }
+        
+        .report-btn { display: block; width: calc(100% - 24px); margin: 12px; padding: 14px; background: #1565c0; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        
+        /* Gain/Loss Bar */
+        .gain-loss-bar { display: flex; gap: 8px; padding: 8px 10px; background: #243447; }
+        .gl-box { flex: 1; background: #1b2838; border-radius: 6px; padding: 6px; text-align: center; }
+        .gl-label { font-size: 9px; color: #888; text-transform: uppercase; }
+        .gl-value { font-size: 14px; font-weight: 700; }
+        .gl-value.gain { color: #4caf50; }
+        .gl-value.loss { color: #ef5350; }
+        .gl-value.neutral { color: #888; }
+        .gl-sublabel { font-size: 8px; color: #666; margin-top: 2px; }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: #666; font-size: 14px; }
+        
+        /* Titration Styles */
+        .titration-container { padding: 12px; padding-bottom: 80px; }
+        .tit-card { background: #243447; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .tit-title { font-size: 12px; font-weight: 600; color: #4fc3f7; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #2d4a6f; padding-bottom: 8px; }
+        .tit-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #2d4a6f; }
+        .tit-row:last-child { border-bottom: none; }
+        .tit-label { flex: 1; font-size: 14px; color: #e0e0e0; font-weight: 500; }
+        .tit-input { width: 80px; padding: 8px; border: 1px solid #2d4a6f; border-radius: 6px; font-size: 16px; text-align: center; background: #1b2838; color: #e0e0e0; }
+        .tit-unit { width: 50px; font-size: 12px; color: #888; text-align: center; }
+        .tit-result { min-width: 90px; font-size: 18px; font-weight: 700; color: #4caf50; text-align: right; }
+        .tit-result.calculated { background: rgba(76,175,80,0.15); padding: 4px 8px; border-radius: 4px; }
+        .tit-note { font-size: 10px; color: #ffa726; margin-top: 6px; font-style: italic; }
+        .distilled-warning { background: rgba(255,167,38,0.15); border-left: 3px solid #ffa726; padding: 8px 12px; margin: 8px 0; font-size: 11px; color: #ffa726; border-radius: 0 4px 4px 0; }
+        .fluid-select { margin-bottom: 12px; }
+        .fluid-select select { width: 100%; padding: 12px; border: 1px solid #2d4a6f; border-radius: 8px; font-size: 16px; font-weight: 600; background: #1b2838; color: #e0e0e0; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal.show { display: flex; }
+        .modal-content { background: #243447; border-radius: 12px; padding: 20px; width: 100%; max-width: 320px; max-height: 90vh; overflow-y: auto; border: 1px solid #2d4a6f; }
+        .modal-title { font-size: 18px; font-weight: 600; color: #4fc3f7; margin-bottom: 16px; text-align: center; }
+        .modal-group { margin-bottom: 12px; }
+        .modal-group label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
+        .modal-group select { width: 100%; padding: 10px; border: 1px solid #2d4a6f; border-radius: 6px; font-size: 14px; background: #1b2838; color: #e0e0e0; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 16px; }
+        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .modal-btn.cancel { background: #2d4a6f; color: #e0e0e0; }
+        .modal-btn.confirm { background: #2e7d32; color: white; }
+        
+        .equalize-info { background: rgba(255,167,38,0.15); border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #ffa726; }
+        .equalize-tanks { margin-top: 8px; font-weight: 600; color: #e0e0e0; }
+        .equalize-buttons { display: flex; flex-direction: column; gap: 8px; }
+        .equalize-btn { padding: 14px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .equalize-btn.yes { background: #4caf50; color: white; }
+        .equalize-btn.no { background: #2d4a6f; color: #e0e0e0; }
+        .equalize-btn.cancel { background: transparent; color: #888; }
+        
+        /* Report Screens */
+        .report-screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1b2838; z-index: 200; overflow-y: auto; }
+        .report-screen.show { display: block; }
+        .report-header { background: linear-gradient(135deg, #0d1b2a, #1b2838); color: white; padding: 16px; text-align: center; position: relative; border-bottom: 1px solid #2d4a6f; }
+        .report-header h1 { font-size: 14px; margin-bottom: 4px; color: #4fc3f7; }
+        .report-header p { font-size: 11px; opacity: 0.7; }
+        .report-close { position: absolute; top: 10px; right: 10px; background: #2d4a6f; border: none; color: white; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+        .report-body { padding: 16px; }
+        .report-section { margin-bottom: 16px; }
+        .report-section-title { font-size: 11px; font-weight: 600; color: #4fc3f7; text-transform: uppercase; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #2d4a6f; }
+        .report-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2d4a6f; font-size: 13px; }
+        .report-row-label { color: #e0e0e0; }
+        .report-row-value { font-weight: 600; color: #ffd54f; }
+        .report-totals { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .report-total-item { flex: 1; min-width: 70px; padding: 10px; border-radius: 8px; text-align: center; background: #243447; }
+        .report-total-label { font-size: 9px; color: #888; text-transform: uppercase; }
+        .report-total-value { font-size: 18px; font-weight: 700; }
+        .report-system-totals { display: flex; gap: 10px; margin-top: 16px; }
+        .report-system-box { flex: 1; padding: 14px; border-radius: 8px; text-align: center; }
+        .report-system-box.total { background: #0d1b2a; color: #e0e0e0; }
+        .report-system-box.jetted { background: #e65100; color: white; }
+        .report-system-label { font-size: 9px; opacity: 0.8; text-transform: uppercase; }
+        .report-system-value { font-size: 22px; font-weight: 700; }
+        .report-timestamp { text-align: center; font-size: 10px; color: #666; margin-top: 16px; padding-top: 16px; border-top: 1px solid #2d4a6f; }
+        .report-logo { text-align: center; margin-bottom: 10px; }
+        .report-logo img { height: 40px; }
+        .report-company { text-align: center; font-size: 11px; color: #4fc3f7; font-weight: 600; margin-bottom: 14px; }
+        
+        /* Voice Entry Styles */
+        .voice-master-btn {
+            width: 36px; height: 36px; border-radius: 50%; border: none;
+            background: #455a64; color: #888;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .voice-master-btn svg { width: 20px; height: 20px; }
+        .voice-master-btn.active {
+            background: linear-gradient(135deg, #2e7d32, #1b5e20);
+            color: white; box-shadow: 0 0 12px rgba(46,125,50,0.5);
+            animation: pulse 2s infinite;
+        }
+        .voice-master-btn.heard {
+            background: linear-gradient(135deg, #1565c0, #0d47a1);
+            color: white;
+        }
+        .voice-master-btn.confirming {
+            background: linear-gradient(135deg, #f57c00, #e65100);
+            color: white; animation: pulse 0.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .voice-status {
+            position: fixed; top: 60px; left: 10px; right: 10px;
+            background: #0d1b2a; border: 1px solid #2d4a6f; border-radius: 8px;
+            padding: 12px; text-align: center; z-index: 100; display: none;
+        }
+        .voice-status.show { display: block; }
+        .voice-status-main { font-size: 18px; font-weight: 700; color: #4fc3f7; }
+        .voice-status-sub { font-size: 12px; color: #888; margin-top: 4px; }
+        
+        .tank-mic-btn {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: #1b2838; border: 2px solid #455a64;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .tank-mic-btn svg { width: 16px; height: 16px; }
+        .tank-mic-btn.configured { border-color: #66bb6a; color: #66bb6a; }
+        .tank-mic-btn.inactive { color: #455a64; }
+        .tank-mic-btn:hover { background: #2d4a6f; }
+        
+        .tank-card.voice-highlight { background: #1b5e20 !important; animation: voiceFlash 0.5s ease-out; }
+        @keyframes voiceFlash { 0% { background: #4caf50; } 100% { background: #1b5e20; } }
+        
+        /* Voice Keyword Modal */
+        .voice-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); z-index: 300;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .voice-modal-overlay.show { display: flex; }
+        .voice-modal {
+            background: #243447; border-radius: 12px; padding: 20px;
+            width: 100%; max-width: 400px;
+        }
+        .voice-modal-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .voice-modal-subtitle { font-size: 13px; color: #888; margin-bottom: 16px; }
+        .voice-keyword-list { margin-bottom: 16px; max-height: 150px; overflow-y: auto; }
+        .voice-keyword-item {
+            display: flex; align-items: center; gap: 8px;
+            background: #1b2838; padding: 10px 12px; border-radius: 6px; margin-bottom: 8px;
+        }
+        .voice-keyword-item span { flex: 1; color: #66bb6a; }
+        .voice-keyword-item button {
+            background: #c62828; border: none; color: white;
+            width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-size: 14px;
+        }
+        .voice-keyword-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        .voice-keyword-input {
+            flex: 1; padding: 12px; border: 1px solid #2d4a6f; border-radius: 6px;
+            background: #1b2838; color: #e0e0e0; font-size: 16px;
+        }
+        .voice-keyword-add-btn {
+            padding: 12px 16px; background: #2e7d32; border: none; border-radius: 6px;
+            color: white; font-weight: 600; cursor: pointer;
+        }
+        .voice-record-btn {
+            width: 100%; padding: 14px; background: #1565c0; border: none; border-radius: 6px;
+            color: white; font-weight: 600; cursor: pointer; margin-bottom: 12px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .voice-record-btn svg { width: 20px; height: 20px; }
+        .voice-record-btn.recording { background: #c62828; animation: pulse 1s infinite; }
+        .voice-modal-close {
+            width: 100%; padding: 14px; background: #455a64; border: none; border-radius: 6px;
+            color: white; font-weight: 600; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEUAAAA8CAYAAAAwoHcgAAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAAqhElEQVR4nF27d5hk13ne+TvnpspVXanzdPdEzGCQZwaRIEiCYqZEkWuSC8orBotrrmx5JUte72NbFC2udteWqPBIekh5HytYpChSWhIUmMQIAiAyMAiDCegwMx2quqq6crjh3LN/3DsNeP+ap89U3Vv3nu+83/e97/uJ1dVVQhVQKpUpTE3h+x5bW9sEQUC1WiGXy+N5Ltvb0dr0dJVsNo/rTtjc3KTd2aPe3NWZTFbMVOcwhEBKwfz8PI6ToD/oUa/tYkjJ/Pw8tuPQ7XbY3W1gWhYLC/NYpsXe3h7NZhPbtllcXMAwTFqtJnutPWzHYXFxASkNGo06nU6PVCrF3NwsQki2tjap1ev0h118z+PGG25EYNLpdMhmM8zOzgGane0dBsMhuVyO6elpdBiyubWF67oUCnnK5QpaK8xABSgVgAAhBIZhoJQiCAKEEP+/NYXW0efGkyGXr66jgSOHjoiDKyuoQLGxcQWt5f53BYIg8NGGiZCvratQIZRAxvc1TQM/CDBNE8OIPqc1+IHCtEKkIRFEa0EQEIYKKQ0ATNMinUozNTXFeDLk7AvPkcsWKBUrCBFdCwRhqAgCH9DR74ify/dftyYMRKOxiwakEAghAY0ONRqNlAKQAIShAg2WY9Lptrlw8TxTxTIrB5axTIswjD6jNdELBkAgBCgVIgTR9eP/C1W4vxFCCDrdLoV8gVCHSClBQxiGhGGIYRhIKQhDjSZEhyDltYfVhDokVBpDSqRp0N5rcvnqOoEfcvy6E2SzOVQYosOQMNRIKZEi+iHh/ppASgMhQZbLZSrlCgD1+g7dTodSuUS5XCEIAnZ2duj1epTLFcqVCleubvD82ef0/Nwip285TblUpd8fsLW1het6lMtlyqUyw8GQWq2G7/tUKhXK5Qq9fo/aTh3f9ylXKpRKJcbjCefOvcIHP/ghbRiScqlMs9GkVqthGJJqtUqhkKPVarG7u4tt2VQqFXK5HI1Gg1qtjmPbVKtV0uk0O9s7KAWnbr2d6ekKL547y/rGGq3mHtlslkqlgm1b7NRqNJst8vk8lUoF07RoNBrstdpI3/dRKtph07IwTBPf91BKAQLbtjAMgzBUvHzuea5cuaKPHDoqyqUKSimUCpDSwHHs6Fgon0D5GKaBbdtorVEqIIiPhmWZceSFTCYTUqkkn//C5/XTTz3Fb3/2sxqiKDBNM/6uwvcDDMPEti20JloLPCzLxLZtwvhzgVI4jsO1a5y8/mbmZ+e4fHldj8bD+LvR0bMsE9O0CIIgfv4oIoUUiPW1VUKtKRQK5HJ5gsCnXq+jgoBiqUQmk0XrkOeef4qdnR19y82nxMLCIsPhkMZuAw1UqxWSyRSj0YDd3QaWaVGtVrFsm+GwT6vVxjAMKpUytu3QH/RpNpoUi0VeeeUc973pzVpKiZSSb33zIfGGN7wBELTbbXq9HrZtU61WMAyT9t4evX6PRCJBtVpFCMleq0Wv3yOZTDI9XQUku7t1hsMR+XyOVqPGq2ur+uChIyKdypJIJKhUKoSholaLnlUaEhUfael5HuOxC5p4J208z2M8cRFEa2trF7ly9aqenpkT5XIFKQ1M02Tieriut/+3YZj4ns9kMkEa0ZppWriuy2Qyif82kUIymUzwPI//+B8/q1UQYEgDdzLhc5/7A22aFqYZRdR4MsH3fRwngWmaKKVw3QlBoLAsez+iJhMXFShMM1oLtWY8nuC5Hsevv4nl5RXx6upF3e11EDJKHqZpEYYhQZxYlApQgUI0mw20JgZVEYGgjsDHtm0azRpnzz6njxy5TszPLUAEywBorSM4FddAVaK1IgzDCLTi9WsAbBgGWmtCpTBMk8efeJx3vevd2pBmBPBoDMPg0UceEcePH2c8HkOc7QzTROvwddeS0f3CEI0mDKPsce05dPwMUoCQBqFWvPTSC3S7HX3q1BkxP7eICgK2trfwPI9UKk0ikUDrEFkqlSmXy2itqdVqtDsdisUilUqFbq/Ns889rWfn5sWNN9xMqVTGdT12dnYYDYcRqJbLjMdjdmo7jMcjSqUylUqV0WjI9vYOo9GIcrlCpVKh3+uxs7OD67kUi0W+8+3vaLTe323TNPA9j//653+h+/0+AJVqhcJUnlarwe5uHcdxqFQqZDIZdnd3qdXr2La9v1av71Kr1Ugmk1QqFZKpFLV6jb3WHjffdCuOkxLnz7+MCnyEFNEmaU0i4VAsFimVykjf9wiVAsCyrP2axHXHvPjyWZ1O5ziwuByFllJIKbAdOz6DKl4zsC0bISDcX5M48eeuga2QEsu29r/7wosvRqCrFdKQhGF0pi9cOI8KomtcC29pRNcLQ00YhqggwDSNGHz1PujbtoVt2yilCEOFUiGWZSOlJJ1Oc+ttt9Hu9PTzLzwTR7nAkAZKhXEt5mFub2+jlKJQKLCysoLve9RqddY3LjLojXjLW+4XuVyOK1euoDWUSlOUy1UmkzGXr1xGICiXS1SrVUbjIZevXEEImCoV8XyPtfVVet0uqWSaynSZZCJFr9elvlvbD1kv8AkDhTAMSsUpFhcXmZ2bpb5bZ219jYSTYHlphW6vw/rGKgDlUpWDBw+ilKLVatFoNEkkExw4cAAhBM1mk93dBql0kpXlJQB2ajWUUhw4sCwurV7SpuWIE9edRAhBv9/jypXLEdZ4no/n+xRiUDVNk3b7Eltb2/rWW86IcqmC73v4XoCKq0jTNDENE3fiAsSgZWLFoBqEIb3BFUaDLsNBh163zdLSIXKTLJcuXeTK1U198vqT4gMf+ABPP/U0hiFwPZdkwmYy8fnExz8uEIJaq4kpIvwajoZs72wjCBkOB6wPepiOyUxlhlApxuMxlm1hWTYAgVKMxmOchINpWgCoQDEcDlhaXCRQvrh06YI+fvS4sJwEQggmExfTMhCtVjMGzLj8VgGPPPqwzueL4tRtt+F7PkJGR0ATRlCso0o1WnsNaKUUNDsdAs9DeSNG4xH9fo/+YKhB0u122dy6Sr/X5/773ybuf8tb+eJf/7X+wn/5M4RWTE1N8Ysf/RjvfMe7xNXtTaQMcZwkKlCMRkMEUZYZjQZ0ez2Gw6FeOXhULMwtoEKFIWVclUfJQr++ekWj4krdMk263Q5PP/OUXlxYEEeOHCcMg/0WRmgdAoJGY5dOp0ujUWN9Y12/853vFjoM2dmpk06nWV5ejkJwZ4dWq0Uul+fAgUWAqDFstymVSlgJi95ei8lkzGA4oD/oMxyOdLvdwZ2MsW2TMDSYBBIrkaK2u8falW3Goz5LC4scOrjEoN/jyKFFbrjuoKhUSliWTafbZdAfMJ6MGY2GjIZj2p09nUhmxb333Es6nWE8HrGxcRkhBAcOLJJKpRkNoyMtpWBlZQXbduh22tR36/T7fVbXLunrjl0vZmZnqFamo17K9/04fUa7v9us6yNHjop8Lk+z2cSyLKQ0CAIfISSGlDFwibjqjd6uZVlIIXAsG0+pOHwEQRDt4PzcvNi42tA/fuIlnnv5Io29FmGoSGXSaNOh2ekyXVgjcF0mIxdP+VSLeX3PmZt4/3vuF3ecuYV0KmQwHKDjSDBNi9mZ2Qh441rDNE2EEPtrSqmohnodmEa9nsHUVIlCoSF2GzvMzc3ug7PY2FjH83xmZ2fY3LrCCy+c1adP3SlCpZgqTu1TB7u7DUKlKJVLpNMZJuMRu40GIKhUSiSTadzJhMubV9E6RIce/X4fQwg2Nuv6yw/+kO/+6AlymTQ3nTzCdUcPkkwlmXg+5zc2+dFjz/Dut97DocVp0onoyJy7uMpPH3+B7Z0d7n/j7fyLT3xInDi2zG6jSa/XQwWKO++6B3fssdfpkEmnoioXQaPZZDAYkk4nqVarcW+3y3g0IpvLUiqVAc358+c4f+G8vuOOO4UKNFqHmJ7nEQQBvh+wurqq5+cWBMDEc/d7ENC4rrufak3TxLQsPD+Iu9gIoEdaIwyBYxiMRiHFqSJffejH+rOf+zzZVIpPPPA+ZufKvHRxlYefep69zohup4+Rz3Pojrv57hMvoH8wZKqQZ65S4Mbjy3z6f/skrVabz//ll3n3L3xK//LHH+CfPfA+4XsezVZLnz37rFhYWEIFUX91DWh932fiTkilk/tA6/s+rueRiat3jSKTzZPJpMXlyxvMzizg+S6i0WwgpUGn3eLJp36qz5y+QxQKxYjviOkEGXMbYaji1l+A0Ph+iGkYSAlKaQKtMA3NeDSg2+nzmf/8/+ivfu07fOIXP8jp207wrR8+ypMvXKTbH+CYJpY0MNNZ7v1ffg09vYR79SKPfuH30YMRbuDh+opiIcXdt53gnfffy7nz6/zuH/85d526if/wa58QAp/dRktXK1Vx6y2ncZwEQRA1uFEiiH6n1jrmYvR+QtA6igrHSbK1fZlXXjmn77n7jUJKA6G1AiSPPvYw/V6H647fwIHFRaQ0qdd3aLXapFKpfaDd2t6k3+uj0bQ7bQqFPIQQhCHz89NYpsHeXoeP//Jv6R8/9gz/6TP/ipHv8af/7ev0ekMymST5hQVwsnjjEWahyMmf+wieFqRkyIt//5f47RbJXB41GdO5sk5/0CdpST7+4fdx8thhfuM3fw/bsfjd3/qXmBJarRYnTlwvisUKTz/1lK7Xt3jve98nVlYOMxj02dzcAmBlZQXHcej3u1y9uoVlWRw+fBjXHfHQQ1/Xt99xj1iYP4AIAh/f9/na1/9OHz1yVExPz1EulzBNm729Fp12h2QqyfTMNFJIms0Wg+GA2u4O7nhINpMhlUqTzqSZmiqgAsUvfurf6R/8+Fk+/4ef5rs/eZgv/f13qVRnMQyJ7425+SP/HFk9hNABoRW164a00YHCMjQJC5xsit6r53j0T/4IO51CqYBWvc59d93ML33k/fzvn/lDhGny+5/5FbHXrOu9vTaD4ZDxeMRoNGR+fo5P/tIvizCE7e1tDMNgerqC4yQZDgc0Gg2kNJmbm8VxHB7+yfcAyT1334es1+qcP3+eIPA4fPgw1eo0tVqdjY3LWJbNysGDFItTbG1ts7a+TjqdIpFI0Go2tG3ZMZ4YSCmxDItP/86f6G889CP+5HP/nu88/BO++LXvMTszi9AQBgESMEwDT2m8QCFDsLREKo0pJGEo8AKN54Fp2AhpEvoKHYbMzc7xyNPn+N3P/xX/16f/Vwa9IZ/7wld0Pl8QaHBsG8uySKXSrK+t88MffJ/xeMzS0iKLBxZpt7usra0xmbgsL68wPz+LaUZN6tLSCo1GXV+5soEZBAGN5i7ValXkckXCUOF5UfQIomYtDC0m4wnoEA1cXL1EGPjoqGYjCBTZTIbvfP8x/Udf+BL/5ld/iSeefYa/ffD7zM3O4HsKiUSEAqEll/7xQVShiO2kEMi48Zagw6gXERrPGyI7bUxDQqiRgKsU5WqZFy9c4c+++DX+z//wK3ziV36T648e0GduXGFrq7bP7SaTSX7y6I/1kaPXiVKpFFe5AZ73WsJAGxiGAQhKxTIqUDSbTczCVIHRqK+nK9Oi2+0SBAHF4hRaawIV0Gq1EALK5RJCgO8HaCTSNNFa7Xe33d6A3/69P+NNb7yTcjHHH//BV5menolerpCEWqFlVLPUXz3HzT/3AIXrbkMFAbaTQCufdCpJqDwSqQSXn3uCx7/0FxTzJUIhIJRIAwJPUSyX+NETL3DiyCE++T/9PH/+t9/g1C3/GssyGE80AnA9j6UDyySTCfb29hACUskkCScRNZYqQIWafqdPGGoMA1LpFL7vIdOZJJ7n4TgJGo3d/cr0Gkdbq9fp9fuUyxVKpQruZMTCTJVidU6EMTWYSaf5xrd+pC9tXOV/fP/b+euvf5tkNosKfYQI0VqhCAmFJhAKJ58nNbuMShZpb13lhe9/Ayed5rGHvkpz6yoyW6aydIRMJhd1zlKAIUAItJQEgaJUmOLPv/x1bjh5nNnpGb7x3ccolYoRFRCGHDp8lI9+7JdEqVRhp7ZDs9kkmUyRz+VIJhMYMTXabu+xs7MTXbNYFP1BD9lqNRmPJ2SyWQzDwLJMPG8Sca+GQcKJzqnvu5EUgkAKg+X5RVLpHDoMmYwn/NVX/oE333OKS+sbXNrcIWmZ6ACElgjDwBQRk6Z8hZHIgJNBDbpUSiX0sIPbaeK26uSnSky6HZLZHMl0htD30Sog1CGEGnSA1gohIdCCH/z0WT7w3rfyjz/+KSNfY0qJYVq8590/K3LZHJ7nknASmKaF1uE+BRKG6r+rsQzDJJsr0G7vaXN9/TIqUJRLFXL5PL7vs7NTIwhCyuUiy8vLeJ7P5uY2KvQplUpUKlUGoyGj1R7lqQKvXFrXF9Y2eOfb3sRDP3gYJ2njhypuxKIdlqbA1DauOyCVL2Kn82yffYxSuczNb3sfwWTMHe/9ML3dOuHmZY694c2kqzOMmk2shBmxgcKIJJQwxNOKTD7LY0+d5bYbriNp2zz74irXL5fpbG1xdfMqWgsMKVhaXoqaPTRSGgyHfTY2NpCGyXR1GsuyGAyjYxQECjkZTTANE8M0MAwzjhQf13UBsZ9dgiDAdf1YuDIZDAf0uj3t2A5Pv3CBqXyBMNRs7zRIWwmEr9FKRViiox5JhwodhGRLMyAl7dULPPO1L6GljUoU0GaS5/7+i7QuvoI0LHKVatSLIBBaQ6AQCiQStAANvV6PC5fWuen4MZ59/jzpTAa0YvPqZe1OxhHmGSZWzBdHBLmB63q4ExfTjGgPNEhpYBgSM9SKRDJJGGparSZCQHEqOpu+79NqNUFAsVjc5yQ6nTbNRhPfc/GDgOdeXuXYkcO0Wk0C1yflJFGWgR8oQhRCC7QXIkOJxCYxVWHc62HYSZS0aW9eJj13kL0rq+Ak0ckUk9GQ3OwCwjDRgUJqiVAapCAkxNAa4WkkBq9cWOPGE0c4e36dUESbWKvtUKlUYql1d188i+gBTaVSReuQTqeDQCANgyhLCUxNSDKZBAS12g7JZIqDKysgZFTRNlukMxmWlpYAwcblDdY3Nuh129o0JN1en9WNq9xz+mZanQ7SMIAQaYJjSYIgUgh13B6YCQc7N4U3HrFw+l7mT9+LRBL0ByTzFc488M9wUjajwZDUVAXTshBBiJYGmIAhEMqIqUuJYyfYqTW48/TNuIFirzsk6aTotNtcvPgK09VpPD/CwgiWQvKFPHOzcwCsr68xGo2ZmZmhVCoShiHmZDJBI2JONZIRXM/FNC2EkFiOg4i50ieffopHHnlYO5ZBJpulVJpiPHEZTVwsU9DcizSaiMqJCRtDogMFUuCpCVa+gJlKMmptcvHbX2f60HWs3PUWfHdCMpPk0qPfo7F2gXs+/HGcfBE7ncXtd5GECFMQah2xElYkvUoTBq6LbZtYtslus810NsFep8tXvvI3WhqShYVF3vSmt4pMnBikjPVtHUZ8bhgCGs+L4EEORyM9Gg8RQrOycpBqtcrOTo3Lly/jOA4HV1Yol0rU67tsb27pdmsXIaLzJ9C4vkcYoRiD4QhpCJDX2DiN0CCQSG0QCkGqMIVtJ+hvrIE7Yv6GG2hvXiL0+3Q2L3LyzrvxhmN2zr+EncqSLJUJibpvHfK6xi7CcG1IPK3jjZQMRmNMKxLenUSCiTvhpZdfYjgcMD8/z9LyEslEgsuXr7C1tUOpVGJleRkpJdvbNaQQyFBrJq6LRsQp2YpB9Rr/amJZFpOJi2WZGJYV0Xo6jDBGhVojYtZeoYnCWsRgqNFoEYIZPVhmqgQqQI2HnHzPB+ju7HD58YdxUg7nf/gd+jtb3P0/PMCg20EFAZnpGUKtCIVGy6jrRV7Laq+9JNf3Y00pel8atf/yHNshjLUiwzCRUuL57j4ptb/muVHWzKQzhCokVCF7e3t0ez2mpqaoVKoopdjb26PX6zM1VSCTyUYBwGtqvWM7QgqB606wTANEJKhFByiKoNAARYAG7HSOcb/LzPU3Yoaw/uN/xDYNZBhiWyZPPvgVpFIcufV2xp09UoWpiHcNBSIEHWiEAq5FS6gx4lsppUkmkvH9FWiNRCOkoFDI0+/1aLVaBIGiUq4yNVWgF69prUmlU4xGI2S1UhVaKXzPo16v0263KZamKJfLUUUbuw4KhQK5QgE//mwYKHSosS2LpG0wHo3IZFKEQRi9Cy0ROno5QmtQAkNITCuB9nxC1+WVH34L3x1Euxr4KBXiDYc8/a0HUe6YwPcw0zmk6USZJ9CIUAISAkCBCgNs08QxE/h+QDrloMLohYxGEyZugGWaTE/PMBqN2d7exp24lMtlSqUi3W6XWq0GQCKRYDIeY2YzOcajMcPREMexMQwjUvkjKwm24+wfqYMrK7z5/neKYb+vA98lUC6ObVIs5Gl3h5Ryuch3Euq4WIr2LKopNIlUFsN0CFwXoRUHTt8d+UJME9/1OHTnfaA1oZAMJ2Msw8JyEjiJJMFwiDCi5lETImVEHgVeQCGTjpQIz6OQSzDqN8lm8hw9Mk+xVOLokWMin83TmDRJJBxEzC/rMCLJLMtECkGv14+yjwoCRuMhvu9x8OAhPM+jFle0xWKB5eXl2PK1idaaO0+dJpVOi6tbmzzy8A+141gcPrTCsy+8yL2nbkDrMLppEP1oLTTSNAkmE+xUmlAK0AGTXodJt41hmDjpLIlUFrfdgMDH90N0dRozkcJAkCzk6Y97CBl1zNfkFakFvqeYny7T2tsjmU1SmspyYXuD60/ewJvf8lZhSoNsLku/36NYnKJarTAcjri8cRnDNKhWy1iWxXg8Zn19DSfhIO24Y2zuNWMPiI3n+UzGo/3qNUrTHqPROJI/gWwmjZ2I6L9TJ4+yuVUn4STIJFO4HvjaQGkJ8TGSaJxMjlBr3NEA03YYtpus/vSHbL3wDOiQreee4cKP/5FRv0MincIbdNFC4OSn9lUDKa+J+4AUBEpx/NhBXrmyzqGDB7BE5GwqTE0xHo4Yjye4rksYKsy4apdS4roTPNfFsixMM/K47NS2dcJ2MKvVaXL5PBvrG/r64yeF7/sRxUjkLWu1WggpKBWjKtfzPBqN3fgtT4vhaMQNx5eFY9l6t93j2JFlHn32HOlshjDQSAXIEC01lpMCLdi98CKmYbNy653kq7O0NjfQwQSzUODYmTsoLSxx6ac/QQjJsTe9DSc7hZYy4lsBHUqE0KgwpFIusLQyz99883v80/e/jfZek3Q6xeHDR8RUsRhFrohMPN1uL8ZnTaVaQQhBt9tDCInnT2jv7XHs6DFkPl9g5eBBUdvZZnf3GnUwFVEHKqBer9Pr9ojcCZW4YdzB93wW5hcYjV3mpovcf+/t/OTps9x+6gZMUyB1bNgQAAph25jJNL47RgQ+/e11Vh//EalcgQM33ILruqzcdoZUIsG5bz9If+0iatjHH48wM5mIv0GD1hgCLNOgP+px9+03cGljC8eyObEyR6PZIpcvsLJykFKpTDaXRQOmYUWgulNjMpnEVEgEtK1Wi93GLqPRkCOHDwsZhiEryyv0B116/R6OEx2f6JiIfSdCZPkKQAjS6QzD8YirVzewDAPPD/jYh98tWq0O9faAt77xbvb2OliGjKJEgGUnQZp44xGBN8HJpBl2arz63OOAREgTfzTh/MMP43baOMkk/rCH221jJRKYdgpiKgIZ4iuP6lSOM7dez989+G3ec/9dmPhIKWm393jyycf2ox0dVcKGYeAkrjkmfDzfwzAMEo5DvVbHsSxmZ2eRm5tbmKYDGjqdFvPzC2xv77C+vo5t26zEFe3m5hYbG5fJZtJUqiXOnXtRN+s1bdsmrutx08mjfOxD7+G/fvH/5e7bb2J5aY7BeIBlSrQKMSwHgUS7LnriEkwmpIuzHLzpNgQhOgiQ0mTl1BnswhS+H6DcMZN+B9O2MZIplB+le0NK9rodPvELH+BHDz9N2rK5++aj7LXa2LaDDkO++dCD+qFvPqhHozG5XI5UOsnc3CwrKwfJZrNs7+zQ2G0wPT3D3PwcW1tX9VRxiuFogpxMxhiGRalUZmNjQwvBfkUrRSR8GaaB53m4rotl2SgV0ml3cGwn1lEk44nLr37yAbFQLPBf/uJv+bV//gCm7eC6GoGBaSWRwmDS6+AFmqnFYyxdf4pRs8nWuRexDJOrLz2HO+xz+PZ7KC4fwp34DPZaCC2wkynC2GtSqzX5yM+9g1DBP3z3Uf7lJz6MPxlGtlCtMU0L3/NZW30VEdMflmljmlHUCyHQYUQ4JRIO/UGP9fV1ZmcXIl/M1FSBQiHPrbfeJra3N1lde5VKpRLxq4FPs9mk1+tTLBaYnq4y6PdRQcjM7JxQYYCUAiElnudTKub5w9/5DbG6usm3vvcYv/3r/zO+7zIeT0hlcijPRaiQxetupTh7gO0LL1J75XmEcqPaYzJg6+yTbF84x/z1J1m5/S7c8RgReKTyeUzbYru2w8+/+03ccdst/Nbv/DG/+MH3cP3ReTEYDiM/Xdy8JpIZ3v62dwjLMmm1WrTbndhEzD53IoVJp9Pm+eefxzAEN954o8hk0shKuUyhUODYsROEoeaVV87pQiGqaH0/ckoOBgMqlWlKpTIT16XZ2GW6Oo0wbPY7jVAxHE04dcsJ/vT//rd8/dsP860fPMJv/dpHyWaStLtDDGFQmj2AliHrLz5Ov1VHOg5CGFHzKA1sw6SztcG5x35CMpNj6boTGICTztDqdfiFD72DN951hn/1b/8zb73vTt7/zjvFbr2uLdsmUAGTyZjRcMTpM7dz5OhxTNNmd7fO7u5u5H6EffXQNC2arT2ee/5ZffTodRxYXCFfKGD6QeSDTSQSHDt6jNXVS/QHXVLJDEIKHMfBNM19W3rkNZVUihUUQtR2NknlYDgJCPUQx5GcuvWY+IPP/Av9a5/+I+r1Pf7NL3+EB7/3U85duYRAM+rUMAyBYRooT6ERBCiUIVCGxHRMQrfL6lOPUl45hjJNRK/Bb/7GJ5m4Pp/69f+Dt77hNn79U/9ENBoNHWrN7XfcJVKpNGfPPq973S5vuu8tQsXMn23bEZ8Sk9phqIEQwzToDbp0O3u85U1vFpErwUOsb6xHwwmxr/T3/+B39V133SOOHT1OLp8jm8nHlq/IGlUqF8lmIkJ4e2eH/nDI8uIChUKRemOX7Z3N2LIecOHiVf2Zz/0VvUGfB37+LfhK8cgzL3Flu4k78TEtC2kY5IoFls+cYfXJJ5j0u5GtwvPQoWAqn+Nn3nwnt992E3/3D9/nWw9+lwc+9G4+9U/fIzrtDp1uTy8sLIjFxRXSqQzVaplA+TQbTQaDEelMOno2rdmt15m4HtlMKnYdwJe+/N+0Cjze975/Ihq7rYiOdCcT/CDA931KpTKnbj3FhfPn9NLSssiLXKygRRlGqcjvapomfuDjeT5J28G2HYQQTBXybO9sMXF9PHdEtZoV/+nffUz/5Ve/z5/+xTc4cnCRu++4iXtOaa5u1tnc3aPWaOKNRrQuvUo48bGlSbFYYnGmyNFDS5Sn8lxY2+ZX//3vkXJsPvfZf819d94gGq0WfhDom2++WRQKZZrNZlzmVjCNqKwYjyckkykMw8SI0/N4NCSVTGAYJmvrF1lbfZWPfvQTwjQtxqMxpm0idnfrUVcrI4eB6435my/9lT55483i1K2nI+Vea5RW+0h+TbGPBhEERuyARGgMaTAYjVnfWKXVbupxf4BpCNavNvnOIy9y7uJl0kmbIweXKeST2AlJuzfmiWcu8s633EW5lEEoxWjk8uxLF3jxlVdJJpN86H0/w8c++C6RTdrUduuMRiOSqRTXX38zoVKRj1ZKDBlzOFoTqqhPMgwzbg3CyERkSEzL5JsPPagnkwnvf/8Hhed5MeERvmbvajZ32dmpUywW2Li8xhOP/1S/4x3vEUJEDP+hQ4eASKxutfbIZjP7ToTNzau02x3y+RwHDizR63d59rln6fc7utft0e12EDpEmhb1vTGrG3XOXVyn3u4zjhl6pcEichmpUJNM2Nx4/RHeet9p7r/njFiYqdBu79Fqt/E8j8hrL5ienmd5aYlcLs94PGZjYwONZnnpAKlUhsGgz5UrV5FSsnJwBcd2GA77PPrYT3jp7Fn95vvfJhKJNIVClpmZaC7I9D0PGb9JJ+HgBwGnT9/B6qVXefHF5/Xp03cKwzCJbGCRBcxxHGzbQil/v1GzY0BWStFsttBxRSwAy7QYjkY0a3VCpbhuKcttJ+4kUJrhOMANI2HdNgxSKZuZ2QorBxbE0uIs5VKRIAhpt7t4sV0dHRn8hoOBnkzGUSMRzy1dG5IIAhUPIkTOcSklge9HA1edPc4+/5y+5aZbxOzsPJ1OOx7BiUxIYm1tFaVCpqYK5PMFfN+j2WjR7jT5/ve+q8/cfoc4c/tdXN64jNaKSrVKJp3FdcfU67uEYUi1WiGVyjAaD2nuNukOx7RaOwwGXT0ajhgOBlGtUyrT7rTZ2t4i5Tg4trU/KJHJZMik0yKZSpJIONhOgkQiRTKVQmLguS5eMIm63thkOB67+qYbbxHJZIp2p006lWZ6egbQ1Oo1RsMJ2Wx6X87Y3W0wHA54/PGf6FAp7n3j/WJmZgbbtun1uuztdSKdy/P8ON0Sm+hgOOyTSmU5dfqMeO75Z3QqkxbZdJ7JxEXGdEIQmIwnbtSgxT5aQxqMxmMStsmhQ0e4fGVN9Lt9PR6PmF9Y4Od+9ueFEJJzr7zC6uqqHg76tNsNhqMRQhqoUOkgDIUWBnbSJlCaXqeHbSdZXFhgc/sKWo/xg4B0OsepU9eLQn6K7e0t3ImHYzv7gw6vjc4k9teUUpx75SXd7XS45w33iWsc7TWRzHVdTFMhdhu7cYUX26Fi8z+A7Zj88Aff01vbm9x//9tFpTxNGAaIOITDMNwfEtAx9ahDjRAS27aZuGPW1tfp97vceMNN2JYdDRuYEbHdHwx46KGvaR0qsrkciaRDOpUWmWyBQwePYBpGLF5FnpbBYECn2yOfy5HNZGKHZrg/nCCEQMbTZ5E1PURIjRQGhmny7HNP88Lzz+p7771PHDx4BM/zouwaM4Sh0tGmV8rlGGib1Go7JBJJDh8+CEhqtR2OH79ReK6rn3nmKf2e9/6sGA996rUt8rkcS0srAFy9epVOu8NUscDCQuSt3djYYDAYsLK0zMzMLKB5dXWV0WhMuVxkbnaeXC5LLl+gUd8CsvtTGpZpsddqMz83S2FqikD5vPrqq4RKsbgwx1ShhOd5rK2toVTAgaUlspks4/GItbV1AFZWlkml0vR6Hba2dugNepy/8LI+duy4OLB0kKmpSPFcW1tlOBxRna4wXZ0BQEY0gQI0jpOIteSYJgBMw+SOO+8Vtmnx0D88qMfjIelUOvbWetEUmCFxEk487BAQBNGaZb02TOD7PpZp4jgOUggCFRCGmkq1KjLZHI6TwLYdLMvBtmxs2yLUsT/W97HtyE4utHjdcIKNbTuoeLpLxZNhjmPv+2pBMBoPOffyWX308DFx/PgNeG7koPB9D9MwcGwbtI5doi5ifW2NIAiYKk6RzxcIAp9arUYQKMrlMplMmiBQXL1ymcefeFTbjsXb3/4ukbCTXLm6iRDsA+14PGJ3t4FAUJ2ukEhE/rJIo5ZMT09Hk2H9Hs1mC8uymJ6pEmpNr9tlb6+FZVosLi5iWQ6tVpNer4tt28zMzGAYRuS5GwxIJBJMT1cRwqDZaNDr9Uin00zPRK7pre0twhDG4wFPPvGoLlem+Zn73ymkIRkNBzQaTaRhMD1djVzY3Q57e9EEm7xGCVzjY6PJMJ/JeBKvWftn97bbzgjTsPn2t76pW60Glmkymbj7QCskuJMJEzeSXa91raPRGNf1Yj70Gkfq4XketmWRTqZJOMloilQYOInXwHE8dnHda5NhNqAZjcb4foBlOfuzQq7rxSO8FqZp4TgOjd1tnn3mST03vyiOHjkudGxXk4bBZOK+jqM1kVLgedFv2p8ME/syV2RBI4xEpGvzukqpeMBS8/jjj+id7S1uvvU2cfjQkf1ZYSFFpAwSgVsY86NhzMBHk2OxchWDW9TqR6KZjoH7mjvgGugLiIV7XgeqYMiYooyzTVRHRRX2Sy+/wMUL5/WJEyfFiRM37m+81tfUAPb/fd1TA+L1FW2Teq1OIpnk4MEVhBDU6zWazSaZTIalpah63dnZZjQasbV9lZdfflHPzc1x6OARYRg2+XyeublIzb9y5QrdbodiscT8/DwQKfzD4ZBKpcz09CxaK9bW1pmMXaZnpimXy4ShYnV1Ddd1mZufozhVJAgC1tZW8X2fhYV58vkpXHfM2toGaFg8sEgmk8F1x7xw9iyvXHhZG4bk5MmbxOzMPNVqdKQuX75Mr9ejVCrt/87V1VVGoxHVapXp6Xhg4dpkF0RpLzoq0cjrtSMVDQCoeBocPM/l+PGTHD9+vfjqV76sr1y5qo8fPyEsa4VrZuVrc3/Rbrw2EH3NEh4ZDSOXYuRQjPqVaKYooigiUU3vT6sbZqwlaR2b9+IoQ1Pf3eGZp59gfWNDHz1yTBy77gSu5+HFGjNcu7+5HzHR2O1rVvtoTfH/AcKej4OOs/UmAAAAAElFTkSuQmCC" alt="IPS" class="app-logo">
+        <div class="app-title">
+            <h1>INTELLIGENT PETROLEUM SOLUTIONS LLC</h1>
+            <p>Fluid Tracking System</p>
+        </div>
+        <div class="header-actions">
+            <button class="voice-master-btn" id="voice-master-btn" onclick="toggleVoiceMaster()">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+            </button>
+            <button class="header-btn turnover" onclick="showTurnoverReport()">📋</button>
+            <button class="header-btn newshift" onclick="startNewShift()">🔄</button>
+        </div>
+    </div>
+
+    <!-- Voice Status Display -->
+    <div class="voice-status" id="voice-status">
+        <div class="voice-status-main" id="voice-status-main">Listening...</div>
+        <div class="voice-status-sub" id="voice-status-sub">Say a tank keyword</div>
+    </div>
+
+    <!-- Voice Keyword Modal -->
+    <div class="voice-modal-overlay" id="voice-keyword-modal">
+        <div class="voice-modal">
+            <div class="voice-modal-title" id="voice-modal-tank-name">Tank Name</div>
+            <div class="voice-modal-subtitle">Add voice keywords for this tank</div>
+            <div class="voice-keyword-list" id="voice-keyword-list"></div>
+            <div class="voice-keyword-input-row">
+                <input type="text" class="voice-keyword-input" id="voice-keyword-input" placeholder="Type a keyword...">
+                <button class="voice-keyword-add-btn" onclick="addVoiceKeywordFromInput()">Add</button>
+            </div>
+            <button class="voice-record-btn" id="voice-record-btn" onclick="toggleVoiceKeywordRecord()">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+                <span id="voice-record-label">Record Keyword</span>
+            </button>
+            <button class="voice-modal-close" onclick="closeVoiceKeywordModal()">Done</button>
+        </div>
+    </div>
+
+    <div class="main-tabs">
+        <button class="main-tab active" onclick="switchMainTab('tanks')">Tanks</button>
+        <button class="main-tab" onclick="switchMainTab('transfer')">Transfer</button>
+        <button class="main-tab" onclick="switchMainTab('injection')">Injection</button>
+        <button class="main-tab" onclick="switchMainTab('titrations')">Titrations</button>
+    </div>
+
+    <div id="tanks-tab" class="tab-content active">
+        <div class="controls">
+            <button class="ctrl-btn green" onclick="showAddTankModal()">+ Add Tank</button>
+            <button class="ctrl-btn blue" onclick="logGainLossCheck()">📋 Gain/Loss Check</button>
+            <button style="background:#2d4a6f;color:#e0e0e0;border:none;padding:10px 12px;border-radius:6px;font-size:11px;cursor:pointer" onclick="resetGainLoss()">Reset G/L</button>
+        </div>
+        <div class="gain-loss-bar">
+            <div class="gl-box"><div class="gl-label">Last Check</div><div class="gl-value neutral" id="last-check-time">--</div><div class="gl-sublabel" id="elapsed-time"></div></div>
+            <div class="gl-box"><div class="gl-label">Apparent</div><div class="gl-value neutral" id="apparent-change">--</div></div>
+            <div class="gl-box"><div class="gl-label">True G/L</div><div class="gl-value neutral" id="true-change">--</div></div>
+            <div class="gl-box"><div class="gl-label">Rate/Hr</div><div class="gl-value neutral" id="rate-per-hour">--</div></div>
+            <div class="gl-box"><div class="gl-label">Jets/Hr</div><div class="gl-value" id="jets-hour" style="color:#ffa726">0</div></div>
+        </div>
+        <div class="side-toggle">
+            <button class="side-tab active" onclick="switchSide('pump')">Pump Side</button>
+            <button class="side-tab" onclick="switchSide('return')">Return Side</button>
+        </div>
+        <div class="tanks-container active" id="pump-tanks"></div>
+        <div class="tanks-container" id="return-tanks"></div>
+        <div class="totals-bar">
+            <div class="total-item"><div class="total-label">Brine</div><div class="total-value brine" id="total-brine">0</div></div>
+            <div class="total-item"><div class="total-label">Packer</div><div class="total-value packer" id="total-packer">0</div></div>
+            <div class="total-item"><div class="total-label">Mud</div><div class="total-value mud" id="total-mud">0</div></div>
+            <div class="total-item"><div class="total-label">Recirc</div><div class="total-value recirc" id="total-recirc">0</div></div>
+            <div class="total-item"><div class="total-label">Fresh</div><div class="total-value freshwater" id="total-freshwater">0</div></div>
+            <div class="total-item"><div class="total-label">Other</div><div class="total-value other" id="total-other">0</div></div>
+        </div>
+        <div class="system-totals">
+            <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="system-total">0 BBL</div></div>
+            <div class="system-total"><div class="system-total-label">Jetted (Shift)</div><div class="system-total-value jetted" id="jetted-total">0 BBL</div></div>
+        </div>
+        <button class="report-btn" onclick="showTankReport()">Generate Tank Report</button>
+    </div>
+
+    <!-- TRANSFER TAB -->
+    <div id="transfer-tab" class="tab-content">
+        <div style="padding:12px;padding-bottom:80px">
+            <div class="jet-section">
+                <div class="jet-title">Fluid Transfer</div>
+                <div class="jet-toggle">
+                    <button class="jet-toggle-btn out active" onclick="setJetType('out')">Jet Out</button>
+                    <button class="jet-toggle-btn in" onclick="setJetType('in')">Jet In</button>
+                </div>
+                <div class="jet-row">
+                    <select id="jet-source"><option value="">Select tank...</option></select>
+                    <input type="number" id="jet-volume" value="120" style="max-width:80px">
+                    <button class="jet-btn out" id="jet-action-btn" onclick="startJetProcess()">Jet Out</button>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #2d4a6f">
+                    <div><span style="font-size:11px;color:#888">Shift Total: </span><span style="font-size:16px;font-weight:700;color:#ffa726" id="transfer-shift-total">0 BBL</span></div>
+                    <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:6px 12px;border-radius:4px;font-size:11px;cursor:pointer" onclick="resetShiftJetted()">Reset Shift</button>
+                </div>
+            </div>
+            <div style="background:#1b2838;border-radius:6px;padding:10px;margin-top:12px;max-height:350px;overflow-y:auto">
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Transfer Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="resetTransferLog()">Clear</button></div>
+                <div id="transfer-log-content"><em style="color:#666">No transfers logged</em></div>
+            </div>
+            <button class="report-btn" onclick="showTransferReport()">Generate Transfer Report</button>
+        </div>
+    </div>
+
+    <!-- INJECTION TAB -->
+    <div id="injection-tab" class="tab-content">
+        <div style="padding:12px;padding-bottom:80px">
+            <div style="background:#243447;border-radius:8px;padding:16px;margin-bottom:12px;border:2px solid #4fc3f7">
+                <div style="font-size:12px;color:#4fc3f7;text-transform:uppercase;margin-bottom:8px">Current Pump Rate (BPM)</div>
+                <div style="font-size:48px;font-weight:700;color:#ffd54f;text-align:center" id="current-pump-rate">--<span style="font-size:18px;color:#888"> BPM</span></div>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+                    <label style="font-size:12px;color:#888;min-width:70px">Set Rate:</label>
+                    <select id="pump-rate-select" onchange="updatePumpRate()" style="flex:1;padding:10px;border:1px solid #2d4a6f;border-radius:6px;font-size:16px;background:#1b2838;color:#e0e0e0">
+                        <option value="">Select...</option>
+                        <option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option>
+                        <option value="2.25">2.25</option><option value="2.5">2.5</option><option value="2.75">2.75</option>
+                        <option value="3">3</option><option value="3.25">3.25</option><option value="3.5">3.5</option>
+                        <option value="3.75">3.75</option><option value="4">4</option><option value="4.25">4.25</option>
+                        <option value="4.5">4.5</option><option value="4.75">4.75</option><option value="5">5</option>
+                        <option value="5.25">5.25</option><option value="5.5">5.5</option><option value="5.75">5.75</option>
+                        <option value="6">6</option><option value="6.25">6.25</option><option value="6.5">6.5</option>
+                        <option value="6.75">6.75</option><option value="7">7</option><option value="7.25">7.25</option>
+                        <option value="7.5">7.5</option><option value="7.75">7.75</option><option value="8">8</option>
+                    </select>
+                </div>
+            </div>
+            <div style="background:#243447;border-radius:8px;padding:16px;margin-bottom:12px;border-left:4px solid #66bb6a">
+                <div style="font-size:14px;font-weight:600;color:#66bb6a;margin-bottom:12px;display:flex;align-items:center;gap:8px"><svg width="24" height="24" viewBox="0 0 100 100" fill="white"><rect x="15" y="25" width="70" height="60" rx="5" stroke="white" stroke-width="3" fill="white"/><rect x="20" y="15" width="60" height="15" rx="3" fill="white"/><line x1="15" y1="45" x2="85" y2="45" stroke="#243447" stroke-width="2"/><line x1="15" y1="65" x2="85" y2="65" stroke="#243447" stroke-width="2"/><line x1="38" y1="25" x2="38" y2="85" stroke="#243447" stroke-width="2"/><line x1="62" y1="25" x2="62" y2="85" stroke="#243447" stroke-width="2"/><rect x="10" y="85" width="80" height="8" fill="white"/></svg> Friction Reducer (FR)</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                    <label style="font-size:12px;color:#888;min-width:70px">Treatment:</label>
+                    <select id="fr-treatment" onchange="updateInjTargets()" style="flex:1;padding:10px;border:1px solid #2d4a6f;border-radius:6px;font-size:16px;background:#1b2838;color:#e0e0e0">
+                        <option value="">Select...</option>
+                        <option value="0.125">1/8 per 10 bbl</option><option value="0.25">1/4 per 10 bbl</option>
+                        <option value="0.375">3/8 per 10 bbl</option><option value="0.5">1/2 per 10 bbl</option>
+                        <option value="0.625">5/8 per 10 bbl</option><option value="0.75">3/4 per 10 bbl</option>
+                    </select>
+                </div>
+                <div style="background:#0d1b2a;border-radius:8px;padding:16px;text-align:center">
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">Target GPM</div>
+                    <div style="font-size:36px;font-weight:700;color:#4caf50" id="fr-target">--</div>
+                    <div style="font-size:12px;color:#888">Set Dayton dial until IFM shows this</div>
+                </div>
+                <button onclick="logInjChange('fr')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">Log FR Change</button>
+            </div>
+            <div style="background:#243447;border-radius:8px;padding:16px;margin-bottom:12px;border-left:4px solid #ffa726">
+                <div style="font-size:14px;font-weight:600;color:#ffa726;margin-bottom:12px;display:flex;align-items:center;gap:8px"><svg width="24" height="24" viewBox="0 0 100 100"><rect x="15" y="25" width="70" height="60" rx="5" stroke="white" stroke-width="3" fill="#1b2838"/><rect x="20" y="15" width="60" height="15" rx="3" stroke="white" stroke-width="2" fill="#1b2838"/><line x1="15" y1="45" x2="85" y2="45" stroke="white" stroke-width="2"/><line x1="15" y1="65" x2="85" y2="65" stroke="white" stroke-width="2"/><line x1="38" y1="25" x2="38" y2="85" stroke="white" stroke-width="2"/><line x1="62" y1="25" x2="62" y2="85" stroke="white" stroke-width="2"/><rect x="10" y="85" width="80" height="8" stroke="white" stroke-width="2" fill="#1b2838"/></svg> Pipe-on-Pipe Lube</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                    <label style="font-size:12px;color:#888;min-width:70px">Treatment:</label>
+                    <select id="lube-treatment" onchange="updateInjTargets()" style="flex:1;padding:10px;border:1px solid #2d4a6f;border-radius:6px;font-size:16px;background:#1b2838;color:#e0e0e0">
+                        <option value="">Select...</option>
+                        <option value="0.125">1/8 per 10 bbl</option><option value="0.25">1/4 per 10 bbl</option>
+                        <option value="0.375">3/8 per 10 bbl</option><option value="0.5">1/2 per 10 bbl</option>
+                        <option value="0.625">5/8 per 10 bbl</option><option value="0.75">3/4 per 10 bbl</option>
+                    </select>
+                </div>
+                <div style="background:#0d1b2a;border-radius:8px;padding:16px;text-align:center">
+                    <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">Target GPM</div>
+                    <div style="font-size:36px;font-weight:700;color:#4caf50" id="lube-target">--</div>
+                    <div style="font-size:12px;color:#888">Set Dayton dial until IFM shows this</div>
+                </div>
+                <button onclick="logInjChange('lube')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">Log Lube Change</button>
+            </div>
+            <div style="background:#1b2838;border-radius:6px;padding:10px;max-height:150px;overflow-y:auto">
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Rate Change History <button onclick="resetInjHistory()" style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer">Reset</button></div>
+                <div id="inj-history"><em style="color:#666">No changes logged</em></div>
+            </div>
+            <button class="report-btn" onclick="showInjReport()">Generate Injection Report</button>
+        </div>
+    </div>
+
+    <!-- INJECTION REPORT SCREEN -->
+    <div class="report-screen" id="injection-report">
+        <div class="report-header"><button class="report-close" onclick="hideInjReport()">×</button><h1>Chemical Injection Report</h1><p id="inj-report-time"></p></div>
+        <div class="report-body" id="inj-report-content"></div>
+    </div>
+
+    <div id="titrations-tab" class="tab-content">
+        <div class="titration-container">
+            <div class="fluid-select">
+                <select id="fluid-type" onchange="saveTitrationData()">
+                    <option value="aphron">Aphron Mud</option>
+                    <option value="brine">Brine</option>
+                    <option value="recirc">Recirc</option>
+                    <option value="freshwater">Freshwater</option>
+                </select>
+            </div>
+            <div class="tit-card">
+                <div class="tit-title">Basic Properties</div>
+                <div class="tit-row"><span class="tit-label">Viscosity (USC)</span><input type="number" class="tit-input" id="tit-viscosity" onchange="saveTitrationData()"><span class="tit-unit">sec</span></div>
+                <div class="tit-row"><span class="tit-label">Density (PPG)</span><input type="number" step="0.1" class="tit-input" id="tit-density" onchange="saveTitrationData()"><span class="tit-unit">ppg</span></div>
+                <div class="tit-row"><span class="tit-label">pH</span><input type="number" step="0.1" class="tit-input" id="tit-ph" onchange="updatePF(); saveTitrationData()"><span class="tit-unit"></span></div>
+            </div>
+            <div class="tit-card">
+                <div class="tit-title">PF / MF Test</div>
+                <div class="tit-note">If pH ≤ 7, PF = 0. Save remaining acid for MF test.</div>
+                <div class="tit-row"><span class="tit-label">PF</span><input type="number" step="0.1" class="tit-input" id="tit-pf" onchange="saveTitrationData()"><span class="tit-unit">ml</span></div>
+                <div class="tit-row"><span class="tit-label">MF</span><input type="number" step="0.1" class="tit-input" id="tit-mf" onchange="saveTitrationData()"><span class="tit-unit">ml</span></div>
+            </div>
+            <div class="tit-card">
+                <div class="tit-title">Chlorides Test</div>
+                <div class="tit-row"><span class="tit-label">Silver Nitrate</span><select class="tit-input" id="tit-sn-type" style="width:120px" onchange="calcChlorides(); saveTitrationData()"><option value="fresh">0.0282</option><option value="brine">0.282</option></select></div>
+                <div class="tit-row"><span class="tit-label">Pipette Reading</span><input type="number" step="0.1" class="tit-input" id="tit-cl-pipette" onchange="calcChlorides(); saveTitrationData()"><span class="tit-unit">ml</span></div>
+                <div class="tit-row"><span class="tit-label">Chlorides</span><span class="tit-result calculated" id="tit-chlorides">--</span><span class="tit-unit">ppm</span></div>
+            </div>
+            <div class="tit-card">
+                <div class="tit-title">Hardness / Calcium / Magnesium</div>
+                <div class="distilled-warning">⚠️ Use distilled water only. Tap water will throw off readings.</div>
+                <div class="tit-row"><span class="tit-label">Hardness Pipette</span><input type="number" step="0.1" class="tit-input" id="tit-hard-pipette" onchange="calcHardness(); saveTitrationData()"><span class="tit-unit">ml</span></div>
+                <div class="tit-row"><span class="tit-label">Total Hardness</span><span class="tit-result calculated" id="tit-hardness">--</span><span class="tit-unit">ppm</span></div>
+                <div class="tit-row" style="border-top:1px dashed #2d4a6f;margin-top:8px;padding-top:12px"><span class="tit-label">Calcium Pipette</span><input type="number" step="0.1" class="tit-input" id="tit-ca-pipette" onchange="calcCalcium(); saveTitrationData()"><span class="tit-unit">ml</span></div>
+                <div class="tit-row"><span class="tit-label">Calcium</span><span class="tit-result calculated" id="tit-calcium">--</span><span class="tit-unit">ppm</span></div>
+                <div class="tit-row" style="border-top:1px dashed #2d4a6f;margin-top:8px;padding-top:12px"><span class="tit-label">Magnesium</span><span class="tit-result calculated" id="tit-magnesium">--</span><span class="tit-unit">ppm</span></div>
+                <div class="tit-note">Magnesium = (Hardness − Calcium Pipette) × 243</div>
+            </div>
+            <button class="report-btn" onclick="logTitration()" style="background:#2e7d32">📝 Log Titration</button>
+            <div style="background:#1b2838;border-radius:6px;padding:10px;margin-top:12px;max-height:200px;overflow-y:auto">
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Titration History <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="resetTitrationLog()">Clear</button></div>
+                <div id="titration-log-content"><em style="color:#666">No titrations logged</em></div>
+            </div>
+            <button class="report-btn" onclick="showTitrationReport()">Generate Titration Report</button>
+        </div>
+    </div>
+
+    <div class="modal" id="add-tank-modal">
+        <div class="modal-content">
+            <div class="modal-title">Add Tank</div>
+            <div class="modal-tabs"><button class="modal-tab active" onclick="selectModalSide('pump')">Pump Side</button><button class="modal-tab" onclick="selectModalSide('return')">Return Side</button></div>
+            <div class="modal-group"><label>Tank Type</label><select id="new-tank-type"><option value="">-- Select --</option></select></div>
+            <div class="modal-group"><label>How Many?</label><select id="new-tank-qty"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+            <div class="modal-buttons"><button class="modal-btn cancel" onclick="hideAddTankModal()">Cancel</button><button class="modal-btn confirm" onclick="addTanks()">Add</button></div>
+        </div>
+    </div>
+
+    <div class="modal" id="equalize-modal">
+        <div class="modal-content">
+            <div class="modal-title">Tank Equalization</div>
+            <div class="equalize-info"><div id="equalize-question"></div><div class="equalize-tanks" id="equalize-tanks-list"></div></div>
+            <div class="equalize-buttons"><button class="equalize-btn yes" onclick="confirmEqualize(true)">Yes, Equalized</button><button class="equalize-btn no" onclick="confirmEqualize(false)">No, Isolated</button><button class="equalize-btn cancel" onclick="hideEqualizeModal()">Cancel</button></div>
+        </div>
+    </div>
+
+    <div class="report-screen" id="tank-report">
+        <div class="report-header"><button class="report-close" onclick="hideTankReport()">×</button><h1>Tank Volume Report</h1><p id="tank-report-time"></p></div>
+        <div class="report-body"><div class="report-logo"><img src="data:image/png;base64,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" alt="IPS"></div><div class="report-company">Intelligent Petroleum Solutions LLC</div><div id="tank-report-content"></div></div>
+    </div>
+
+    <div class="report-screen" id="titration-report">
+        <div class="report-header"><button class="report-close" onclick="hideTitrationReport()">×</button><h1>Fluid Chemistry Analysis</h1><p id="tit-report-fluid"></p></div>
+        <div class="report-body"><div class="report-logo"><img src="data:image/png;base64,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" alt="IPS"></div><div class="report-company">Intelligent Petroleum Solutions LLC</div><div id="tit-report-content"></div></div>
+    </div>
+
+    <!-- TRANSFER REPORT SCREEN -->
+    <div class="report-screen" id="transfer-report">
+        <div class="report-header"><button class="report-close" onclick="hideTransferReport()">×</button><h1>Fluid Transfer Report</h1><p id="transfer-report-time"></p></div>
+        <div class="report-body" id="transfer-report-content"></div>
+    </div>
+
+    <!-- TURNOVER REPORT SCREEN (PREVIEW) -->
+    <div class="report-screen" id="turnover-report">
+        <div class="report-header"><button class="report-close" onclick="hideTurnoverReport()">×</button><h1>Shift Turnover Preview</h1><p id="turnover-report-time"></p></div>
+        <div class="report-body" id="turnover-report-content"></div>
+        <div style="padding:15px;display:flex;gap:10px">
+            <button onclick="hideTurnoverReport()" style="flex:1;padding:14px;background:#455a64;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600">Cancel</button>
+            <button onclick="sendTurnoverReport()" style="flex:1;padding:14px;background:#1565c0;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600">📤 Send Report</button>
+        </div>
+    </div>
+
+<script>
+// Dragon Products 500 BBL Frac Tank Stick Chart
+const STICK_CHART = {
+    1: 4, 2: 9, 3: 13, 4: 18, 5: 22, 6: 27, 7: 31, 8: 36, 9: 40, 10: 45,
+    11: 49, 12: 53, 13: 58, 14: 62, 15: 67, 16: 71, 17: 76, 18: 80, 19: 85, 20: 89,
+    21: 94, 22: 98, 23: 103, 24: 107, 25: 111, 26: 116, 27: 120, 28: 125, 29: 129, 30: 134,
+    31: 138, 32: 143, 33: 147, 34: 152, 35: 156, 36: 160, 37: 165, 38: 169, 39: 174, 40: 178,
+    41: 183, 42: 188, 43: 193, 44: 198, 45: 203, 46: 208, 47: 213, 48: 218, 49: 223, 50: 228,
+    51: 233, 52: 238, 53: 243, 54: 248, 55: 254, 56: 259, 57: 264, 58: 269, 59: 274, 60: 279,
+    61: 284, 62: 289, 63: 294, 64: 299, 65: 304, 66: 309, 67: 314, 68: 319, 69: 324, 70: 329,
+    71: 334, 72: 339, 73: 344, 74: 350, 75: 355, 76: 360, 77: 365, 78: 370, 79: 375, 80: 380,
+    81: 385, 82: 390, 83: 395, 84: 400, 85: 405, 86: 410, 87: 415, 88: 420, 89: 425, 90: 430,
+    91: 435, 92: 441, 93: 446, 94: 451, 95: 456, 96: 461, 97: 466, 98: 471, 99: 476, 100: 481,
+    101: 486, 102: 491, 103: 496, 104: 501
+};
+
+// Pump Rate Chart - GPM values
+const PUMP_CHART = {
+    '1':    { 0.125: 0.019, 0.25: 0.038, 0.375: 0.056, 0.5: 0.075, 0.625: 0.094, 0.75: 0.113 },
+    '1.5':  { 0.125: 0.022, 0.25: 0.044, 0.375: 0.065, 0.5: 0.088, 0.625: 0.109, 0.75: 0.131 },
+    '2':    { 0.125: 0.025, 0.25: 0.050, 0.375: 0.075, 0.5: 0.100, 0.625: 0.125, 0.75: 0.150 },
+    '2.25': { 0.125: 0.028, 0.25: 0.056, 0.375: 0.084, 0.5: 0.113, 0.625: 0.141, 0.75: 0.169 },
+    '2.5':  { 0.125: 0.031, 0.25: 0.063, 0.375: 0.094, 0.5: 0.125, 0.625: 0.156, 0.75: 0.188 },
+    '2.75': { 0.125: 0.034, 0.25: 0.069, 0.375: 0.103, 0.5: 0.138, 0.625: 0.172, 0.75: 0.206 },
+    '3':    { 0.125: 0.038, 0.25: 0.075, 0.375: 0.113, 0.5: 0.150, 0.625: 0.188, 0.75: 0.225 },
+    '3.25': { 0.125: 0.041, 0.25: 0.081, 0.375: 0.122, 0.5: 0.163, 0.625: 0.203, 0.75: 0.244 },
+    '3.5':  { 0.125: 0.044, 0.25: 0.088, 0.375: 0.131, 0.5: 0.175, 0.625: 0.219, 0.75: 0.263 },
+    '3.75': { 0.125: 0.047, 0.25: 0.094, 0.375: 0.141, 0.5: 0.188, 0.625: 0.234, 0.75: 0.281 },
+    '4':    { 0.125: 0.050, 0.25: 0.100, 0.375: 0.150, 0.5: 0.200, 0.625: 0.250, 0.75: 0.300 },
+    '4.25': { 0.125: 0.053, 0.25: 0.106, 0.375: 0.159, 0.5: 0.213, 0.625: 0.266, 0.75: 0.319 },
+    '4.5':  { 0.125: 0.056, 0.25: 0.113, 0.375: 0.169, 0.5: 0.225, 0.625: 0.281, 0.75: 0.338 },
+    '4.75': { 0.125: 0.059, 0.25: 0.119, 0.375: 0.178, 0.5: 0.238, 0.625: 0.297, 0.75: 0.356 },
+    '5':    { 0.125: 0.063, 0.25: 0.125, 0.375: 0.188, 0.5: 0.250, 0.625: 0.313, 0.75: 0.375 },
+    '5.25': { 0.125: 0.066, 0.25: 0.131, 0.375: 0.197, 0.5: 0.263, 0.625: 0.328, 0.75: 0.394 },
+    '5.5':  { 0.125: 0.069, 0.25: 0.138, 0.375: 0.206, 0.5: 0.275, 0.625: 0.344, 0.75: 0.413 },
+    '5.75': { 0.125: 0.072, 0.25: 0.144, 0.375: 0.216, 0.5: 0.288, 0.625: 0.359, 0.75: 0.431 },
+    '6':    { 0.125: 0.075, 0.25: 0.150, 0.375: 0.225, 0.5: 0.300, 0.625: 0.375, 0.75: 0.450 },
+    '6.25': { 0.125: 0.078, 0.25: 0.156, 0.375: 0.234, 0.5: 0.313, 0.625: 0.391, 0.75: 0.469 },
+    '6.5':  { 0.125: 0.081, 0.25: 0.163, 0.375: 0.244, 0.5: 0.325, 0.625: 0.406, 0.75: 0.488 },
+    '6.75': { 0.125: 0.084, 0.25: 0.169, 0.375: 0.253, 0.5: 0.338, 0.625: 0.422, 0.75: 0.506 },
+    '7':    { 0.125: 0.088, 0.25: 0.175, 0.375: 0.263, 0.5: 0.350, 0.625: 0.438, 0.75: 0.525 },
+    '7.25': { 0.125: 0.091, 0.25: 0.181, 0.375: 0.272, 0.5: 0.363, 0.625: 0.453, 0.75: 0.544 },
+    '7.5':  { 0.125: 0.094, 0.25: 0.188, 0.375: 0.281, 0.5: 0.375, 0.625: 0.469, 0.75: 0.563 },
+    '7.75': { 0.125: 0.097, 0.25: 0.194, 0.375: 0.291, 0.5: 0.388, 0.625: 0.484, 0.75: 0.581 },
+    '8':    { 0.125: 0.100, 0.25: 0.200, 0.375: 0.300, 0.5: 0.400, 0.625: 0.500, 0.75: 0.600 }
+};
+const TREAT_LABELS = { 0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4' };
+
+let injData = { pumpRate: null, frTreat: null, lubeTreat: null, history: [] };
+function loadInjData() { const s = localStorage.getItem('ipsInjV5'); if (s) injData = JSON.parse(s); }
+function saveInjData() { localStorage.setItem('ipsInjV5', JSON.stringify(injData)); }
+function updatePumpRate() {
+    const rate = document.getElementById('pump-rate-select').value;
+    if (rate) {
+        const old = injData.pumpRate;
+        injData.pumpRate = rate;
+        document.getElementById('current-pump-rate').innerHTML = rate + '<span style="font-size:18px;color:#888"> BPM</span>';
+        if (old && old !== rate) injData.history.unshift({ time: new Date().toISOString(), type: 'pump', from: old, to: rate });
+        saveInjData(); updateInjTargets(); renderInjHist();
+    }
+}
+function updateInjTargets() {
+    const rate = injData.pumpRate;
+    const frT = document.getElementById('fr-treatment').value;
+    const lubeT = document.getElementById('lube-treatment').value;
+    injData.frTreat = frT || null; injData.lubeTreat = lubeT || null; saveInjData();
+    document.getElementById('fr-target').textContent = (rate && frT && PUMP_CHART[rate]) ? PUMP_CHART[rate][parseFloat(frT)].toFixed(3) : '--';
+    document.getElementById('lube-target').textContent = (rate && lubeT && PUMP_CHART[rate]) ? PUMP_CHART[rate][parseFloat(lubeT)].toFixed(3) : '--';
+}
+function logInjChange(chem) {
+    const rate = injData.pumpRate, treat = chem === 'fr' ? document.getElementById('fr-treatment').value : document.getElementById('lube-treatment').value;
+    if (!rate || !treat) { alert('Set pump rate and treatment first'); return; }
+    const target = PUMP_CHART[rate][parseFloat(treat)];
+    injData.history.unshift({ time: new Date().toISOString(), type: chem, pumpRate: rate, treat: TREAT_LABELS[parseFloat(treat)], gpm: target });
+    saveInjData(); renderInjHist();
+    alert((chem === 'fr' ? 'FR' : 'Lube') + ' logged!\nRate: ' + rate + ' BPM\nTreatment: ' + TREAT_LABELS[parseFloat(treat)] + '/10bbl\nTarget: ' + target.toFixed(3) + ' GPM');
+}
+function renderInjHist() {
+    const el = document.getElementById('inj-history');
+    if (!injData.history || !injData.history.length) { el.innerHTML = '<em style="color:#666">No changes logged</em>'; return; }
+    el.innerHTML = injData.history.slice(0, 20).map(h => {
+        const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        if (h.type === 'pump') return '<div style="font-size:11px;color:#aaa;padding:4px 0;border-bottom:1px solid #2d4a6f"><span style="color:#4fc3f7">' + t + '</span> Pump: ' + h.from + ' → ' + h.to + ' BPM</div>';
+        return '<div style="font-size:11px;color:#aaa;padding:4px 0;border-bottom:1px solid #2d4a6f"><span style="color:#4fc3f7">' + t + '</span> ' + (h.type === 'fr' ? 'FR' : 'Lube') + ': ' + h.treat + '/10bbl @ ' + h.pumpRate + ' → ' + h.gpm.toFixed(3) + ' GPM</div>';
+    }).join('');
+}
+function loadInjUI() {
+    loadInjData();
+    if (injData.pumpRate) { document.getElementById('pump-rate-select').value = injData.pumpRate; document.getElementById('current-pump-rate').innerHTML = injData.pumpRate + '<span style="font-size:18px;color:#888"> BPM</span>'; }
+    if (injData.frTreat) document.getElementById('fr-treatment').value = injData.frTreat;
+    if (injData.lubeTreat) document.getElementById('lube-treatment').value = injData.lubeTreat;
+    updateInjTargets(); renderInjHist();
+}
+function showInjReport() {
+    const now = new Date();
+    document.getElementById('inj-report-time').textContent = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+    let html = '<div class="report-section"><div class="report-section-title">Current Settings</div>';
+    html += '<div class="report-row"><span class="report-row-label">Pump Rate</span><span class="report-row-value">' + (injData.pumpRate || '--') + ' BPM</span></div>';
+    if (injData.pumpRate && injData.frTreat) { const t = PUMP_CHART[injData.pumpRate][parseFloat(injData.frTreat)]; html += '<div class="report-row"><span class="report-row-label">FR</span><span class="report-row-value" style="color:#66bb6a">' + TREAT_LABELS[parseFloat(injData.frTreat)] + '/10bbl → ' + t.toFixed(3) + ' GPM</span></div>'; }
+    if (injData.pumpRate && injData.lubeTreat) { const t = PUMP_CHART[injData.pumpRate][parseFloat(injData.lubeTreat)]; html += '<div class="report-row"><span class="report-row-label">Lube</span><span class="report-row-value" style="color:#ffa726">' + TREAT_LABELS[parseFloat(injData.lubeTreat)] + '/10bbl → ' + t.toFixed(3) + ' GPM</span></div>'; }
+    html += '</div>';
+    if (injData.history && injData.history.length) {
+        html += '<div class="report-section"><div class="report-section-title">Rate Change History</div>';
+        injData.history.forEach(h => { const d = new Date(h.time), ts = d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); if (h.type === 'pump') html += '<div class="report-row"><span class="report-row-label">' + ts + '</span><span class="report-row-value">Pump: ' + h.from + ' → ' + h.to + '</span></div>'; else html += '<div class="report-row"><span class="report-row-label">' + ts + '</span><span class="report-row-value">' + (h.type === 'fr' ? 'FR' : 'Lube') + ': ' + h.treat + ' @ ' + h.pumpRate + ' = ' + h.gpm.toFixed(3) + '</span></div>'; });
+        html += '</div>';
+    }
+    html += '<div class="report-timestamp">' + now.toLocaleString() + '</div>';
+    document.getElementById('inj-report-content').innerHTML = html;
+    document.getElementById('injection-report').classList.add('show');
+}
+function hideInjReport() { document.getElementById('injection-report').classList.remove('show'); }
+function resetInjHistory() { if(confirm('Clear injection history?')) { injData.history = []; saveInjData(); renderInjHist(); } }
+
+function bblToInches(bbl) {
+    let closest = 1, diff = Math.abs(STICK_CHART[1] - bbl);
+    for (let i in STICK_CHART) { const d = Math.abs(STICK_CHART[i] - bbl); if (d < diff) { diff = d; closest = parseInt(i); } }
+    return closest;
+}
+function inchesToBbl(inches) {
+    const r = Math.round(inches);
+    if (r <= 0) return 0;
+    if (r > 104) return STICK_CHART[104];
+    return STICK_CHART[r] || 0;
+}
+
+const pumpTypes = [
+    { value: 'brine10', label: 'Brine 10#', badgeText: 'BRINE 10#', color: 'brine10' },
+    { value: 'brine119', label: 'Brine 11.9#', badgeText: 'BRINE 11.9#', color: 'brine119' },
+    { value: 'aphron', label: 'Aphron Mud', badgeText: 'APHRON', color: 'aphron' },
+    { value: 'recirc', label: 'Recirc', badgeText: 'RECIRC', color: 'recirc' },
+    { value: 'freshwater', label: 'Freshwater', badgeText: 'FRESH', color: 'freshwater' },
+    { value: 'packer', label: 'Packer Fluid', badgeText: 'PACKER', color: 'packer' }
+];
+const returnTypes = [
+    { value: 'sandcat', label: 'Sandcat', badgeText: 'SANDCAT', color: 'sandcat', hasContents: true },
+    { value: 'trash', label: 'Trash Tank', badgeText: 'TRASH', color: 'trash', hasContents: true, canEqualize: true },
+    { value: 'return', label: 'Return Tank', badgeText: '', color: 'other', hasContents: true, canEqualize: true },
+    { value: 'processed', label: 'Processed Returns', badgeText: 'PROCESSED', color: 'processed', hasContents: true, canEqualize: true }
+];
+const returnEqualizeTypes = ['trash', 'return', 'processed'];
+const contentsOptions = [
+    { value: '', label: '--', color: 'other' },
+    { value: 'brine', label: 'Brine', color: 'brine10' },
+    { value: 'mud', label: 'Mud', color: 'mud' },
+    { value: 'recirc', label: 'Recirc', color: 'recirc' },
+    { value: 'freshwater', label: 'Fresh', color: 'freshwater' },
+    { value: 'mixed', label: 'Mixed', color: 'mixed' }
+];
+
+let data = { pumpTanks: [], returnTanks: [], jetsHour: 0, jetsShift: 0, lastSystemTotal: null, lastCheckTime: null, history: [] };
+let titData = { fluidType: 'aphron', viscosity: '', density: '', ph: '', pf: '', mf: '', snType: 'fresh', clPipette: '', hardPipette: '', caPipette: '', surfaceVol: '' };
+let currentSide = 'pump', modalSide = 'pump', pendingJet = null, jetType = 'out';
+
+function loadData() {
+    const s = localStorage.getItem('ipsTrackerV3'); if (s) data = JSON.parse(s);
+    const t = localStorage.getItem('ipsTitrationV3'); if (t) titData = JSON.parse(t);
+    loadTitrationUI(); render();
+}
+function saveData() { localStorage.setItem('ipsTrackerV3', JSON.stringify(data)); }
+function saveTitrationData() {
+    titData.fluidType = document.getElementById('fluid-type').value;
+    titData.viscosity = document.getElementById('tit-viscosity').value;
+    titData.density = document.getElementById('tit-density').value;
+    titData.ph = document.getElementById('tit-ph').value;
+    titData.pf = document.getElementById('tit-pf').value;
+    titData.mf = document.getElementById('tit-mf').value;
+    titData.snType = document.getElementById('tit-sn-type').value;
+    titData.clPipette = document.getElementById('tit-cl-pipette').value;
+    titData.hardPipette = document.getElementById('tit-hard-pipette').value;
+    titData.caPipette = document.getElementById('tit-ca-pipette').value;
+    titData.surfaceVol = document.getElementById('tit-surface-vol').value;
+    localStorage.setItem('ipsTitrationV3', JSON.stringify(titData));
+}
+function loadTitrationUI() {
+    document.getElementById('fluid-type').value = titData.fluidType || 'aphron';
+    document.getElementById('tit-viscosity').value = titData.viscosity || '';
+    document.getElementById('tit-density').value = titData.density || '';
+    document.getElementById('tit-ph').value = titData.ph || '';
+    document.getElementById('tit-pf').value = titData.pf || '';
+    document.getElementById('tit-mf').value = titData.mf || '';
+    document.getElementById('tit-sn-type').value = titData.snType || 'fresh';
+    document.getElementById('tit-cl-pipette').value = titData.clPipette || '';
+    document.getElementById('tit-hard-pipette').value = titData.hardPipette || '';
+    document.getElementById('tit-ca-pipette').value = titData.caPipette || '';
+    document.getElementById('tit-surface-vol').value = titData.surfaceVol || '';
+    calcChlorides(); calcHardness(); calcCalcium();
+}
+
+function switchMainTab(tab) {
+    document.querySelectorAll('.main-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='tanks') || (i===1 && tab==='transfer') || (i===2 && tab==='injection') || (i===3 && tab==='titrations')));
+    document.getElementById('tanks-tab').classList.toggle('active', tab==='tanks');
+    document.getElementById('transfer-tab').classList.toggle('active', tab==='transfer');
+    document.getElementById('injection-tab').classList.toggle('active', tab==='injection');
+    document.getElementById('titrations-tab').classList.toggle('active', tab==='titrations');
+}
+function switchSide(side) {
+    currentSide = side;
+    document.querySelectorAll('.side-toggle .side-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && side==='pump') || (i===1 && side==='return')));
+    document.getElementById('pump-tanks').classList.toggle('active', side==='pump');
+    document.getElementById('return-tanks').classList.toggle('active', side==='return');
+}
+function setJetType(type) {
+    jetType = type;
+    document.querySelectorAll('.jet-toggle-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.jet-toggle-btn.'+type).classList.add('active');
+    const btn = document.getElementById('jet-action-btn');
+    btn.className = 'jet-btn '+type;
+    btn.textContent = type==='out' ? 'Jet Out' : 'Jet In';
+}
+function resetShiftJetted() { if(confirm('Reset shift jetted total?')) { data.jetsShift=0; saveData(); render(); } }
+
+function updatePF() { const ph = parseFloat(document.getElementById('tit-ph').value)||0; if(ph<=7) document.getElementById('tit-pf').value='0'; }
+function calcChlorides() {
+    const sn = document.getElementById('tit-sn-type').value;
+    const p = parseFloat(document.getElementById('tit-cl-pipette').value)||0;
+    const ppm = sn==='fresh' ? p*1000 : p*10000;
+    document.getElementById('tit-chlorides').textContent = ppm>0 ? ppm.toLocaleString() : '--';
+}
+function calcHardness() {
+    const p = parseFloat(document.getElementById('tit-hard-pipette').value)||0;
+    document.getElementById('tit-hardness').textContent = p>0 ? (p*400).toLocaleString() : '--';
+    calcMagnesium();
+}
+function calcCalcium() {
+    const p = parseFloat(document.getElementById('tit-ca-pipette').value)||0;
+    document.getElementById('tit-calcium').textContent = p>0 ? (p*400).toLocaleString() : '--';
+    calcMagnesium();
+}
+function calcMagnesium() {
+    const h = parseFloat(document.getElementById('tit-hard-pipette').value)||0;
+    const c = parseFloat(document.getElementById('tit-ca-pipette').value)||0;
+    if(h>0 && c>0) { const m=(h-c)*243; document.getElementById('tit-magnesium').textContent = m>=0 ? Math.round(m).toLocaleString() : '--'; }
+    else document.getElementById('tit-magnesium').textContent = '--';
+}
+
+function selectModalSide(side) {
+    modalSide = side;
+    document.querySelectorAll('.modal-tabs .modal-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && side==='pump') || (i===1 && side==='return')));
+    updateTankTypeOptions();
+}
+function showAddTankModal() {
+    document.getElementById('add-tank-modal').classList.add('show');
+    modalSide = currentSide;
+    document.querySelectorAll('.modal-tabs .modal-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && modalSide==='pump') || (i===1 && modalSide==='return')));
+    updateTankTypeOptions();
+    document.getElementById('new-tank-qty').value = '1';
+}
+function hideAddTankModal() { document.getElementById('add-tank-modal').classList.remove('show'); }
+function updateTankTypeOptions() {
+    const sel = document.getElementById('new-tank-type');
+    sel.innerHTML = '<option value="">-- Select --</option>';
+    (modalSide==='pump' ? pumpTypes : returnTypes).forEach(t => { sel.innerHTML += '<option value="'+t.value+'">'+t.label+'</option>'; });
+}
+
+function getColor(tank) { if(tank.contents) { const o=contentsOptions.find(x=>x.value===tank.contents); return o?o.color:'other'; } const t=[...pumpTypes,...returnTypes].find(x=>x.value===tank.type); return t?t.color:'other'; }
+function getBadgeText(tank) { if(tank.contents) { const o=contentsOptions.find(x=>x.value===tank.contents); return o&&o.value?o.label.toUpperCase():''; } const t=[...pumpTypes,...returnTypes].find(x=>x.value===tank.type); return t?t.badgeText:''; }
+function countTanksOfType(side,type) { return (side==='pump'?data.pumpTanks:data.returnTanks).filter(t=>t.type===type).length; }
+function generateTankName(side,type,idx) { const t=(side==='pump'?pumpTypes:returnTypes).find(x=>x.value===type); const b=t?t.label:type; return idx>1?b+' '+idx:b; }
+
+function addTanks() {
+    const type=document.getElementById('new-tank-type').value, qty=parseInt(document.getElementById('new-tank-qty').value)||1;
+    if(!type) { alert('Select a tank type'); return; }
+    const existing = countTanksOfType(modalSide,type);
+    for(let i=0;i<qty;i++) { const tank={id:Date.now()+i,type,name:generateTankName(modalSide,type,existing+i+1),inches:0,bbls:0,contents:'',side:modalSide,estimated:false}; (modalSide==='pump'?data.pumpTanks:data.returnTanks).push(tank); }
+    renumberTanksOfType(modalSide,type); saveData(); render(); hideAddTankModal(); switchSide(modalSide);
+}
+function renumberTanksOfType(side,type) { const tanks=(side==='pump'?data.pumpTanks:data.returnTanks).filter(t=>t.type===type); tanks.forEach((tank,i)=>{ tank.name=generateTankName(side,type,i+1); if(tanks.length===1){const t=(side==='pump'?pumpTypes:returnTypes).find(x=>x.value===type);tank.name=t?t.label:type;} }); }
+function deleteTank(side,id) { if(!confirm('Delete?')) return; let dt=''; if(side==='pump'){const t=data.pumpTanks.find(x=>x.id===id);if(t)dt=t.type;data.pumpTanks=data.pumpTanks.filter(x=>x.id!==id);}else{const t=data.returnTanks.find(x=>x.id===id);if(t)dt=t.type;data.returnTanks=data.returnTanks.filter(x=>x.id!==id);} if(dt)renumberTanksOfType(side,dt); saveData(); render(); }
+function updateTank(side,id,field,val) { const tank=(side==='pump'?data.pumpTanks:data.returnTanks).find(t=>t.id===id); if(!tank)return; if(field==='inches'){tank.inches=parseFloat(val)||0;tank.bbls=inchesToBbl(tank.inches);tank.estimated=false;}else if(field==='contents')tank.contents=val; saveData(); render(); }
+function setSandcatFull(id) { const tank=data.returnTanks.find(t=>t.id===id); if(tank){tank.bbls=185;tank.inches=bblToInches(185);tank.estimated=false;saveData();render();} }
+
+function calculateTotals() { let totals={brine:0,packer:0,mud:0,recirc:0,freshwater:0,other:0,system:0}; data.pumpTanks.forEach(t=>{totals.system+=t.bbls;if(t.type==='brine10'||t.type==='brine119')totals.brine+=t.bbls;else if(t.type==='packer')totals.packer+=t.bbls;else if(t.type==='aphron')totals.mud+=t.bbls;else if(t.type==='recirc')totals.recirc+=t.bbls;else if(t.type==='freshwater')totals.freshwater+=t.bbls;else totals.other+=t.bbls;}); data.returnTanks.forEach(t=>{totals.system+=t.bbls;const f=t.contents||'';if(f==='brine')totals.brine+=t.bbls;else if(f==='mud')totals.mud+=t.bbls;else if(f==='recirc')totals.recirc+=t.bbls;else if(f==='freshwater')totals.freshwater+=t.bbls;else totals.other+=t.bbls;}); return totals; }
+
+function findTank(id) { let t=data.pumpTanks.find(x=>x.id===id); if(t)return{tank:t,side:'pump'}; t=data.returnTanks.find(x=>x.id===id); if(t)return{tank:t,side:'return'}; return null; }
+function getEqualizableTanks(tank,side) { if(side==='pump')return data.pumpTanks.filter(t=>t.id!==tank.id&&t.type===tank.type); const info=returnTypes.find(x=>x.value===tank.type); if(info&&info.canEqualize)return data.returnTanks.filter(t=>t.id!==tank.id&&returnEqualizeTypes.includes(t.type)); if(tank.type==='sandcat')return data.returnTanks.filter(t=>t.id!==tank.id&&t.type==='sandcat'); return []; }
+function startJetProcess() { const srcId=parseInt(document.getElementById('jet-source').value),vol=parseFloat(document.getElementById('jet-volume').value)||120; if(!srcId){alert('Select a tank');return;} const result=findTank(srcId); if(!result){alert('Tank not found');return;} const{tank,side}=result,eqTanks=getEqualizableTanks(tank,side); if(eqTanks.length>0&&jetType==='out'){pendingJet={tank,side,volume:vol,equalizableTanks:eqTanks};showEqualizeModal(tank,eqTanks,vol);}else{executeJet([tank],vol);} }
+function showEqualizeModal(src,eqTanks,vol) { const all=[src,...eqTanks],per=Math.round(vol/all.length); document.getElementById('equalize-question').innerHTML='Is <strong>'+src.name+'</strong> equalized?<br><br>'+vol+' BBL split = <strong>'+per+' BBL</strong> each'; document.getElementById('equalize-tanks-list').innerHTML=all.map(t=>t.name).join(', '); document.getElementById('equalize-modal').classList.add('show'); }
+function hideEqualizeModal() { document.getElementById('equalize-modal').classList.remove('show'); pendingJet=null; }
+function confirmEqualize(isEq) { if(!pendingJet)return; const{tank,volume,equalizableTanks}=pendingJet; executeJet(isEq?[tank,...equalizableTanks]:[tank],volume); hideEqualizeModal(); }
+function executeJet(tanks,totalVol) { const per=Math.round(totalVol/tanks.length); tanks.forEach(t=>{if(jetType==='out')t.bbls=Math.max(0,t.bbls-per);else t.bbls+=per;t.inches=bblToInches(t.bbls);t.estimated=true;}); if(jetType==='out'){data.jetsHour+=totalVol;data.jetsShift+=totalVol;} if(!data.transferLog)data.transferLog=[]; data.transferLog.unshift({time:new Date().toISOString(),type:jetType,volume:totalVol,tanks:tanks.map(t=>t.name)}); document.getElementById('jet-volume').value='120'; saveData();render();renderTransferLog(); const act=jetType==='out'?'Jetted out':'Jetted in'; if(tanks.length===1)alert(act+' '+totalVol+' BBL\n'+tanks[0].name+': '+tanks[0].bbls+' BBL (est '+tanks[0].inches+'")'); else alert(act+' '+totalVol+' BBL across '+tanks.length+' tanks'); }
+function logGainLossCheck() { 
+    const totals=calculateTotals(),curr=totals.system,last=data.lastSystemTotal,now=new Date();
+    let app=last!==null?curr-last:null,tru=app!==null?app+data.jetsHour:null;
+    let ratePerHour=null,elapsedMin=null;
+    if(data.lastCheckTime && tru!==null) {
+        const lastTime=new Date(data.lastCheckTime);
+        elapsedMin=Math.round((now-lastTime)/60000);
+        if(elapsedMin>0) ratePerHour=((tru/elapsedMin)*60).toFixed(1);
+    }
+    data.history.unshift({time:now.toISOString(),systemTotal:curr,apparentChange:app,trueChange:tru,jetsHour:data.jetsHour,ratePerHour:ratePerHour,elapsedMin:elapsedMin,totals:{...totals}});
+    data.lastSystemTotal=curr;data.lastCheckTime=now.toISOString();data.jetsHour=0;
+    saveData();render();
+    let msg='Check logged!\nSystem: '+curr+' BBL';
+    if(tru!==null)msg+='\nNet Gain/Loss: '+(tru>=0?'+':'')+tru+' bbl';
+    if(ratePerHour!==null)msg+='\nRate: '+(parseFloat(ratePerHour)>=0?'+':'')+ratePerHour+' bbl/hr';
+    alert(msg);
+}
+
+function hasContentsDropdown(tank) { const t=returnTypes.find(x=>x.value===tank.type); return t&&t.hasContents; }
+function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; const keywords=tank.voiceKeywords||[]; const micClass=keywords.length?'configured':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'" onclick="openVoiceKeywordModal(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; return '<div class="tank-card border-'+color+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+'</div></div></div>'; }
+function render() { document.getElementById('pump-tanks').innerHTML=data.pumpTanks.length===0?'<div class="empty-state">No pump tanks<br>Tap + Add Tank</div>':data.pumpTanks.map(t=>renderTankCard(t,'pump')).join(''); document.getElementById('return-tanks').innerHTML=data.returnTanks.length===0?'<div class="empty-state">No return tanks<br>Tap + Add Tank</div>':data.returnTanks.map(t=>renderTankCard(t,'return')).join(''); const jetSel=document.getElementById('jet-source'); jetSel.innerHTML='<option value="">Select tank...</option>'; [...data.pumpTanks,...data.returnTanks].forEach(t=>{jetSel.innerHTML+='<option value="'+t.id+'">'+t.name+' ('+t.bbls+')</option>';}); const totals=calculateTotals(); document.getElementById('total-brine').textContent=totals.brine; document.getElementById('total-packer').textContent=totals.packer; document.getElementById('total-mud').textContent=totals.mud; document.getElementById('total-recirc').textContent=totals.recirc; document.getElementById('total-freshwater').textContent=totals.freshwater; document.getElementById('total-other').textContent=totals.other; document.getElementById('system-total').textContent=totals.system+' BBL'; document.getElementById('jetted-total').textContent=data.jetsShift+' BBL'; document.getElementById('jets-hour').textContent=data.jetsHour; document.getElementById('transfer-shift-total').textContent=data.jetsShift+' BBL';
+    // Gain/Loss display
+    const lastCheckEl=document.getElementById('last-check-time'),elapsedEl=document.getElementById('elapsed-time'),truEl=document.getElementById('true-change'),rateEl=document.getElementById('rate-per-hour');
+    if(data.lastCheckTime){
+        const lastTime=new Date(data.lastCheckTime);
+        lastCheckEl.textContent=lastTime.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+        const now=new Date(),elapsedMin=Math.round((now-lastTime)/60000);
+        if(elapsedMin<60)elapsedEl.textContent=elapsedMin+' min ago';
+        else if(elapsedMin<1440)elapsedEl.textContent=Math.floor(elapsedMin/60)+'h '+elapsedMin%60+'m ago';
+        else elapsedEl.textContent=Math.floor(elapsedMin/1440)+'d ago';
+    }else{lastCheckEl.textContent='--';elapsedEl.textContent='';}
+    const last=data.history[0];
+    const appEl=document.getElementById('apparent-change');
+    if(last&&last.apparentChange!==null){appEl.textContent=(last.apparentChange>=0?'+':'')+last.apparentChange;appEl.className='gl-value '+(last.apparentChange>0?'gain':last.apparentChange<0?'loss':'neutral');}else{appEl.textContent='--';appEl.className='gl-value neutral';}
+    if(last&&last.trueChange!==null){truEl.textContent=(last.trueChange>=0?'+':'')+last.trueChange;truEl.className='gl-value '+(last.trueChange>0?'gain':last.trueChange<0?'loss':'neutral');}else{truEl.textContent='--';truEl.className='gl-value neutral';}
+    if(last&&last.ratePerHour!==null){const r=parseFloat(last.ratePerHour);rateEl.textContent=(r>=0?'+':'')+last.ratePerHour;rateEl.className='gl-value '+(r>0?'gain':r<0?'loss':'neutral');}else{rateEl.textContent='--';rateEl.className='gl-value neutral';}
+}
+
+function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
+function hideTankReport() { document.getElementById('tank-report').classList.remove('show'); }
+function showTitrationReport() { const names={aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Freshwater'}; document.getElementById('tit-report-fluid').textContent=names[titData.fluidType]||titData.fluidType; const cl=document.getElementById('tit-chlorides').textContent,ha=document.getElementById('tit-hardness').textContent,ca=document.getElementById('tit-calcium').textContent,mg=document.getElementById('tit-magnesium').textContent; const surfaceVol=getSurfaceVolumeForFluid(titData.fluidType); let html='<div class="report-section"><div class="report-section-title">Basic Properties</div><div class="report-row"><span class="report-row-label">Viscosity</span><span class="report-row-value">'+(titData.viscosity||'--')+' sec</span></div><div class="report-row"><span class="report-row-label">Density</span><span class="report-row-value">'+(titData.density||'--')+' ppg</span></div><div class="report-row"><span class="report-row-label">pH</span><span class="report-row-value">'+(titData.ph||'--')+'</span></div><div class="report-row"><span class="report-row-label">PF</span><span class="report-row-value">'+(titData.pf||'--')+'</span></div><div class="report-row"><span class="report-row-label">MF</span><span class="report-row-value">'+(titData.mf||'--')+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Chemical Analysis</div><div class="report-row"><span class="report-row-label">Chlorides</span><span class="report-row-value">'+cl+' ppm</span></div><div class="report-row"><span class="report-row-label">Calcium</span><span class="report-row-value">'+ca+' ppm</span></div><div class="report-row"><span class="report-row-label">Total Hardness</span><span class="report-row-value">'+ha+' ppm</span></div><div class="report-row"><span class="report-row-label">Magnesium</span><span class="report-row-value">'+mg+' ppm</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Volume</div><div class="report-row"><span class="report-row-label">Surface Volume ('+names[titData.fluidType]+')</span><span class="report-row-value">'+surfaceVol+' bbl</span></div></div>'; html+='<div class="report-timestamp">'+new Date().toLocaleString()+'</div>'; document.getElementById('tit-report-content').innerHTML=html; document.getElementById('titration-report').classList.add('show'); }
+function hideTitrationReport() { document.getElementById('titration-report').classList.remove('show'); }
+
+// Titration log
+let titrationLog = [];
+function loadTitrationLog() { const s = localStorage.getItem('ipsTitrationLog'); if(s) titrationLog = JSON.parse(s); }
+function saveTitrationLog() { localStorage.setItem('ipsTitrationLog', JSON.stringify(titrationLog)); }
+function logTitration() {
+    const names = {aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Fresh'};
+    const hardness = document.getElementById('tit-hardness').textContent;
+    const calcium = document.getElementById('tit-calcium').textContent;
+    const magnesium = document.getElementById('tit-magnesium').textContent;
+    const hasFullTitration = hardness !== '--' && calcium !== '--';
+    const entry = {
+        time: new Date().toISOString(),
+        fluidType: titData.fluidType,
+        fluidName: names[titData.fluidType] || titData.fluidType,
+        viscosity: titData.viscosity,
+        density: titData.density,
+        ph: titData.ph,
+        chlorides: document.getElementById('tit-chlorides').textContent,
+        calcium: calcium,
+        hardness: hardness,
+        magnesium: magnesium,
+        fullTitration: hasFullTitration,
+        surfaceVol: getSurfaceVolumeForFluid(titData.fluidType)
+    };
+    titrationLog.unshift(entry);
+    saveTitrationLog();
+    renderTitrationLog();
+    alert('Titration logged!\n' + entry.fluidName + ' @ ' + new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) + (hasFullTitration ? ' (Full)' : ''));
+}
+function renderTitrationLog() {
+    const el = document.getElementById('titration-log-content');
+    if (!titrationLog || !titrationLog.length) {
+        el.innerHTML = '<em style="color:#666">No titrations logged</em>';
+        return;
+    }
+    const fluidColors = {aphron:'#a1887f',brine:'#42a5f5',recirc:'#ba68c8',freshwater:'#4db6ac',fresh:'#4db6ac'};
+    el.innerHTML = titrationLog.slice(0, 20).map(log => {
+        const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const wt = log.density ? log.density + '#' : '';
+        const visc = log.viscosity ? log.viscosity + 's' : '';
+        const fluidColor = fluidColors[log.fluidType] || '#ba68c8';
+        let html = '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f">' +
+            '<span style="color:#4fc3f7">' + t + '</span> ' +
+            '<span style="color:' + fluidColor + '">' + log.fluidName + '</span> ' +
+            '<span style="color:#ffa726">' + wt + '</span> ' +
+            '<span style="color:#888">' + visc + '</span>';
+        if (log.fullTitration) {
+            html += ' <span style="color:#42a5f5">Cl:' + log.chlorides + '</span>' +
+                ' <span style="color:#26a69a">Ca:' + log.calcium + '</span>' +
+                ' <span style="color:#ab47bc">H:' + log.hardness + '</span>' +
+                ' <span style="color:#66bb6a">Mg:' + (log.magnesium || '--') + '</span>';
+        }
+        html += '</div>';
+        return html;
+    }).join('');
+}
+function resetTitrationLog() { if(confirm('Clear titration history?')) { titrationLog = []; saveTitrationLog(); renderTitrationLog(); } }
+
+// Reset functions
+function resetGainLoss() { 
+    if(confirm('Reset gain/loss data?\n\nThis will clear the last check time, history, and jets this hour.')) { 
+        data.lastSystemTotal = null; 
+        data.lastCheckTime = null; 
+        data.jetsHour = 0;
+        data.history = []; 
+        saveData(); 
+        render(); 
+    } 
+}
+function resetTransferLog() { if(confirm('Clear transfer log?')) { data.transferLog = []; saveData(); renderTransferLog(); } }
+
+// Transfer log rendering
+function renderTransferLog() {
+    const el = document.getElementById('transfer-log-content');
+    if (!data.transferLog || !data.transferLog.length) { 
+        el.innerHTML = '<em style="color:#666">No transfers logged</em>'; 
+        return; 
+    }
+    el.innerHTML = data.transferLog.slice(0, 50).map(log => {
+        const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
+        return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f"><span style="color:#4fc3f7">' + t + '</span> <span style="color:' + typeColor + '">' + (log.type === 'out' ? 'OUT' : 'IN') + '</span> ' + log.volume + ' BBL - ' + log.tanks.join(', ') + '</div>';
+    }).join('');
+}
+
+// Transfer Report
+function showTransferReport() {
+    const now = new Date();
+    document.getElementById('transfer-report-time').textContent = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+    let html = '<div class="report-section"><div class="report-section-title">Shift Summary</div>';
+    html += '<div class="report-row"><span class="report-row-label">Total Jetted</span><span class="report-row-value" style="color:#ffa726">' + data.jetsShift + ' BBL</span></div>';
+    html += '<div class="report-row"><span class="report-row-label">Jets This Hour</span><span class="report-row-value">' + data.jetsHour + ' BBL</span></div></div>';
+    if (data.transferLog && data.transferLog.length) {
+        html += '<div class="report-section"><div class="report-section-title">Transfer Log</div>';
+        data.transferLog.forEach(log => {
+            const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
+            html += '<div class="report-row"><span class="report-row-label">' + t + ' - ' + log.tanks.join(', ') + '</span><span class="report-row-value" style="color:' + typeColor + '">' + (log.type === 'out' ? '-' : '+') + log.volume + ' BBL</span></div>';
+        });
+        html += '</div>';
+    }
+    html += '<div class="report-timestamp">' + now.toLocaleString() + '</div>';
+    document.getElementById('transfer-report-content').innerHTML = html;
+    document.getElementById('transfer-report').classList.add('show');
+}
+function hideTransferReport() { document.getElementById('transfer-report').classList.remove('show'); }
+
+// Turnover Report
+function showTurnoverReport() {
+    const now = new Date();
+    const totals = calculateTotals();
+    document.getElementById('turnover-report-time').textContent = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+    
+    let html = '<div class="report-company">SHIFT TURNOVER</div>';
+    
+    // Tank Summary
+    html += '<div class="report-section"><div class="report-section-title">Tank Volumes</div>';
+    if(data.pumpTanks.length) {
+        html += '<div style="font-size:10px;color:#4fc3f7;margin:8px 0 4px">Pump Side</div>';
+        data.pumpTanks.forEach(t => { html += '<div class="report-row"><span class="report-row-label">' + t.name + '</span><span class="report-row-value">' + t.bbls + ' BBL</span></div>'; });
+    }
+    if(data.returnTanks.length) {
+        html += '<div style="font-size:10px;color:#4fc3f7;margin:8px 0 4px">Return Side</div>';
+        data.returnTanks.forEach(t => { html += '<div class="report-row"><span class="report-row-label">' + t.name + (t.contents ? ' [' + t.contents + ']' : '') + '</span><span class="report-row-value">' + t.bbls + ' BBL</span></div>'; });
+    }
+    html += '<div style="display:flex;gap:10px;margin-top:10px">';
+    html += '<div style="flex:1;background:#0d1b2a;padding:10px;border-radius:6px;text-align:center"><div style="font-size:9px;color:#888">SYSTEM TOTAL</div><div style="font-size:18px;font-weight:700">' + totals.system + ' BBL</div></div>';
+    html += '<div style="flex:1;background:#e65100;padding:10px;border-radius:6px;text-align:center"><div style="font-size:9px;color:rgba(255,255,255,0.8)">JETTED (SHIFT)</div><div style="font-size:18px;font-weight:700;color:white">' + data.jetsShift + ' BBL</div></div>';
+    html += '</div></div>';
+    
+    // Injection Status
+    html += '<div class="report-section"><div class="report-section-title">Chemical Injection</div>';
+    html += '<div class="report-row"><span class="report-row-label">Pump Rate</span><span class="report-row-value">' + (injData.pumpRate || '--') + ' BPM</span></div>';
+    if (injData.pumpRate && injData.frTreat) {
+        const frTarget = PUMP_CHART[injData.pumpRate][parseFloat(injData.frTreat)];
+        html += '<div class="report-row"><span class="report-row-label">Friction Reducer</span><span class="report-row-value" style="color:#66bb6a">' + TREAT_LABELS[parseFloat(injData.frTreat)] + '/10bbl → ' + frTarget.toFixed(3) + ' GPM</span></div>';
+    }
+    if (injData.pumpRate && injData.lubeTreat) {
+        const lubeTarget = PUMP_CHART[injData.pumpRate][parseFloat(injData.lubeTreat)];
+        html += '<div class="report-row"><span class="report-row-label">Pipe Lube</span><span class="report-row-value" style="color:#ffa726">' + TREAT_LABELS[parseFloat(injData.lubeTreat)] + '/10bbl → ' + lubeTarget.toFixed(3) + ' GPM</span></div>';
+    }
+    html += '</div>';
+    
+    // Transfer Log
+    html += '<div class="report-section"><div class="report-section-title">Fluid Transfers</div>';
+    if (data.transferLog && data.transferLog.length) {
+        data.transferLog.slice(0, 10).forEach(log => {
+            const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
+            html += '<div class="report-row"><span class="report-row-label">' + t + ' - ' + log.tanks.join(', ') + '</span><span class="report-row-value" style="color:' + typeColor + '">' + (log.type === 'out' ? '-' : '+') + log.volume + ' BBL</span></div>';
+        });
+    } else {
+        html += '<div style="color:#666;font-size:12px;text-align:center;padding:10px">No transfers this shift</div>';
+    }
+    html += '</div>';
+    
+    // Gain/Loss
+    if (data.history && data.history.length) {
+        html += '<div class="report-section"><div class="report-section-title">Gain/Loss Checks</div>';
+        data.history.slice(0, 5).forEach(h => {
+            const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            const changeColor = h.trueChange > 0 ? '#4caf50' : h.trueChange < 0 ? '#ef5350' : '#888';
+            html += '<div class="report-row"><span class="report-row-label">' + t + '</span><span class="report-row-value" style="color:' + changeColor + '">' + (h.trueChange !== null ? ((h.trueChange >= 0 ? '+' : '') + h.trueChange + ' bbl') : '--') + (h.ratePerHour ? ' (' + h.ratePerHour + '/hr)' : '') + '</span></div>';
+        });
+        html += '</div>';
+    }
+    
+    html += '<div class="report-timestamp">Generated: ' + now.toLocaleString() + '</div>';
+    document.getElementById('turnover-report-content').innerHTML = html;
+    document.getElementById('turnover-report').classList.add('show');
+}
+function hideTurnoverReport() { document.getElementById('turnover-report').classList.remove('show'); }
+function sendTurnoverReport() {
+    // Generate text version for sharing
+    const totals = calculateTotals();
+    const now = new Date();
+    let text = '📋 SHIFT TURNOVER REPORT\n';
+    text += now.toLocaleString() + '\n\n';
+    text += '=== TANK VOLUMES ===\n';
+    if(data.pumpTanks.length) { text += 'PUMP SIDE:\n'; data.pumpTanks.forEach(t => { text += '  ' + t.name + ': ' + t.bbls + ' BBL\n'; }); }
+    if(data.returnTanks.length) { text += 'RETURN SIDE:\n'; data.returnTanks.forEach(t => { text += '  ' + t.name + (t.contents ? ' ['+t.contents+']' : '') + ': ' + t.bbls + ' BBL\n'; }); }
+    text += '\nSYSTEM TOTAL: ' + totals.system + ' BBL\n';
+    text += 'JETTED (SHIFT): ' + data.jetsShift + ' BBL\n\n';
+    text += '=== INJECTION ===\n';
+    text += 'Pump Rate: ' + (injData.pumpRate || '--') + ' BPM\n';
+    if(injData.pumpRate && injData.frTreat) { const fr = PUMP_CHART[injData.pumpRate][parseFloat(injData.frTreat)]; text += 'FR: ' + TREAT_LABELS[parseFloat(injData.frTreat)] + '/10bbl → ' + fr.toFixed(3) + ' GPM\n'; }
+    if(injData.pumpRate && injData.lubeTreat) { const lb = PUMP_CHART[injData.pumpRate][parseFloat(injData.lubeTreat)]; text += 'Lube: ' + TREAT_LABELS[parseFloat(injData.lubeTreat)] + '/10bbl → ' + lb.toFixed(3) + ' GPM\n'; }
+    if(data.history && data.history.length) {
+        text += '\n=== GAIN/LOSS ===\n';
+        data.history.slice(0, 3).forEach(h => {
+            const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            text += t + ': App ' + (h.apparentChange >= 0 ? '+' : '') + h.apparentChange + ', True ' + (h.trueChange >= 0 ? '+' : '') + h.trueChange + ' bbl\n';
+        });
+    }
+    // Try to share, fallback to copy
+    if(navigator.share) {
+        navigator.share({ title: 'Shift Turnover', text: text }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(text).then(() => alert('Report copied to clipboard!')).catch(() => alert('Could not copy report'));
+    }
+    hideTurnoverReport();
+}
+
+// Start New Shift
+function startNewShift() {
+    if (!confirm('Start New Shift?\n\nThis will reset:\n• Gain/Loss data\n• Jets this hour\n• Shift jetted total\n• Transfer log\n• Injection history\n\nTank volumes and titration data will be preserved.')) return;
+    
+    data.lastSystemTotal = null;
+    data.lastCheckTime = null;
+    data.jetsHour = 0;
+    data.jetsShift = 0;
+    data.history = [];
+    data.transferLog = [];
+    injData.history = [];
+    
+    saveData();
+    saveInjData();
+    render();
+    renderInjHist();
+    renderTransferLog();
+    
+    alert('New shift started!\n\nAll shift-specific data has been cleared.');
+}
+
+// Auto-calculate surface volume for titration report
+function getSurfaceVolumeForFluid(fluidType) {
+    const totals = calculateTotals();
+    switch(fluidType) {
+        case 'aphron': return totals.mud;
+        case 'brine': return totals.brine;
+        case 'recirc': return totals.recirc;
+        case 'freshwater': return totals.freshwater;
+        default: return totals.system;
+    }
+}
+
+// ============ VOICE ENTRY SYSTEM ============
+let voiceAudioCtx = null;
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let voiceRecognition = null;
+let voiceIsListening = false;
+let voiceState = 'IDLE'; // IDLE, LISTENING, TANK_HEARD, WAITING_NUMBER, CONFIRMING
+let voiceCurrentTank = null;
+let voiceCurrentSide = null;
+let voicePendingInches = null;
+let voicePendingBbls = null;
+let voiceConfirmTimeout = null;
+
+// Keyword modal state
+let voiceEditingTankId = null;
+let voiceEditingSide = null;
+let voiceKeywordRecognition = null;
+let voiceIsRecordingKeyword = false;
+
+function getVoiceAudioContext() {
+    if (!voiceAudioCtx) voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return voiceAudioCtx;
+}
+
+function voicePlayTone(frequency, duration, type = 'sine') {
+    const ctx = getVoiceAudioContext();
+    if (ctx.state === 'suspended') return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = frequency;
+    osc.type = type;
+    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+}
+
+function voicePlayDing() { voicePlayTone(880, 0.2); }
+function voicePlaySuccess() { voicePlayTone(880, 0.15); setTimeout(() => voicePlayTone(1100, 0.2), 150); }
+function voicePlayError() { voicePlayTone(330, 0.3, 'square'); }
+
+function voiceSpeak(text) {
+    if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
+        setTimeout(() => {
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.rate = 1.0; msg.pitch = 1; msg.volume = 1;
+            const voices = speechSynthesis.getVoices();
+            if (voices.length) { const ev = voices.find(v => v.lang.startsWith('en')); if (ev) msg.voice = ev; }
+            speechSynthesis.speak(msg);
+        }, 50);
+    }
+}
+
+function voiceSpeakAndThen(text, callback) {
+    if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
+        setTimeout(() => {
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.rate = 1.0; msg.pitch = 1; msg.volume = 1;
+            const voices = speechSynthesis.getVoices();
+            if (voices.length) { const ev = voices.find(v => v.lang.startsWith('en')); if (ev) msg.voice = ev; }
+            msg.onend = () => setTimeout(callback, 300);
+            const fallback = text.length * 80 + 1000;
+            setTimeout(() => { if (voiceState === 'CONFIRMING' && voiceConfirmTimeout === null) callback(); }, fallback);
+            speechSynthesis.speak(msg);
+        }, 50);
+    } else { setTimeout(callback, 500); }
+}
+
+if ('speechSynthesis' in window) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); }
+
+function toggleVoiceMaster() {
+    const ctx = getVoiceAudioContext();
+    if (ctx.state === 'suspended') ctx.resume().then(() => voicePlayTone(440, 0.05));
+    if (voiceIsListening) stopVoiceListening(); else startVoiceListening();
+}
+
+function startVoiceListening() {
+    if (!SpeechRecognition) { alert('Speech recognition not supported'); return; }
+    voiceIsListening = true;
+    voiceState = 'LISTENING';
+    voiceCurrentTank = null;
+    
+    document.getElementById('voice-master-btn').className = 'voice-master-btn active';
+    updateVoiceStatus('Listening...', 'Say a tank keyword');
+    document.getElementById('voice-status').classList.add('show');
+    
+    voiceRecognition = new SpeechRecognition();
+    voiceRecognition.continuous = true;
+    voiceRecognition.interimResults = false;
+    voiceRecognition.lang = 'en-US';
+    
+    voiceRecognition.onresult = (event) => {
+        const last = event.results[event.results.length - 1];
+        if (last.isFinal) processVoiceInput(last[0].transcript.toLowerCase().trim());
+    };
+    voiceRecognition.onend = () => { if (voiceIsListening) try { voiceRecognition.start(); } catch(e) {} };
+    voiceRecognition.onerror = (e) => { if (voiceIsListening && e.error !== 'aborted') setTimeout(() => { try { voiceRecognition.start(); } catch(e) {} }, 100); };
+    
+    try { voiceRecognition.start(); } catch(e) {}
+    setTimeout(() => voicePlayDing(), 100);
+}
+
+function stopVoiceListening() {
+    voiceIsListening = false;
+    voiceState = 'IDLE';
+    voiceCurrentTank = null;
+    if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
+    
+    document.getElementById('voice-master-btn').className = 'voice-master-btn';
+    document.getElementById('voice-status').classList.remove('show');
+    
+    if (voiceRecognition) try { voiceRecognition.stop(); } catch(e) {}
+}
+
+function updateVoiceStatus(main, sub) {
+    document.getElementById('voice-status-main').textContent = main;
+    document.getElementById('voice-status-sub').textContent = sub;
+}
+
+function processVoiceInput(text) {
+    console.log('Voice heard:', text, 'State:', voiceState);
+    
+    // Cancel anytime
+    if (text.includes('cancel') || text.includes('stop') || text.includes('nevermind')) {
+        if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
+        voicePlayError();
+        voiceState = 'LISTENING';
+        voiceCurrentTank = null;
+        updateVoiceStatus('Cancelled', 'Say a tank keyword');
+        document.getElementById('voice-master-btn').className = 'voice-master-btn active';
+        voiceSpeak('Cancelled');
+        clearTankHighlights();
+        return;
+    }
+    
+    if (voiceState === 'LISTENING') {
+        // Search all tanks for keyword match
+        const allTanks = [
+            ...data.pumpTanks.map(t => ({...t, side: 'pump'})),
+            ...data.returnTanks.map(t => ({...t, side: 'return'}))
+        ];
+        for (const tank of allTanks) {
+            const keywords = tank.voiceKeywords || [];
+            for (const kw of keywords) {
+                if (text.includes(kw.toLowerCase())) {
+                    voiceCurrentTank = tank;
+                    voiceCurrentSide = tank.side;
+                    voiceState = 'WAITING_NUMBER';
+                    voicePlayDing();
+                    document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
+                    updateVoiceStatus(tank.name, 'Say the inches');
+                    highlightTankCard(tank.side, tank.id);
+                    return;
+                }
+            }
+        }
+    } else if (voiceState === 'WAITING_NUMBER') {
+        if (text.includes('no') || text.includes('nope') || text.includes('wrong')) {
+            voicePlayError();
+            voiceState = 'LISTENING';
+            voiceCurrentTank = null;
+            updateVoiceStatus('Cancelled', 'Say a tank keyword');
+            document.getElementById('voice-master-btn').className = 'voice-master-btn active';
+            voiceSpeak('Cancelled');
+            clearTankHighlights();
+            return;
+        }
+        
+        // Check for "full" keyword on sandcat tank (185 BBL = 41 inches)
+        if (text.includes('full') && voiceCurrentTank && voiceCurrentTank.type === 'sandcat') {
+            voicePendingInches = 41;
+            voicePendingBbls = 185;
+            voiceState = 'CONFIRMING';
+            document.getElementById('voice-master-btn').className = 'voice-master-btn confirming';
+            updateVoiceStatus(`Full = 185 BBL`, 'Say "no" to retry...');
+            voiceSpeakAndThen(`Full, 185 barrels, ${voiceCurrentTank.name}`, () => {
+                if (voiceState === 'CONFIRMING') startVoiceConfirmCountdown();
+            });
+            return;
+        }
+        
+        const num = extractVoiceNumber(text);
+        if (num !== null && num >= 0 && num <= 96) {
+            voicePendingInches = num;
+            voicePendingBbls = STICK_CHART[num] || 0;
+            voiceState = 'CONFIRMING';
+            document.getElementById('voice-master-btn').className = 'voice-master-btn confirming';
+            updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, 'Say "no" to retry...');
+            voiceSpeakAndThen(`${voicePendingInches} inches, ${voicePendingBbls} barrels, ${voiceCurrentTank.name}`, () => {
+                if (voiceState === 'CONFIRMING') startVoiceConfirmCountdown();
+            });
+        }
+    } else if (voiceState === 'CONFIRMING') {
+        if (text.includes('no') || text.includes('nope') || text.includes('wrong') || text.includes('retry')) {
+            if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
+            voicePlayError();
+            voiceState = 'WAITING_NUMBER';
+            document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
+            updateVoiceStatus(voiceCurrentTank.name, 'Say the inches again');
+            voiceSpeak('Say again');
+        }
+    }
+}
+
+function extractVoiceNumber(text) {
+    const wordToNum = {
+        'zero':0,'one':1,'won':1,'two':2,'to':2,'too':2,'three':3,'four':4,'for':4,
+        'five':5,'six':6,'seven':7,'eight':8,'ate':8,'nine':9,'ten':10,
+        'eleven':11,'twelve':12,'thirteen':13,'fourteen':14,'fifteen':15,
+        'sixteen':16,'seventeen':17,'eighteen':18,'nineteen':19,'twenty':20,
+        'thirty':30,'forty':40,'fourty':40,'fifty':50,'sixty':60,'seventy':70,'eighty':80,'ninety':90
+    };
+    const numMatch = text.match(/\d+/);
+    if (numMatch) return parseInt(numMatch[0]);
+    let total = 0, found = false;
+    text.replace(/-/g,' ').split(/\s+/).forEach(w => {
+        const n = wordToNum[w.replace(/[^a-z]/g,'')];
+        if (n !== undefined) { found = true; total += n; }
+    });
+    return found ? total : null;
+}
+
+function startVoiceConfirmCountdown() {
+    if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
+    let seconds = 3;
+    const tick = () => {
+        if (voiceState !== 'CONFIRMING') return;
+        seconds--;
+        if (seconds > 0) {
+            updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, `Confirming in ${seconds}...`);
+            voiceConfirmTimeout = setTimeout(tick, 1000);
+        } else {
+            voiceConfirmEntry();
+        }
+    };
+    voiceConfirmTimeout = setTimeout(tick, 1000);
+}
+
+function voiceConfirmEntry() {
+    if (!voiceCurrentTank || voicePendingInches === null) return;
+    
+    // Update the actual tank
+    const tanks = voiceCurrentSide === 'pump' ? data.pumpTanks : data.returnTanks;
+    const tank = tanks.find(t => t.id === voiceCurrentTank.id);
+    if (tank) {
+        tank.inches = voicePendingInches;
+        tank.bbls = voicePendingBbls;
+        tank.estimated = false;
+        saveData();
+        render();
+    }
+    
+    voicePlaySuccess();
+    updateVoiceStatus('✓ Entered!', `${voiceCurrentTank.name}: ${voicePendingInches}" = ${voicePendingBbls} BBL`);
+    document.getElementById('voice-master-btn').className = 'voice-master-btn active';
+    
+    setTimeout(() => {
+        if (voiceIsListening) {
+            voiceState = 'LISTENING';
+            voiceCurrentTank = null;
+            voicePendingInches = null;
+            voicePendingBbls = null;
+            updateVoiceStatus('Listening...', 'Say a tank keyword');
+            clearTankHighlights();
+        }
+    }, 1500);
+}
+
+function highlightTankCard(side, id) {
+    clearTankHighlights();
+    const card = document.querySelector(`.tank-card[data-side="${side}"][data-id="${id}"]`);
+    if (card) card.classList.add('voice-highlight');
+}
+
+function clearTankHighlights() {
+    document.querySelectorAll('.tank-card.voice-highlight').forEach(c => c.classList.remove('voice-highlight'));
+}
+
+// Voice Keyword Modal
+function openVoiceKeywordModal(side, tankId) {
+    if (voiceIsListening) stopVoiceListening();
+    voiceEditingSide = side;
+    voiceEditingTankId = tankId;
+    const tanks = side === 'pump' ? data.pumpTanks : data.returnTanks;
+    const tank = tanks.find(t => t.id === tankId);
+    if (!tank) return;
+    
+    document.getElementById('voice-modal-tank-name').textContent = tank.name;
+    document.getElementById('voice-keyword-input').value = '';
+    renderVoiceKeywordList();
+    document.getElementById('voice-keyword-modal').classList.add('show');
+}
+
+function closeVoiceKeywordModal() {
+    if (voiceIsRecordingKeyword) stopVoiceKeywordRecord();
+    document.getElementById('voice-keyword-modal').classList.remove('show');
+    voiceEditingTankId = null;
+    voiceEditingSide = null;
+    render();
+}
+
+function renderVoiceKeywordList() {
+    const tanks = voiceEditingSide === 'pump' ? data.pumpTanks : data.returnTanks;
+    const tank = tanks.find(t => t.id === voiceEditingTankId);
+    const container = document.getElementById('voice-keyword-list');
+    if (!tank) return;
+    
+    const keywords = tank.voiceKeywords || [];
+    if (!keywords.length) {
+        container.innerHTML = '<div style="color:#666;font-size:13px;text-align:center;padding:12px">No keywords yet</div>';
+        return;
+    }
+    container.innerHTML = keywords.map((kw, i) => 
+        `<div class="voice-keyword-item"><span>${kw}</span><button onclick="removeVoiceKeyword(${i})">×</button></div>`
+    ).join('');
+}
+
+function addVoiceKeywordFromInput() {
+    const input = document.getElementById('voice-keyword-input');
+    const keyword = input.value.trim().toLowerCase();
+    if (!keyword || !voiceEditingTankId) return;
+    
+    const tanks = voiceEditingSide === 'pump' ? data.pumpTanks : data.returnTanks;
+    const tank = tanks.find(t => t.id === voiceEditingTankId);
+    if (!tank) return;
+    
+    if (!tank.voiceKeywords) tank.voiceKeywords = [];
+    if (!tank.voiceKeywords.includes(keyword)) {
+        tank.voiceKeywords.push(keyword);
+        saveData();
+        voicePlayDing();
+    }
+    input.value = '';
+    renderVoiceKeywordList();
+}
+
+function removeVoiceKeyword(index) {
+    const tanks = voiceEditingSide === 'pump' ? data.pumpTanks : data.returnTanks;
+    const tank = tanks.find(t => t.id === voiceEditingTankId);
+    if (!tank || !tank.voiceKeywords) return;
+    tank.voiceKeywords.splice(index, 1);
+    saveData();
+    renderVoiceKeywordList();
+}
+
+function toggleVoiceKeywordRecord() {
+    if (voiceIsRecordingKeyword) stopVoiceKeywordRecord(); else startVoiceKeywordRecord();
+}
+
+function startVoiceKeywordRecord() {
+    if (!SpeechRecognition) return;
+    const ctx = getVoiceAudioContext();
+    if (ctx.state === 'suspended') ctx.resume();
+    
+    voiceKeywordRecognition = new SpeechRecognition();
+    voiceKeywordRecognition.continuous = false;
+    voiceKeywordRecognition.interimResults = false;
+    voiceKeywordRecognition.lang = 'en-US';
+    
+    voiceKeywordRecognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase().trim();
+        if (transcript && voiceEditingTankId) {
+            const tanks = voiceEditingSide === 'pump' ? data.pumpTanks : data.returnTanks;
+            const tank = tanks.find(t => t.id === voiceEditingTankId);
+            if (tank) {
+                if (!tank.voiceKeywords) tank.voiceKeywords = [];
+                if (!tank.voiceKeywords.includes(transcript)) {
+                    tank.voiceKeywords.push(transcript);
+                    saveData();
+                    voicePlayDing();
+                }
+                renderVoiceKeywordList();
+            }
+        }
+        stopVoiceKeywordRecord();
+    };
+    voiceKeywordRecognition.onerror = () => stopVoiceKeywordRecord();
+    voiceKeywordRecognition.onend = () => stopVoiceKeywordRecord();
+    
+    voiceIsRecordingKeyword = true;
+    document.getElementById('voice-record-btn').classList.add('recording');
+    document.getElementById('voice-record-label').textContent = 'Listening...';
+    voiceKeywordRecognition.start();
+}
+
+function stopVoiceKeywordRecord() {
+    voiceIsRecordingKeyword = false;
+    document.getElementById('voice-record-btn').classList.remove('recording');
+    document.getElementById('voice-record-label').textContent = 'Record Keyword';
+    if (voiceKeywordRecognition) { try { voiceKeywordRecognition.stop(); } catch(e) {} voiceKeywordRecognition = null; }
+}
+
+loadData();
+loadInjUI();
+renderTransferLog();
+loadTitrationLog();
+renderTitrationLog();
+
+// Ensure render runs after DOM is fully ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', render);
+} else {
+    render();
+}
+</script>
+</body>
+</html>
