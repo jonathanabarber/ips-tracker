@@ -469,6 +469,10 @@
             <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="system-total">0 BBL</div></div>
             <div class="system-total"><div class="system-total-label">Jetted (Shift)</div><div class="system-total-value jetted" id="jetted-total">0 BBL</div></div>
         </div>
+        <div style="background:#1b2838;border-radius:6px;padding:10px;margin:0 12px 12px;max-height:250px;overflow-y:auto">
+            <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Volume Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="clearVolumeLog()">Clear</button></div>
+            <div id="volume-log-content"><em style="color:#666">No volume checks logged</em></div>
+        </div>
         <button class="report-btn" onclick="showTankReport()">Generate Tank Report</button>
     </div>
 
@@ -558,7 +562,7 @@
                 <button onclick="logInjChange('lube')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">Log Lube Change</button>
             </div>
             <div style="background:#1b2838;border-radius:6px;padding:10px;max-height:150px;overflow-y:auto">
-                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Rate Change History <button onclick="resetInjHistory()" style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer">Reset</button></div>
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Injection Log <button onclick="resetInjHistory()" style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer">Clear</button></div>
                 <div id="inj-history"><em style="color:#666">No changes logged</em></div>
             </div>
             <button class="report-btn" onclick="showInjReport()">Generate Injection Report</button>
@@ -611,7 +615,7 @@
             </div>
             <button class="report-btn" onclick="logTitration()" style="background:#2e7d32">📝 Log Titration</button>
             <div style="background:#1b2838;border-radius:6px;padding:10px;margin-top:12px;max-height:200px;overflow-y:auto">
-                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Titration History <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="resetTitrationLog()">Clear</button></div>
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Titration Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="resetTitrationLog()">Clear</button></div>
                 <div id="titration-log-content"><em style="color:#666">No titrations logged</em></div>
             </div>
             <button class="report-btn" onclick="showTitrationReport()">Generate Titration Report</button>
@@ -764,7 +768,7 @@ function showInjReport() {
     if (injData.pumpRate && injData.lubeTreat) { const t = PUMP_CHART[injData.pumpRate][parseFloat(injData.lubeTreat)]; html += '<div class="report-row"><span class="report-row-label">Lube</span><span class="report-row-value" style="color:#ffa726">' + TREAT_LABELS[parseFloat(injData.lubeTreat)] + '/10bbl → ' + t.toFixed(3) + ' GPM</span></div>'; }
     html += '</div>';
     if (injData.history && injData.history.length) {
-        html += '<div class="report-section"><div class="report-section-title">Rate Change History</div>';
+        html += '<div class="report-section"><div class="report-section-title">Injection Log</div>';
         injData.history.forEach(h => { const d = new Date(h.time), ts = d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); if (h.type === 'pump') html += '<div class="report-row"><span class="report-row-label">' + ts + '</span><span class="report-row-value">Pump: ' + h.from + ' → ' + h.to + '</span></div>'; else html += '<div class="report-row"><span class="report-row-label">' + ts + '</span><span class="report-row-value">' + (h.type === 'fr' ? 'FR' : 'Lube') + ': ' + h.treat + ' @ ' + h.pumpRate + ' = ' + h.gpm.toFixed(3) + '</span></div>'; });
         html += '</div>';
     }
@@ -1018,9 +1022,41 @@ function logGainLossCheck() {
         elapsedMin=Math.round((now-lastTime)/60000);
         if(elapsedMin>0) ratePerHour=((tru/elapsedMin)*60).toFixed(1);
     }
-    data.history.unshift({time:now.toISOString(),systemTotal:curr,apparentChange:app,trueChange:tru,jetsHour:data.jetsHour,ratePerHour:ratePerHour,elapsedMin:elapsedMin,totals:{...totals}});
+    // Build lookup: tank name -> fluid category
+    const tankFluidMap = {};
+    data.pumpTanks.forEach(t => {
+        if(t.type==='brine10'||t.type==='brine119') tankFluidMap[t.name]='brine';
+        else if(t.type==='packer') tankFluidMap[t.name]='packer';
+        else if(t.type==='aphron') tankFluidMap[t.name]='mud';
+        else if(t.type==='recirc') tankFluidMap[t.name]='recirc';
+        else if(t.type==='freshwater') tankFluidMap[t.name]='freshwater';
+        else tankFluidMap[t.name]='other';
+    });
+    data.returnTanks.forEach(t => {
+        const f=t.contents||'';
+        if(f==='brine') tankFluidMap[t.name]='brine';
+        else if(f==='mud') tankFluidMap[t.name]='mud';
+        else if(f==='recirc') tankFluidMap[t.name]='recirc';
+        else if(f==='freshwater') tankFluidMap[t.name]='freshwater';
+        else tankFluidMap[t.name]='other';
+    });
+    // Snapshot all tank BBLs
+    const tankSnap = {};
+    [...data.pumpTanks,...data.returnTanks].forEach(t => { tankSnap[t.name] = t.bbls; });
+    // Compare to previous snapshot to find per-tank changes
+    const tankChanges = [];
+    const prevSnap = (data.history.length && data.history[0].tankSnap) ? data.history[0].tankSnap : null;
+    if (prevSnap) {
+        for (const name in tankSnap) {
+            const prev = prevSnap[name];
+            if (prev !== undefined && tankSnap[name] !== prev) {
+                tankChanges.push({ name: name, delta: tankSnap[name] - prev, fluid: tankFluidMap[name] || 'other' });
+            }
+        }
+    }
+    data.history.unshift({time:now.toISOString(),initials:profileData.initials||'',systemTotal:curr,apparentChange:app,trueChange:tru,jetsHour:data.jetsHour,ratePerHour:ratePerHour,elapsedMin:elapsedMin,totals:{...totals},tankSnap:tankSnap,tankChanges:tankChanges});
     data.lastSystemTotal=curr;data.lastCheckTime=now.toISOString();data.jetsHour=0;
-    saveData();render();
+    saveData();render();renderVolumeLog();
     let msg='Check logged!\nSystem: '+curr+' BBL';
     if(tru!==null)msg+='\nNet Gain/Loss: '+(tru>=0?'+':'')+tru+' bbl';
     if(ratePerHour!==null)msg+='\nRate: '+(parseFloat(ratePerHour)>=0?'+':'')+ratePerHour+' bbl/hr';
@@ -1185,6 +1221,84 @@ function renderTransferLog() {
     }).join('');
 }
 
+function renderVolumeLog() {
+    const el = document.getElementById('volume-log-content');
+    if (!el) return;
+    if (!data.history || !data.history.length) {
+        el.innerHTML = '<em style="color:#666">No volume checks logged</em>';
+        return;
+    }
+    const fluidLabels = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Fresh',other:'Other'};
+    const fluidColors = {brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+    html += '<tr style="color:#666;font-size:9px;text-transform:uppercase;border-bottom:1px solid #2d4a6f">' +
+        '<td style="padding:3px 2px">Time</td>' +
+        '<td style="padding:3px 2px">Tanks</td>' +
+        '<td style="padding:3px 2px;text-align:right">Total</td>' +
+        '<td style="padding:3px 2px;text-align:right">G/L</td>' +
+        '<td style="padding:3px 2px;text-align:right">Rate/Hr</td>' +
+        '<td style="padding:3px 2px;text-align:right;color:#ffa726">Jets</td></tr>';
+    data.history.slice(0, 30).forEach(h => {
+        const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const initials = h.initials ? '<span style="color:#66bb6a;font-weight:600">' + h.initials + '</span> ' : '';
+        // Tank changes - names only
+        let tankStr = '<span style="color:#888">--</span>';
+        if (h.tankChanges && h.tankChanges.length) {
+            tankStr = h.tankChanges.map(tc => {
+                const clr = tc.delta > 0 ? '#4caf50' : tc.delta < 0 ? '#ef5350' : '#888';
+                return '<span style="color:' + clr + '">' + tc.name.replace(/ /g,'&nbsp;') + '</span>';
+            }).join(', ');
+        }
+        // Fluid type total - show the total for the fluid type that changed
+        let fluidTotal = '<span style="color:#ffffff">' + h.systemTotal + '</span>';
+        if (h.tankChanges && h.tankChanges.length && h.totals) {
+            // Get unique fluid types that changed
+            const changedFluids = [...new Set(h.tankChanges.map(tc => tc.fluid).filter(Boolean))];
+            if (changedFluids.length) {
+                fluidTotal = changedFluids.map(f => {
+                    const val = h.totals[f] !== undefined ? h.totals[f] : '?';
+                    const clr = fluidColors[f] || '#ffffff';
+                    const lbl = fluidLabels[f] || f;
+                    return '<span style="color:' + clr + '">' + lbl + '&nbsp;' + val + '</span>';
+                }).join('<br>');
+            }
+        }
+        // G/L
+        let gl = '<span style="color:#888">--</span>';
+        if (h.trueChange !== null) {
+            const clr = h.trueChange > 0 ? '#4caf50' : h.trueChange < 0 ? '#ef5350' : '#888';
+            gl = '<span style="color:' + clr + '">' + (h.trueChange >= 0 ? '+' : '') + h.trueChange + '</span>';
+        }
+        // Rate
+        let rate = '<span style="color:#888">--</span>';
+        if (h.ratePerHour !== null) {
+            const r = parseFloat(h.ratePerHour);
+            const rClr = r > 0 ? '#4caf50' : r < 0 ? '#ef5350' : '#888';
+            rate = '<span style="color:' + rClr + '">' + (r >= 0 ? '+' : '') + h.ratePerHour + '</span>';
+        }
+        html += '<tr style="border-bottom:1px solid #2d4a6f">' +
+            '<td style="padding:4px 2px;white-space:nowrap">' + initials + '<span style="color:#4fc3f7">' + t + '</span></td>' +
+            '<td style="padding:4px 2px;font-size:10px">' + tankStr + '</td>' +
+            '<td style="padding:4px 2px;text-align:right;white-space:nowrap;font-size:10px">' + fluidTotal + '</td>' +
+            '<td style="padding:4px 2px;text-align:right;white-space:nowrap">' + gl + '</td>' +
+            '<td style="padding:4px 2px;text-align:right;white-space:nowrap">' + rate + '</td>' +
+            '<td style="padding:4px 2px;text-align:right;white-space:nowrap;color:#ffa726">' + (h.jetsHour || '0') + '</td></tr>';
+    });
+    html += '</table>';
+    el.innerHTML = html;
+}
+
+function clearVolumeLog() {
+    if (confirm('Clear volume log?')) {
+        data.history = [];
+        data.lastCheckTime = null;
+        data.lastSystemTotal = null;
+        saveData();
+        render();
+        renderVolumeLog();
+    }
+}
+
 // Transfer Report
 function showTransferReport() {
     const now = new Date();
@@ -1305,7 +1419,7 @@ function sendTurnoverReport() {
 
 // Start New Shift
 function startNewShift() {
-    if (!confirm('Start New Shift?\n\nThis will reset:\n• Gain/Loss data\n• Jets this hour\n• Shift jetted total\n• Transfer log\n• Injection history\n\nTank volumes and titration data will be preserved.')) return;
+    if (!confirm('Start New Shift?\n\nThis will reset:\n• Volume log\n• Jets this hour\n• Shift jetted total\n• Transfer log\n• Injection log\n\nTank volumes and titration data will be preserved.')) return;
     
     data.lastSystemTotal = null;
     data.lastCheckTime = null;
@@ -1867,6 +1981,7 @@ function initApp() {
     console.log('After loadData:', data.pumpTanks.length, 'pump tanks,', data.returnTanks.length, 'return tanks');
     loadInjUI();
     renderTransferLog();
+    renderVolumeLog();
     loadTitrationLog();
     renderTitrationLog();
     console.log('About to render, pump-tanks element:', document.getElementById('pump-tanks'));
