@@ -1441,6 +1441,7 @@ function startVoiceListening() {
     
     // Request wake lock to keep screen on
     requestWakeLock();
+    startAudioKeepAlive();
     
     document.getElementById('voice-master-btn').className = 'voice-master-btn active';
     updateVoiceStatus('Listening...', 'Say a tank keyword');
@@ -1468,8 +1469,9 @@ function stopVoiceListening() {
     voiceCurrentTank = null;
     if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
     
-    // Release wake lock
+    // Release wake lock and audio keepalive
     releaseWakeLock();
+    stopAudioKeepAlive();
     
     document.getElementById('voice-master-btn').className = 'voice-master-btn';
     document.getElementById('voice-status').classList.remove('show');
@@ -1487,25 +1489,53 @@ function updateVoiceStatus(main, sub) {
     document.getElementById('voice-status-sub').textContent = sub;
 }
 
-// Wake lock to keep screen on while listening
+// === ENHANCED MIC PERSISTENCE (3-layer) ===
+// Layer 1: Wake lock with auto-reacquire
 let wakeLock = null;
 async function requestWakeLock() {
     try {
         if ('wakeLock' in navigator) {
             wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => { wakeLock = null; });
             console.log('Wake lock acquired');
         }
-    } catch (e) {
-        console.log('Wake lock failed:', e);
-    }
+    } catch (e) { console.log('Wake lock failed:', e); }
 }
 function releaseWakeLock() {
-    if (wakeLock) {
-        wakeLock.release();
-        wakeLock = null;
-        console.log('Wake lock released');
-    }
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
 }
+
+// Layer 2: Silent audio keepalive - tricks Android into treating browser as active media
+let silentAudioCtx = null;
+let silentOscillator = null;
+function startAudioKeepAlive() {
+    try {
+        silentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        silentOscillator = silentAudioCtx.createOscillator();
+        const g = silentAudioCtx.createGain();
+        silentOscillator.frequency.setValueAtTime(20000, silentAudioCtx.currentTime);
+        g.gain.setValueAtTime(0.001, silentAudioCtx.currentTime);
+        silentOscillator.connect(g);
+        g.connect(silentAudioCtx.destination);
+        silentOscillator.start();
+        console.log('Audio keepalive started');
+    } catch(e) { console.log('Audio keepalive failed:', e); }
+}
+function stopAudioKeepAlive() {
+    if (silentOscillator) { try { silentOscillator.stop(); } catch(e) {} silentOscillator = null; }
+    if (silentAudioCtx) { try { silentAudioCtx.close(); } catch(e) {} silentAudioCtx = null; }
+    console.log('Audio keepalive stopped');
+}
+
+// Layer 3: Visibility change handler - auto-restart mic when app regains focus
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && voiceIsListening) {
+        console.log('App regained focus - restoring mic');
+        requestWakeLock();
+        startAudioKeepAlive();
+        if (voiceRecognition) { try { voiceRecognition.start(); } catch(e) {} }
+    }
+});
 
 function processVoiceInput(text) {
     console.log('Voice heard:', text, 'State:', voiceState);
