@@ -866,7 +866,7 @@ function saveProfile() {
 function loadData() {
     const s = localStorage.getItem('ipsTrackerV3'); if (s) data = JSON.parse(s);
     const t = localStorage.getItem('ipsTitrationV3'); if (t) titData = JSON.parse(t);
-    loadTitrationUI(); render();
+    loadTitrationUI();
 }
 function saveData() { localStorage.setItem('ipsTrackerV3', JSON.stringify(data)); }
 function saveTitrationData() {
@@ -1693,18 +1693,21 @@ function stopVoiceKeywordRecord() {
     if (voiceKeywordRecognition) { try { voiceKeywordRecognition.stop(); } catch(e) {} voiceKeywordRecognition = null; }
 }
 
-loadProfile();
-loadData();
-loadInjUI();
-renderTransferLog();
-loadTitrationLog();
-renderTitrationLog();
-
-// Ensure render runs after DOM is fully ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', render);
-} else {
+function initApp() {
+    loadProfile();
+    loadData();
+    loadInjUI();
+    renderTransferLog();
+    loadTitrationLog();
+    renderTitrationLog();
     render();
+}
+
+// Wait for DOM to be ready before initializing
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
 }
 </script>
 </body>
