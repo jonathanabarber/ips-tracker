@@ -87,6 +87,7 @@
         .badge-packer { background: rgba(255,112,67,0.2); color: #ff7043; }
         .badge-other { background: rgba(120,144,156,0.2); color: #90a4ae; }
         .badge-estimated { background: rgba(255,167,38,0.3); color: #ffa726; border: 1px dashed #ffa726; }
+        .badge-strap { background: rgba(102,187,106,0.2); color: #66bb6a; font-size: 9px; margin-left: 4px; }
         
         .delete-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #666; font-size: 18px; cursor: pointer; }
         
@@ -969,8 +970,8 @@ function addTanks() {
 }
 function renumberTanksOfType(side,type) { const tanks=(side==='pump'?data.pumpTanks:data.returnTanks).filter(t=>t.type===type); tanks.forEach((tank,i)=>{ tank.name=generateTankName(side,type,i+1); if(tanks.length===1){const t=(side==='pump'?pumpTypes:returnTypes).find(x=>x.value===type);tank.name=t?t.label:type;} }); }
 function deleteTank(side,id) { if(!confirm('Delete?')) return; let dt=''; if(side==='pump'){const t=data.pumpTanks.find(x=>x.id===id);if(t)dt=t.type;data.pumpTanks=data.pumpTanks.filter(x=>x.id!==id);}else{const t=data.returnTanks.find(x=>x.id===id);if(t)dt=t.type;data.returnTanks=data.returnTanks.filter(x=>x.id!==id);} if(dt)renumberTanksOfType(side,dt); saveData(); render(); }
-function updateTank(side,id,field,val) { const tank=(side==='pump'?data.pumpTanks:data.returnTanks).find(t=>t.id===id); if(!tank)return; if(field==='inches'){tank.inches=parseFloat(val)||0;tank.bbls=inchesToBbl(tank.inches);tank.estimated=false;}else if(field==='contents')tank.contents=val; saveData(); render(); }
-function setSandcatFull(id) { const tank=data.returnTanks.find(t=>t.id===id); if(tank){tank.bbls=185;tank.inches=bblToInches(185);tank.estimated=false;saveData();render();} }
+function updateTank(side,id,field,val) { const tank=(side==='pump'?data.pumpTanks:data.returnTanks).find(t=>t.id===id); if(!tank)return; if(field==='inches'){tank.inches=parseFloat(val)||0;tank.bbls=inchesToBbl(tank.inches);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';}else if(field==='contents')tank.contents=val; saveData(); render(); }
+function setSandcatFull(id) { const tank=data.returnTanks.find(t=>t.id===id); if(tank){tank.bbls=185;tank.inches=bblToInches(185);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';saveData();render();} }
 
 function calculateTotals() { let totals={brine:0,packer:0,mud:0,recirc:0,freshwater:0,other:0,system:0}; data.pumpTanks.forEach(t=>{totals.system+=t.bbls;if(t.type==='brine10'||t.type==='brine119')totals.brine+=t.bbls;else if(t.type==='packer')totals.packer+=t.bbls;else if(t.type==='aphron')totals.mud+=t.bbls;else if(t.type==='recirc')totals.recirc+=t.bbls;else if(t.type==='freshwater')totals.freshwater+=t.bbls;else totals.other+=t.bbls;}); data.returnTanks.forEach(t=>{totals.system+=t.bbls;const f=t.contents||'';if(f==='brine')totals.brine+=t.bbls;else if(f==='mud')totals.mud+=t.bbls;else if(f==='recirc')totals.recirc+=t.bbls;else if(f==='freshwater')totals.freshwater+=t.bbls;else totals.other+=t.bbls;}); return totals; }
 
@@ -1000,7 +1001,7 @@ function logGainLossCheck() {
 }
 
 function hasContentsDropdown(tank) { const t=returnTypes.find(x=>x.value===tank.type); return t&&t.hasContents; }
-function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; const keywords=tank.voiceKeywords||[]; const micClass=keywords.length?'configured':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'" onclick="openVoiceKeywordModal(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; return '<div class="tank-card border-'+color+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+'</div></div></div>'; }
+function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';badges+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} const keywords=tank.voiceKeywords||[]; const micClass=keywords.length?'configured':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'" onclick="openVoiceKeywordModal(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; return '<div class="tank-card border-'+color+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+'</div></div></div>'; }
 function render() { document.getElementById('pump-tanks').innerHTML=data.pumpTanks.length===0?'<div class="empty-state">No pump tanks<br>Tap + Add Tank</div>':data.pumpTanks.map(t=>renderTankCard(t,'pump')).join(''); document.getElementById('return-tanks').innerHTML=data.returnTanks.length===0?'<div class="empty-state">No return tanks<br>Tap + Add Tank</div>':data.returnTanks.map(t=>renderTankCard(t,'return')).join(''); const jetSel=document.getElementById('jet-source'); jetSel.innerHTML='<option value="">Select tank...</option>'; [...data.pumpTanks,...data.returnTanks].forEach(t=>{jetSel.innerHTML+='<option value="'+t.id+'">'+t.name+' ('+t.bbls+')</option>';}); const totals=calculateTotals(); document.getElementById('total-brine').textContent=totals.brine; document.getElementById('total-packer').textContent=totals.packer; document.getElementById('total-mud').textContent=totals.mud; document.getElementById('total-recirc').textContent=totals.recirc; document.getElementById('total-freshwater').textContent=totals.freshwater; document.getElementById('total-other').textContent=totals.other; document.getElementById('system-total').textContent=totals.system+' BBL'; document.getElementById('jetted-total').textContent=data.jetsShift+' BBL'; document.getElementById('jets-hour').textContent=data.jetsHour; document.getElementById('transfer-shift-total').textContent=data.jetsShift+' BBL';
     // Gain/Loss display
     const lastCheckEl=document.getElementById('last-check-time'),elapsedEl=document.getElementById('elapsed-time'),truEl=document.getElementById('true-change'),rateEl=document.getElementById('rate-per-hour');
@@ -1066,18 +1067,18 @@ function renderTitrationLog() {
         const wt = log.density ? log.density + '#' : '';
         const visc = log.viscosity ? log.viscosity + 's' : '';
         const fluidColor = fluidColors[log.fluidType] || '#ba68c8';
-        const initials = log.initials ? '<span style="color:#66bb6a;font-weight:600">' + log.initials + '</span> ' : '';
+        const initials = log.initials ? '<span style="color:#66bb6a;font-weight:600">' + log.initials + '</span> &nbsp; ' : '';
         let html = '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f">' +
             initials +
-            '<span style="color:#4fc3f7">' + t + '</span> ' +
-            '<span style="color:' + fluidColor + '">' + log.fluidName + '</span> ' +
-            '<span style="color:#ffa726">' + wt + '</span> ' +
+            '<span style="color:#4fc3f7">' + t + '</span> &nbsp; ' +
+            '<span style="color:' + fluidColor + '">' + log.fluidName + '</span> &nbsp; ' +
+            '<span style="color:#ffa726">' + wt + '</span> &nbsp; ' +
             '<span style="color:#888">' + visc + '</span>';
         if (log.fullTitration) {
-            html += ' <span style="color:#42a5f5">Cl:' + log.chlorides + '</span>' +
-                ' <span style="color:#26a69a">Ca:' + log.calcium + '</span>' +
-                ' <span style="color:#ab47bc">H:' + log.hardness + '</span>' +
-                ' <span style="color:#66bb6a">Mg:' + (log.magnesium || '--') + '</span>';
+            html += ' &nbsp; <span style="color:#42a5f5">Cl:' + log.chlorides + '</span>' +
+                ' &nbsp; <span style="color:#26a69a">Ca:' + log.calcium + '</span>' +
+                ' &nbsp; <span style="color:#ab47bc">H:' + log.hardness + '</span>' +
+                ' &nbsp; <span style="color:#66bb6a">Mg:' + (log.magnesium || '--') + '</span>';
         }
         html += '</div>';
         return html;
@@ -1108,8 +1109,8 @@ function renderTransferLog() {
     el.innerHTML = data.transferLog.slice(0, 50).map(log => {
         const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
-        const initials = log.initials ? '<span style="color:#66bb6a;font-weight:600">' + log.initials + '</span> ' : '';
-        return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f">' + initials + '<span style="color:#4fc3f7">' + t + '</span> <span style="color:' + typeColor + '">' + (log.type === 'out' ? 'OUT' : 'IN') + '</span> ' + log.volume + ' BBL - ' + log.tanks.join(', ') + '</div>';
+        const initials = log.initials ? '<span style="color:#66bb6a;font-weight:600">' + log.initials + '</span> &nbsp; ' : '';
+        return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f">' + initials + '<span style="color:#4fc3f7">' + t + '</span> &nbsp; <span style="color:' + typeColor + '">' + (log.type === 'out' ? 'OUT' : 'IN') + '</span> &nbsp; ' + log.volume + ' BBL &nbsp; ' + log.tanks.join(', ') + '</div>';
     }).join('');
 }
 
@@ -1381,6 +1382,11 @@ function stopVoiceListening() {
     if (voiceRecognition) try { voiceRecognition.stop(); } catch(e) {}
 }
 
+// Convert tank name for speech (# -> pound)
+function speakableName(name) {
+    return name.replace(/#/g, ' pound').replace(/\s+/g, ' ').trim();
+}
+
 function updateVoiceStatus(main, sub) {
     document.getElementById('voice-status-main').textContent = main;
     document.getElementById('voice-status-sub').textContent = sub;
@@ -1460,7 +1466,7 @@ function processVoiceInput(text) {
             voiceState = 'CONFIRMING';
             document.getElementById('voice-master-btn').className = 'voice-master-btn confirming';
             updateVoiceStatus(`Full = 185 BBL`, 'Say "no" to retry...');
-            voiceSpeakAndThen(`Full, 185 barrels, ${voiceCurrentTank.name}`, () => {
+            voiceSpeakAndThen(`Full, 185 barrels, ${speakableName(voiceCurrentTank.name)}`, () => {
                 if (voiceState === 'CONFIRMING') startVoiceConfirmCountdown();
             });
             return;
@@ -1473,7 +1479,7 @@ function processVoiceInput(text) {
             voiceState = 'CONFIRMING';
             document.getElementById('voice-master-btn').className = 'voice-master-btn confirming';
             updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, 'Say "no" to retry...');
-            voiceSpeakAndThen(`${voicePendingInches} inches, ${voicePendingBbls} barrels, ${voiceCurrentTank.name}`, () => {
+            voiceSpeakAndThen(`${voicePendingInches} inches, ${voicePendingBbls} barrels, ${speakableName(voiceCurrentTank.name)}`, () => {
                 if (voiceState === 'CONFIRMING') startVoiceConfirmCountdown();
             });
         }
@@ -1533,6 +1539,8 @@ function voiceConfirmEntry() {
         tank.inches = voicePendingInches;
         tank.bbls = voicePendingBbls;
         tank.estimated = false;
+        tank.lastStrapTime = new Date().toISOString();
+        tank.lastStrapBy = profileData.initials || '';
         saveData();
         render();
     }
