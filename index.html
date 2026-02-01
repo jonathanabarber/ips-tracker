@@ -1328,6 +1328,7 @@ let voiceCurrentSide = null;
 let voicePendingInches = null;
 let voicePendingBbls = null;
 let voiceConfirmTimeout = null;
+let voiceSpeaking = false;
 
 // Keyword modal state
 let voiceEditingTankId = null;
@@ -1361,28 +1362,64 @@ function voicePlayError() { voicePlayTone(330, 0.3, 'square'); }
 
 function voiceSpeak(text) {
     if ('speechSynthesis' in window) {
+        // Pause recognition while speaking to avoid conflict
+        voiceSpeaking = true;
+        if (voiceRecognition && voiceIsListening) try { voiceRecognition.stop(); } catch(e) {}
         speechSynthesis.cancel();
         setTimeout(() => {
             const msg = new SpeechSynthesisUtterance(text);
             msg.rate = 1.0; msg.pitch = 1; msg.volume = 1;
             const voices = speechSynthesis.getVoices();
             if (voices.length) { const ev = voices.find(v => v.lang.startsWith('en')); if (ev) msg.voice = ev; }
+            msg.onend = () => {
+                voiceSpeaking = false;
+                if (voiceIsListening && voiceRecognition) {
+                    setTimeout(() => { try { voiceRecognition.start(); } catch(e) {} }, 200);
+                }
+            };
             speechSynthesis.speak(msg);
+            const fallback = text.length * 80 + 1500;
+            setTimeout(() => {
+                voiceSpeaking = false;
+                if (voiceIsListening && voiceRecognition) {
+                    try { voiceRecognition.start(); } catch(e) {}
+                }
+            }, fallback);
         }, 50);
     }
 }
 
 function voiceSpeakAndThen(text, callback) {
     if ('speechSynthesis' in window) {
+        voiceSpeaking = true;
+        if (voiceRecognition && voiceIsListening) try { voiceRecognition.stop(); } catch(e) {}
         speechSynthesis.cancel();
         setTimeout(() => {
             const msg = new SpeechSynthesisUtterance(text);
             msg.rate = 1.0; msg.pitch = 1; msg.volume = 1;
             const voices = speechSynthesis.getVoices();
             if (voices.length) { const ev = voices.find(v => v.lang.startsWith('en')); if (ev) msg.voice = ev; }
-            msg.onend = () => setTimeout(callback, 300);
-            const fallback = text.length * 80 + 1000;
-            setTimeout(() => { if ((voiceState === 'CONFIRMING_TANK' || voiceState === 'CONFIRMING_VALUE') && voiceConfirmTimeout === null) callback(); }, fallback);
+            msg.onend = () => {
+                voiceSpeaking = false;
+                if (voiceIsListening && voiceRecognition) {
+                    setTimeout(() => {
+                        try { voiceRecognition.start(); } catch(e) {}
+                        setTimeout(callback, 200);
+                    }, 200);
+                } else {
+                    setTimeout(callback, 300);
+                }
+            };
+            const fallback = text.length * 80 + 1500;
+            setTimeout(() => { 
+                if ((voiceState === 'CONFIRMING_TANK' || voiceState === 'CONFIRMING_VALUE') && voiceConfirmTimeout === null) {
+                    voiceSpeaking = false;
+                    if (voiceIsListening && voiceRecognition) {
+                        try { voiceRecognition.start(); } catch(e) {}
+                    }
+                    callback(); 
+                }
+            }, fallback);
             speechSynthesis.speak(msg);
         }, 50);
     } else { setTimeout(callback, 500); }
@@ -1418,8 +1455,8 @@ function startVoiceListening() {
         const last = event.results[event.results.length - 1];
         if (last.isFinal) processVoiceInput(last[0].transcript.toLowerCase().trim());
     };
-    voiceRecognition.onend = () => { if (voiceIsListening) try { voiceRecognition.start(); } catch(e) {} };
-    voiceRecognition.onerror = (e) => { if (voiceIsListening && e.error !== 'aborted') setTimeout(() => { try { voiceRecognition.start(); } catch(e) {} }, 100); };
+    voiceRecognition.onend = () => { if (voiceIsListening && !voiceSpeaking) try { voiceRecognition.start(); } catch(e) {} };
+    voiceRecognition.onerror = (e) => { if (voiceIsListening && !voiceSpeaking && e.error !== 'aborted') setTimeout(() => { try { voiceRecognition.start(); } catch(e) {} }, 100); };
     
     try { voiceRecognition.start(); } catch(e) {}
     setTimeout(() => voicePlayDing(), 100);
