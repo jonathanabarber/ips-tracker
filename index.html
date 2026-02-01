@@ -1055,22 +1055,21 @@ function render() {
     if(el('jetted-total')) el('jetted-total').textContent=data.jetsShift+' BBL'; 
     if(el('jets-hour')) el('jets-hour').textContent=data.jetsHour; 
     if(el('transfer-shift-total')) el('transfer-shift-total').textContent=data.jetsShift+' BBL';
-}
     // Gain/Loss display
     const lastCheckEl=document.getElementById('last-check-time'),elapsedEl=document.getElementById('elapsed-time'),truEl=document.getElementById('true-change'),rateEl=document.getElementById('rate-per-hour');
-    if(data.lastCheckTime){
+    if(lastCheckEl && data.lastCheckTime){
         const lastTime=new Date(data.lastCheckTime);
         lastCheckEl.textContent=lastTime.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
         const now=new Date(),elapsedMin=Math.round((now-lastTime)/60000);
         if(elapsedMin<60)elapsedEl.textContent=elapsedMin+' min ago';
         else if(elapsedMin<1440)elapsedEl.textContent=Math.floor(elapsedMin/60)+'h '+elapsedMin%60+'m ago';
         else elapsedEl.textContent=Math.floor(elapsedMin/1440)+'d ago';
-    }else{lastCheckEl.textContent='--';elapsedEl.textContent='';}
+    }else if(lastCheckEl){lastCheckEl.textContent='--';elapsedEl.textContent='';}
     const last=data.history[0];
     const appEl=document.getElementById('apparent-change');
-    if(last&&last.apparentChange!==null){appEl.textContent=(last.apparentChange>=0?'+':'')+last.apparentChange;appEl.className='gl-value '+(last.apparentChange>0?'gain':last.apparentChange<0?'loss':'neutral');}else{appEl.textContent='--';appEl.className='gl-value neutral';}
-    if(last&&last.trueChange!==null){truEl.textContent=(last.trueChange>=0?'+':'')+last.trueChange;truEl.className='gl-value '+(last.trueChange>0?'gain':last.trueChange<0?'loss':'neutral');}else{truEl.textContent='--';truEl.className='gl-value neutral';}
-    if(last&&last.ratePerHour!==null){const r=parseFloat(last.ratePerHour);rateEl.textContent=(r>=0?'+':'')+last.ratePerHour;rateEl.className='gl-value '+(r>0?'gain':r<0?'loss':'neutral');}else{rateEl.textContent='--';rateEl.className='gl-value neutral';}
+    if(appEl && last&&last.apparentChange!==null){appEl.textContent=(last.apparentChange>=0?'+':'')+last.apparentChange;appEl.className='gl-value '+(last.apparentChange>0?'gain':last.apparentChange<0?'loss':'neutral');}else if(appEl){appEl.textContent='--';appEl.className='gl-value neutral';}
+    if(truEl && last&&last.trueChange!==null){truEl.textContent=(last.trueChange>=0?'+':'')+last.trueChange;truEl.className='gl-value '+(last.trueChange>0?'gain':last.trueChange<0?'loss':'neutral');}else if(truEl){truEl.textContent='--';truEl.className='gl-value neutral';}
+    if(rateEl && last&&last.ratePerHour!==null){const r=parseFloat(last.ratePerHour);rateEl.textContent=(r>=0?'+':'')+last.ratePerHour;rateEl.className='gl-value '+(r>0?'gain':r<0?'loss':'neutral');}else if(rateEl){rateEl.textContent='--';rateEl.className='gl-value neutral';}
 }
 
 function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
