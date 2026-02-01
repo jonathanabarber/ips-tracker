@@ -1382,7 +1382,7 @@ function voiceSpeakAndThen(text, callback) {
             if (voices.length) { const ev = voices.find(v => v.lang.startsWith('en')); if (ev) msg.voice = ev; }
             msg.onend = () => setTimeout(callback, 300);
             const fallback = text.length * 80 + 1000;
-            setTimeout(() => { if (voiceState === 'CONFIRMING' && voiceConfirmTimeout === null) callback(); }, fallback);
+            setTimeout(() => { if ((voiceState === 'CONFIRMING_TANK' || voiceState === 'CONFIRMING_VALUE') && voiceConfirmTimeout === null) callback(); }, fallback);
             speechSynthesis.speak(msg);
         }, 50);
     } else { setTimeout(callback, 500); }
@@ -1401,6 +1401,9 @@ function startVoiceListening() {
     voiceIsListening = true;
     voiceState = 'LISTENING';
     voiceCurrentTank = null;
+    
+    // Request wake lock to keep screen on
+    requestWakeLock();
     
     document.getElementById('voice-master-btn').className = 'voice-master-btn active';
     updateVoiceStatus('Listening...', 'Say a tank keyword');
@@ -1428,6 +1431,9 @@ function stopVoiceListening() {
     voiceCurrentTank = null;
     if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
     
+    // Release wake lock
+    releaseWakeLock();
+    
     document.getElementById('voice-master-btn').className = 'voice-master-btn';
     document.getElementById('voice-status').classList.remove('show');
     
@@ -1442,6 +1448,26 @@ function speakableName(name) {
 function updateVoiceStatus(main, sub) {
     document.getElementById('voice-status-main').textContent = main;
     document.getElementById('voice-status-sub').textContent = sub;
+}
+
+// Wake lock to keep screen on while listening
+let wakeLock = null;
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake lock acquired');
+        }
+    } catch (e) {
+        console.log('Wake lock failed:', e);
+    }
+}
+function releaseWakeLock() {
+    if (wakeLock) {
+        wakeLock.release();
+        wakeLock = null;
+        console.log('Wake lock released');
+    }
 }
 
 function processVoiceInput(text) {
@@ -1491,13 +1517,30 @@ function processVoiceInput(text) {
             if (text.includes(match.keyword)) {
                 voiceCurrentTank = match.tank;
                 voiceCurrentSide = match.tank.side;
-                voiceState = 'WAITING_NUMBER';
+                voiceState = 'CONFIRMING_TANK';
                 voicePlayDing();
                 document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
-                updateVoiceStatus(match.tank.name, 'Say the inches');
+                updateVoiceStatus(match.tank.name, 'Say "no" to cancel...');
                 highlightTankCard(match.tank.side, match.tank.id);
+                // Speak tank name, then wait for "no" for 2 seconds
+                voiceSpeakAndThen(speakableName(match.tank.name), () => {
+                    if (voiceState === 'CONFIRMING_TANK') startTankConfirmCountdown();
+                });
                 return;
             }
+        }
+    } else if (voiceState === 'CONFIRMING_TANK') {
+        // User can say "no" to cancel tank selection
+        if (text.includes('no') || text.includes('nope') || text.includes('wrong')) {
+            if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
+            voicePlayError();
+            voiceState = 'LISTENING';
+            voiceCurrentTank = null;
+            updateVoiceStatus('Cancelled', 'Say a tank keyword');
+            document.getElementById('voice-master-btn').className = 'voice-master-btn active';
+            voiceSpeak('Cancelled');
+            clearTankHighlights();
+            return;
         }
     } else if (voiceState === 'WAITING_NUMBER') {
         if (text.includes('no') || text.includes('nope') || text.includes('wrong')) {
@@ -1515,11 +1558,11 @@ function processVoiceInput(text) {
         if (text.includes('full') && voiceCurrentTank && voiceCurrentTank.type === 'sandcat') {
             voicePendingInches = 41;
             voicePendingBbls = 185;
-            voiceState = 'CONFIRMING';
+            voiceState = 'CONFIRMING_VALUE';
             document.getElementById('voice-master-btn').className = 'voice-master-btn confirming';
             updateVoiceStatus(`Full = 185 BBL`, 'Say "no" to retry...');
-            voiceSpeakAndThen(`Full, 185 barrels, ${speakableName(voiceCurrentTank.name)}`, () => {
-                if (voiceState === 'CONFIRMING') startVoiceConfirmCountdown();
+            voiceSpeakAndThen(`Full, 185 barrels`, () => {
+                if (voiceState === 'CONFIRMING_VALUE') startValueConfirmCountdown();
             });
             return;
         }
@@ -1528,21 +1571,22 @@ function processVoiceInput(text) {
         if (num !== null && num >= 0 && num <= 96) {
             voicePendingInches = num;
             voicePendingBbls = STICK_CHART[num] || 0;
-            voiceState = 'CONFIRMING';
+            voiceState = 'CONFIRMING_VALUE';
             document.getElementById('voice-master-btn').className = 'voice-master-btn confirming';
             updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, 'Say "no" to retry...');
-            voiceSpeakAndThen(`${voicePendingInches} inches, ${voicePendingBbls} barrels, ${speakableName(voiceCurrentTank.name)}`, () => {
-                if (voiceState === 'CONFIRMING') startVoiceConfirmCountdown();
+            voiceSpeakAndThen(`${voicePendingInches} inches, ${voicePendingBbls} barrels`, () => {
+                if (voiceState === 'CONFIRMING_VALUE') startValueConfirmCountdown();
             });
         }
-    } else if (voiceState === 'CONFIRMING') {
+    } else if (voiceState === 'CONFIRMING_VALUE') {
         if (text.includes('no') || text.includes('nope') || text.includes('wrong') || text.includes('retry')) {
             if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
             voicePlayError();
             voiceState = 'WAITING_NUMBER';
             document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
             updateVoiceStatus(voiceCurrentTank.name, 'Say the inches again');
-            voiceSpeak('Say again');
+            voicePlayDing();
+            voiceSpeak('Say inches');
         }
     }
 }
@@ -1565,14 +1609,36 @@ function extractVoiceNumber(text) {
     return found ? total : null;
 }
 
-function startVoiceConfirmCountdown() {
+// Tank confirmation countdown (2 seconds after saying tank name)
+function startTankConfirmCountdown() {
     if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
-    let seconds = 3;
+    let seconds = 2;
     const tick = () => {
-        if (voiceState !== 'CONFIRMING') return;
+        if (voiceState !== 'CONFIRMING_TANK') return;
         seconds--;
         if (seconds > 0) {
-            updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, `Confirming in ${seconds}...`);
+            updateVoiceStatus(voiceCurrentTank.name, `${seconds}...`);
+            voiceConfirmTimeout = setTimeout(tick, 1000);
+        } else {
+            // Tank confirmed, now ask for inches
+            voicePlayDing();
+            voiceState = 'WAITING_NUMBER';
+            document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
+            updateVoiceStatus(voiceCurrentTank.name, 'Say the inches');
+        }
+    };
+    voiceConfirmTimeout = setTimeout(tick, 1000);
+}
+
+// Value confirmation countdown (2 seconds after saying inches/bbls)
+function startValueConfirmCountdown() {
+    if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
+    let seconds = 2;
+    const tick = () => {
+        if (voiceState !== 'CONFIRMING_VALUE') return;
+        seconds--;
+        if (seconds > 0) {
+            updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, `${seconds}...`);
             voiceConfirmTimeout = setTimeout(tick, 1000);
         } else {
             voiceConfirmEntry();
@@ -1598,6 +1664,7 @@ function voiceConfirmEntry() {
     }
     
     voicePlaySuccess();
+    voiceSpeak('Entered');
     updateVoiceStatus('✓ Entered!', `${voiceCurrentTank.name}: ${voicePendingInches}" = ${voicePendingBbls} BBL`);
     document.getElementById('voice-master-btn').className = 'voice-master-btn active';
     
