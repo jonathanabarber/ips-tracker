@@ -1694,21 +1694,34 @@ function stopVoiceKeywordRecord() {
 }
 
 function initApp() {
+    console.log('initApp called, data:', data.pumpTanks.length, 'pump tanks,', data.returnTanks.length, 'return tanks');
     loadProfile();
     loadData();
+    console.log('After loadData:', data.pumpTanks.length, 'pump tanks,', data.returnTanks.length, 'return tanks');
     loadInjUI();
     renderTransferLog();
     loadTitrationLog();
     renderTitrationLog();
+    console.log('About to render, pump-tanks element:', document.getElementById('pump-tanks'));
     render();
 }
 
-// Wait for DOM to be ready before initializing
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
+// Multiple fallbacks to ensure init runs
+let initRun = false;
+function safeInit() {
+    if (initRun) return;
+    initRun = true;
     initApp();
 }
+
+if (document.readyState === 'complete') {
+    safeInit();
+} else if (document.readyState === 'interactive') {
+    safeInit();
+} else {
+    document.addEventListener('DOMContentLoaded', safeInit);
+}
+window.addEventListener('load', safeInit);
 </script>
 </body>
 </html>
