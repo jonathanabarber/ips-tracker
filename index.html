@@ -1370,16 +1370,61 @@ function showTurnoverReport() {
     }
     html += '</div>';
     
-    // Gain/Loss
+    // Gain/Loss - Volume Log
+    html += '<div class="report-section"><div class="report-section-title">Volume Log</div>';
     if (data.history && data.history.length) {
-        html += '<div class="report-section"><div class="report-section-title">Gain/Loss Checks</div>';
-        data.history.slice(0, 5).forEach(h => {
+        const fluidLabels = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Fresh',other:'Other'};
+        data.history.slice(0, 10).forEach(h => {
             const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
             const changeColor = h.trueChange > 0 ? '#4caf50' : h.trueChange < 0 ? '#ef5350' : '#888';
-            html += '<div class="report-row"><span class="report-row-label">' + t + '</span><span class="report-row-value" style="color:' + changeColor + '">' + (h.trueChange !== null ? ((h.trueChange >= 0 ? '+' : '') + h.trueChange + ' bbl') : '--') + (h.ratePerHour ? ' (' + h.ratePerHour + '/hr)' : '') + '</span></div>';
+            let tankInfo = '';
+            if (h.tankChanges && h.tankChanges.length) {
+                tankInfo = h.tankChanges.map(tc => {
+                    const clr = tc.delta > 0 ? '#4caf50' : tc.delta < 0 ? '#ef5350' : '#888';
+                    return '<span style="color:' + clr + '">' + tc.name + '</span>';
+                }).join(', ');
+            }
+            let fluidInfo = '';
+            if (h.tankChanges && h.tankChanges.length && h.totals) {
+                const changedFluids = [...new Set(h.tankChanges.map(tc => tc.fluid).filter(Boolean))];
+                if (changedFluids.length) {
+                    fluidInfo = changedFluids.map(f => (fluidLabels[f]||f) + ' ' + (h.totals[f]!==undefined?h.totals[f]:'?')).join(', ');
+                }
+            }
+            let rightSide = '';
+            if (h.trueChange !== null) rightSide += '<span style="color:' + changeColor + '">' + (h.trueChange >= 0 ? '+' : '') + h.trueChange + '</span>';
+            if (h.ratePerHour) rightSide += ' <span style="color:' + changeColor + '">(' + h.ratePerHour + '/hr)</span>';
+            html += '<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)">';
+            html += '<div class="report-row"><span class="report-row-label">' + t + (tankInfo ? ' &nbsp;' + tankInfo : '') + '</span><span class="report-row-value">' + (rightSide || '--') + '</span></div>';
+            if (fluidInfo) html += '<div style="font-size:10px;color:#888;padding-left:4px">' + fluidInfo + '</div>';
+            html += '</div>';
         });
-        html += '</div>';
+    } else {
+        html += '<div style="color:#666;font-size:12px;text-align:center;padding:10px">No volume checks this shift</div>';
     }
+    html += '</div>';
+    
+    // Titration Log
+    html += '<div class="report-section"><div class="report-section-title">Titration Log</div>';
+    if (titrationLog && titrationLog.length) {
+        titrationLog.slice(0, 10).forEach(log => {
+            const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            let details = '<span style="color:#ffa726">' + (log.density ? log.density + '#' : '') + '</span>';
+            if (log.viscosity) details += ' <span style="color:#888">' + log.viscosity + 's</span>';
+            html += '<div class="report-row"><span class="report-row-label">' + t + ' - ' + log.fluidName + '</span><span class="report-row-value">' + details + '</span></div>';
+            if (log.fullTitration) {
+                html += '<div style="font-size:10px;padding-left:4px;color:#888">';
+                html += 'Cl: <span style="color:#42a5f5">' + log.chlorides + '</span> &nbsp; ';
+                html += 'Ca: <span style="color:#26a69a">' + log.calcium + '</span> &nbsp; ';
+                html += 'H: <span style="color:#ab47bc">' + log.hardness + '</span> &nbsp; ';
+                html += 'Mg: <span style="color:#66bb6a">' + (log.magnesium || '--') + '</span>';
+                html += '</div>';
+            }
+        });
+    } else {
+        html += '<div style="color:#666;font-size:12px;text-align:center;padding:10px">No titrations this shift</div>';
+    }
+    html += '</div>';
     
     html += '<div class="report-timestamp">Generated: ' + now.toLocaleString() + '</div>';
     document.getElementById('turnover-report-content').innerHTML = html;
@@ -1402,10 +1447,27 @@ function sendTurnoverReport() {
     if(injData.pumpRate && injData.frTreat) { const fr = PUMP_CHART[injData.pumpRate][parseFloat(injData.frTreat)]; text += 'FR: ' + TREAT_LABELS[parseFloat(injData.frTreat)] + '/10bbl → ' + fr.toFixed(3) + ' GPM\n'; }
     if(injData.pumpRate && injData.lubeTreat) { const lb = PUMP_CHART[injData.pumpRate][parseFloat(injData.lubeTreat)]; text += 'Lube: ' + TREAT_LABELS[parseFloat(injData.lubeTreat)] + '/10bbl → ' + lb.toFixed(3) + ' GPM\n'; }
     if(data.history && data.history.length) {
-        text += '\n=== GAIN/LOSS ===\n';
-        data.history.slice(0, 3).forEach(h => {
+        text += '\n=== VOLUME LOG ===\n';
+        const fluidLabels = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Fresh',other:'Other'};
+        data.history.slice(0, 10).forEach(h => {
             const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-            text += t + ': App ' + (h.apparentChange >= 0 ? '+' : '') + h.apparentChange + ', True ' + (h.trueChange >= 0 ? '+' : '') + h.trueChange + ' bbl\n';
+            let tanks = '';
+            if (h.tankChanges && h.tankChanges.length) { tanks = ' [' + h.tankChanges.map(tc => tc.name).join(', ') + ']'; }
+            let fluidInfo = '';
+            if (h.tankChanges && h.tankChanges.length && h.totals) {
+                const changedFluids = [...new Set(h.tankChanges.map(tc => tc.fluid).filter(Boolean))];
+                if (changedFluids.length) { fluidInfo = ' (' + changedFluids.map(f => (fluidLabels[f]||f) + ' ' + (h.totals[f]!==undefined?h.totals[f]:'?')).join(', ') + ')'; }
+            }
+            text += t + ':' + tanks + ' True ' + (h.trueChange!==null ? ((h.trueChange >= 0 ? '+' : '') + h.trueChange + ' bbl') : '--') + (h.ratePerHour ? ' (' + h.ratePerHour + '/hr)' : '') + fluidInfo + '\n';
+        });
+    }
+    if(titrationLog && titrationLog.length) {
+        text += '\n=== TITRATION LOG ===\n';
+        titrationLog.slice(0, 10).forEach(log => {
+            const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            text += t + ' ' + log.fluidName + ': ' + (log.density ? log.density + '#' : '') + (log.viscosity ? ' ' + log.viscosity + 's' : '');
+            if (log.fullTitration) { text += ' Cl:' + log.chlorides + ' Ca:' + log.calcium + ' H:' + log.hardness + ' Mg:' + (log.magnesium || '--'); }
+            text += '\n';
         });
     }
     // Try to share, fallback to copy
