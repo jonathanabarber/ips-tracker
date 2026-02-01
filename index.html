@@ -309,6 +309,48 @@
             width: 100%; padding: 14px; background: #455a64; border: none; border-radius: 6px;
             color: white; font-weight: 600; cursor: pointer;
         }
+        
+        /* Profile Button & Modal */
+        .profile-btn {
+            width: 36px; height: 36px; border-radius: 50%; border: none;
+            background: #2d4a6f; color: #4fc3f7;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .profile-btn svg { width: 20px; height: 20px; }
+        .profile-btn.has-profile { background: #2e7d32; color: white; }
+        
+        .profile-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); z-index: 300;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .profile-modal-overlay.show { display: flex; }
+        .profile-modal {
+            background: #243447; border-radius: 12px; padding: 20px;
+            width: 100%; max-width: 350px;
+        }
+        .profile-modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; text-align: center; color: #4fc3f7; }
+        .profile-input-group { margin-bottom: 16px; }
+        .profile-input-group label { display: block; font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 6px; }
+        .profile-input-group input {
+            width: 100%; padding: 12px; border: 1px solid #2d4a6f; border-radius: 6px;
+            background: #1b2838; color: #e0e0e0; font-size: 16px;
+        }
+        .profile-initials-preview {
+            text-align: center; margin-bottom: 16px; padding: 12px;
+            background: #1b2838; border-radius: 8px;
+        }
+        .profile-initials-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+        .profile-initials-value { font-size: 24px; font-weight: 700; color: #66bb6a; }
+        .profile-save-btn {
+            width: 100%; padding: 14px; background: #2e7d32; border: none; border-radius: 6px;
+            color: white; font-weight: 600; cursor: pointer; margin-bottom: 10px;
+        }
+        .profile-clear-btn {
+            width: 100%; padding: 14px; background: #455a64; border: none; border-radius: 6px;
+            color: white; font-weight: 600; cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -319,6 +361,11 @@
             <p>Fluid Tracking System</p>
         </div>
         <div class="header-actions">
+            <button class="profile-btn" id="profile-btn" onclick="openProfileModal()">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+            </button>
             <button class="voice-master-btn" id="voice-master-btn" onclick="toggleVoiceMaster()">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
@@ -354,6 +401,23 @@
                 <span id="voice-record-label">Record Keyword</span>
             </button>
             <button class="voice-modal-close" onclick="closeVoiceKeywordModal()">Done</button>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="profile-modal-overlay" id="profile-modal">
+        <div class="profile-modal">
+            <div class="profile-modal-title">👤 Your Profile</div>
+            <div class="profile-input-group">
+                <label>Your Name</label>
+                <input type="text" id="profile-name-input" placeholder="e.g. Jonathan Barber" oninput="updateInitialsPreview()">
+            </div>
+            <div class="profile-initials-preview">
+                <div class="profile-initials-label">Your initials (shown in logs)</div>
+                <div class="profile-initials-value" id="profile-initials-preview">--</div>
+            </div>
+            <button class="profile-save-btn" onclick="saveProfile()">Save Profile</button>
+            <button class="profile-clear-btn" onclick="closeProfileModal()">Cancel</button>
         </div>
     </div>
 
@@ -739,7 +803,56 @@ const contentsOptions = [
 
 let data = { pumpTanks: [], returnTanks: [], jetsHour: 0, jetsShift: 0, lastSystemTotal: null, lastCheckTime: null, history: [] };
 let titData = { fluidType: 'aphron', viscosity: '', density: '', ph: '', pf: '', mf: '', snType: 'fresh', clPipette: '', hardPipette: '', caPipette: '', surfaceVol: '' };
+let profileData = { name: '', initials: '' };
 let currentSide = 'pump', modalSide = 'pump', pendingJet = null, jetType = 'out';
+
+// Profile functions
+function loadProfile() {
+    const p = localStorage.getItem('ipsProfile');
+    if (p) profileData = JSON.parse(p);
+    updateProfileButton();
+}
+function saveProfileData() {
+    localStorage.setItem('ipsProfile', JSON.stringify(profileData));
+    updateProfileButton();
+}
+function updateProfileButton() {
+    const btn = document.getElementById('profile-btn');
+    if (profileData.name) {
+        btn.classList.add('has-profile');
+        btn.title = profileData.name;
+    } else {
+        btn.classList.remove('has-profile');
+    }
+}
+function openProfileModal() {
+    document.getElementById('profile-name-input').value = profileData.name || '';
+    updateInitialsPreview();
+    document.getElementById('profile-modal').classList.add('show');
+}
+function closeProfileModal() {
+    document.getElementById('profile-modal').classList.remove('show');
+}
+function updateInitialsPreview() {
+    const name = document.getElementById('profile-name-input').value.trim();
+    const initials = getInitials(name);
+    document.getElementById('profile-initials-preview').textContent = initials || '--';
+}
+function getInitials(name) {
+    if (!name) return '';
+    const parts = name.split(' ').filter(p => p.length > 0);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+function saveProfile() {
+    const name = document.getElementById('profile-name-input').value.trim();
+    profileData.name = name;
+    profileData.initials = getInitials(name);
+    saveProfileData();
+    closeProfileModal();
+    voicePlayDing();
+}
 
 function loadData() {
     const s = localStorage.getItem('ipsTrackerV3'); if (s) data = JSON.parse(s);
@@ -867,7 +980,7 @@ function startJetProcess() { const srcId=parseInt(document.getElementById('jet-s
 function showEqualizeModal(src,eqTanks,vol) { const all=[src,...eqTanks],per=Math.round(vol/all.length); document.getElementById('equalize-question').innerHTML='Is <strong>'+src.name+'</strong> equalized?<br><br>'+vol+' BBL split = <strong>'+per+' BBL</strong> each'; document.getElementById('equalize-tanks-list').innerHTML=all.map(t=>t.name).join(', '); document.getElementById('equalize-modal').classList.add('show'); }
 function hideEqualizeModal() { document.getElementById('equalize-modal').classList.remove('show'); pendingJet=null; }
 function confirmEqualize(isEq) { if(!pendingJet)return; const{tank,volume,equalizableTanks}=pendingJet; executeJet(isEq?[tank,...equalizableTanks]:[tank],volume); hideEqualizeModal(); }
-function executeJet(tanks,totalVol) { const per=Math.round(totalVol/tanks.length); tanks.forEach(t=>{if(jetType==='out')t.bbls=Math.max(0,t.bbls-per);else t.bbls+=per;t.inches=bblToInches(t.bbls);t.estimated=true;}); if(jetType==='out'){data.jetsHour+=totalVol;data.jetsShift+=totalVol;} if(!data.transferLog)data.transferLog=[]; data.transferLog.unshift({time:new Date().toISOString(),type:jetType,volume:totalVol,tanks:tanks.map(t=>t.name)}); document.getElementById('jet-volume').value='120'; saveData();render();renderTransferLog(); const act=jetType==='out'?'Jetted out':'Jetted in'; if(tanks.length===1)alert(act+' '+totalVol+' BBL\n'+tanks[0].name+': '+tanks[0].bbls+' BBL (est '+tanks[0].inches+'")'); else alert(act+' '+totalVol+' BBL across '+tanks.length+' tanks'); }
+function executeJet(tanks,totalVol) { const per=Math.round(totalVol/tanks.length); tanks.forEach(t=>{if(jetType==='out')t.bbls=Math.max(0,t.bbls-per);else t.bbls+=per;t.inches=bblToInches(t.bbls);t.estimated=true;}); if(jetType==='out'){data.jetsHour+=totalVol;data.jetsShift+=totalVol;} if(!data.transferLog)data.transferLog=[]; data.transferLog.unshift({time:new Date().toISOString(),initials:profileData.initials||'',type:jetType,volume:totalVol,tanks:tanks.map(t=>t.name)}); document.getElementById('jet-volume').value='120'; saveData();render();renderTransferLog(); const act=jetType==='out'?'Jetted out':'Jetted in'; if(tanks.length===1)alert(act+' '+totalVol+' BBL\n'+tanks[0].name+': '+tanks[0].bbls+' BBL (est '+tanks[0].inches+'")'); else alert(act+' '+totalVol+' BBL across '+tanks.length+' tanks'); }
 function logGainLossCheck() { 
     const totals=calculateTotals(),curr=totals.system,last=data.lastSystemTotal,now=new Date();
     let app=last!==null?curr-last:null,tru=app!==null?app+data.jetsHour:null;
@@ -923,6 +1036,7 @@ function logTitration() {
     const hasFullTitration = hardness !== '--' && calcium !== '--';
     const entry = {
         time: new Date().toISOString(),
+        initials: profileData.initials || '',
         fluidType: titData.fluidType,
         fluidName: names[titData.fluidType] || titData.fluidType,
         viscosity: titData.viscosity,
@@ -952,7 +1066,9 @@ function renderTitrationLog() {
         const wt = log.density ? log.density + '#' : '';
         const visc = log.viscosity ? log.viscosity + 's' : '';
         const fluidColor = fluidColors[log.fluidType] || '#ba68c8';
+        const initials = log.initials ? '<span style="color:#66bb6a;font-weight:600">' + log.initials + '</span> ' : '';
         let html = '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f">' +
+            initials +
             '<span style="color:#4fc3f7">' + t + '</span> ' +
             '<span style="color:' + fluidColor + '">' + log.fluidName + '</span> ' +
             '<span style="color:#ffa726">' + wt + '</span> ' +
@@ -992,7 +1108,8 @@ function renderTransferLog() {
     el.innerHTML = data.transferLog.slice(0, 50).map(log => {
         const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
-        return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f"><span style="color:#4fc3f7">' + t + '</span> <span style="color:' + typeColor + '">' + (log.type === 'out' ? 'OUT' : 'IN') + '</span> ' + log.volume + ' BBL - ' + log.tanks.join(', ') + '</div>';
+        const initials = log.initials ? '<span style="color:#66bb6a;font-weight:600">' + log.initials + '</span> ' : '';
+        return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f">' + initials + '<span style="color:#4fc3f7">' + t + '</span> <span style="color:' + typeColor + '">' + (log.type === 'out' ? 'OUT' : 'IN') + '</span> ' + log.volume + ' BBL - ' + log.tanks.join(', ') + '</div>';
     }).join('');
 }
 
@@ -1272,8 +1389,16 @@ function updateVoiceStatus(main, sub) {
 function processVoiceInput(text) {
     console.log('Voice heard:', text, 'State:', voiceState);
     
-    // Cancel anytime
-    if (text.includes('cancel') || text.includes('stop') || text.includes('nevermind')) {
+    // Check for "mic off" command FIRST (before cancel check)
+    if (text.includes('mic off') || text.includes('microphone off') || text.includes('stop listening')) {
+        stopVoiceListening();
+        voiceSpeak('Microphone off');
+        return;
+    }
+    
+    // Cancel anytime (but not "stop listening")
+    if ((text.includes('cancel') || text.includes('nevermind')) || 
+        (text.includes('stop') && !text.includes('stop listening'))) {
         if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
         voicePlayError();
         voiceState = 'LISTENING';
@@ -1282,13 +1407,6 @@ function processVoiceInput(text) {
         document.getElementById('voice-master-btn').className = 'voice-master-btn active';
         voiceSpeak('Cancelled');
         clearTankHighlights();
-        return;
-    }
-    
-    // Check for "mic off" command anytime
-    if (text.includes('mic off') || text.includes('microphone off') || text.includes('stop listening')) {
-        stopVoiceListening();
-        voiceSpeak('Microphone off');
         return;
     }
     
@@ -1559,6 +1677,7 @@ function stopVoiceKeywordRecord() {
     if (voiceKeywordRecognition) { try { voiceKeywordRecognition.stop(); } catch(e) {} voiceKeywordRecognition = null; }
 }
 
+loadProfile();
 loadData();
 loadInjUI();
 renderTransferLog();
