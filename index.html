@@ -1340,6 +1340,14 @@ function showTurnoverReport() {
         html += '<div style="font-size:10px;color:#4fc3f7;margin:8px 0 4px">Return Side</div>';
         data.returnTanks.forEach(t => { html += '<div class="report-row"><span class="report-row-label">' + t.name + (t.contents ? ' [' + t.contents + ']' : '') + '</span><span class="report-row-value">' + t.bbls + ' BBL</span></div>'; });
     }
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;justify-content:space-around">';
+    html += '<div style="text-align:center;padding:6px 8px;border-radius:6px;min-width:48px;background:#0d1b2a"><div style="font-size:8px;color:#888;text-transform:uppercase;font-weight:600">Brine</div><div style="font-size:15px;font-weight:700;color:#42a5f5">' + totals.brine + '</div></div>';
+    html += '<div style="text-align:center;padding:6px 8px;border-radius:6px;min-width:48px;background:#0d1b2a"><div style="font-size:8px;color:#888;text-transform:uppercase;font-weight:600">Packer</div><div style="font-size:15px;font-weight:700;color:#ff7043">' + totals.packer + '</div></div>';
+    html += '<div style="text-align:center;padding:6px 8px;border-radius:6px;min-width:48px;background:#0d1b2a"><div style="font-size:8px;color:#888;text-transform:uppercase;font-weight:600">Mud</div><div style="font-size:15px;font-weight:700;color:#a1887f">' + totals.mud + '</div></div>';
+    html += '<div style="text-align:center;padding:6px 8px;border-radius:6px;min-width:48px;background:#0d1b2a"><div style="font-size:8px;color:#888;text-transform:uppercase;font-weight:600">Recirc</div><div style="font-size:15px;font-weight:700;color:#ba68c8">' + totals.recirc + '</div></div>';
+    html += '<div style="text-align:center;padding:6px 8px;border-radius:6px;min-width:48px;background:#0d1b2a"><div style="font-size:8px;color:#888;text-transform:uppercase;font-weight:600">Fresh</div><div style="font-size:15px;font-weight:700;color:#4db6ac">' + totals.freshwater + '</div></div>';
+    html += '<div style="text-align:center;padding:6px 8px;border-radius:6px;min-width:48px;background:#0d1b2a"><div style="font-size:8px;color:#888;text-transform:uppercase;font-weight:600">Other</div><div style="font-size:15px;font-weight:700;color:#90a4ae">' + totals.other + '</div></div>';
+    html += '</div>';
     html += '<div style="display:flex;gap:10px;margin-top:10px">';
     html += '<div style="flex:1;background:#0d1b2a;padding:10px;border-radius:6px;text-align:center"><div style="font-size:9px;color:#888">SYSTEM TOTAL</div><div style="font-size:18px;font-weight:700">' + totals.system + ' BBL</div></div>';
     html += '<div style="flex:1;background:#e65100;padding:10px;border-radius:6px;text-align:center"><div style="font-size:9px;color:rgba(255,255,255,0.8)">JETTED (SHIFT)</div><div style="font-size:18px;font-weight:700;color:white">' + data.jetsShift + ' BBL</div></div>';
