@@ -33,7 +33,7 @@
         
         /* Main Tabs */
         .main-tabs { display: flex; background: #0d1b2a; }
-        .main-tab { flex: 1; padding: 12px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; }
+        .main-tab { flex: 1; padding: 12px 4px; border: none; background: transparent; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; }
         .main-tab.active { background: #1b2838; color: #4fc3f7; border-bottom: 2px solid #4fc3f7; }
         
         .tab-content { display: none; }
@@ -434,6 +434,7 @@
 
     <div class="main-tabs">
         <button class="main-tab active" onclick="switchMainTab('tanks')">Tanks</button>
+        <button class="main-tab" onclick="switchMainTab('gainloss')">G/L</button>
         <button class="main-tab" onclick="switchMainTab('transfer')">Transfer</button>
         <button class="main-tab" onclick="switchMainTab('injection')">Injection</button>
         <button class="main-tab" onclick="switchMainTab('titrations')">Titrations</button>
@@ -442,15 +443,6 @@
     <div id="tanks-tab" class="tab-content active">
         <div class="controls">
             <button class="ctrl-btn green" onclick="showAddTankModal()">+ Add Tank</button>
-            <button class="ctrl-btn blue" onclick="logGainLossCheck()">📋 Gain/Loss Check</button>
-            <button style="background:#2d4a6f;color:#e0e0e0;border:none;padding:10px 12px;border-radius:6px;font-size:11px;cursor:pointer" onclick="resetGainLoss()">Reset G/L</button>
-        </div>
-        <div class="gain-loss-bar">
-            <div class="gl-box"><div class="gl-label">Last Check</div><div class="gl-value neutral" id="last-check-time">--</div><div class="gl-sublabel" id="elapsed-time"></div></div>
-            <div class="gl-box"><div class="gl-label">Apparent</div><div class="gl-value neutral" id="apparent-change">--</div></div>
-            <div class="gl-box"><div class="gl-label">True G/L</div><div class="gl-value neutral" id="true-change">--</div></div>
-            <div class="gl-box"><div class="gl-label">Rate/Hr</div><div class="gl-value neutral" id="rate-per-hour">--</div></div>
-            <div class="gl-box"><div class="gl-label">Jets/Hr</div><div class="gl-value" id="jets-hour" style="color:#ffa726">0</div></div>
         </div>
         <div class="side-toggle">
             <button class="side-tab active" onclick="switchSide('pump')">Pump Side</button>
@@ -470,11 +462,41 @@
             <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="system-total">0 BBL</div></div>
             <div class="system-total"><div class="system-total-label">Jetted (Shift)</div><div class="system-total-value jetted" id="jetted-total">0 BBL</div></div>
         </div>
-        <div style="background:#1b2838;border-radius:6px;padding:10px;margin:0 12px 12px;max-height:250px;overflow-y:auto">
-            <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Volume Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="clearVolumeLog()">Clear</button></div>
-            <div id="volume-log-content"><em style="color:#666">No volume checks logged</em></div>
-        </div>
         <button class="report-btn" onclick="showTankReport()">Generate Tank Report</button>
+    </div>
+
+    <!-- GAIN/LOSS TAB -->
+    <div id="gainloss-tab" class="tab-content">
+        <div style="padding:12px;padding-bottom:80px">
+            <div class="controls" style="margin-bottom:0">
+                <button class="ctrl-btn blue" onclick="logGainLossCheck()" style="flex:1">📋 Gain/Loss Check</button>
+                <button style="background:#2d4a6f;color:#e0e0e0;border:none;padding:10px 12px;border-radius:6px;font-size:11px;cursor:pointer" onclick="resetGainLoss()">Reset G/L</button>
+            </div>
+            <div class="gain-loss-bar">
+                <div class="gl-box"><div class="gl-label">Last Check</div><div class="gl-value neutral" id="last-check-time">--</div><div class="gl-sublabel" id="elapsed-time"></div></div>
+                <div class="gl-box"><div class="gl-label">Apparent</div><div class="gl-value neutral" id="apparent-change">--</div></div>
+                <div class="gl-box"><div class="gl-label">True G/L</div><div class="gl-value neutral" id="true-change">--</div></div>
+                <div class="gl-box"><div class="gl-label">Rate/Hr</div><div class="gl-value neutral" id="rate-per-hour">--</div></div>
+                <div class="gl-box"><div class="gl-label">Jets/Hr</div><div class="gl-value" id="jets-hour" style="color:#ffa726">0</div></div>
+            </div>
+            <div class="totals-bar" style="margin:0 -12px">
+                <div class="total-item"><div class="total-label">Brine</div><div class="total-value brine" id="gl-total-brine">0</div></div>
+                <div class="total-item"><div class="total-label">Packer</div><div class="total-value packer" id="gl-total-packer">0</div></div>
+                <div class="total-item"><div class="total-label">Mud</div><div class="total-value mud" id="gl-total-mud">0</div></div>
+                <div class="total-item"><div class="total-label">Recirc</div><div class="total-value recirc" id="gl-total-recirc">0</div></div>
+                <div class="total-item"><div class="total-label">Fresh</div><div class="total-value freshwater" id="gl-total-freshwater">0</div></div>
+                <div class="total-item"><div class="total-label">Other</div><div class="total-value other" id="gl-total-other">0</div></div>
+            </div>
+            <div class="system-totals" style="margin:0 0 12px">
+                <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="gl-system-total">0 BBL</div></div>
+                <div class="system-total"><div class="system-total-label">Jetted (Shift)</div><div class="system-total-value jetted" id="gl-jetted-total">0 BBL</div></div>
+            </div>
+            <div style="background:#1b2838;border-radius:6px;padding:10px;max-height:400px;overflow-y:auto">
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Volume Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="clearVolumeLog()">Clear</button></div>
+                <div id="volume-log-content"><em style="color:#666">No volume checks logged</em></div>
+            </div>
+            <button class="report-btn" onclick="showTurnoverReport()">📋 Generate Turnover Report</button>
+        </div>
     </div>
 
     <!-- TRANSFER TAB -->
@@ -578,6 +600,10 @@
 
     <div id="titrations-tab" class="tab-content">
         <div class="titration-container">
+            <div style="display:flex;gap:0;margin-bottom:12px;background:#243447;border-radius:8px;overflow:hidden;border:1px solid #2d4a6f">
+                <button class="sample-loc-btn active" id="sample-in-btn" onclick="setSampleLocation('in')" style="flex:1;padding:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;background:#1565c0;color:white">⬇ Pump Side (In)</button>
+                <button class="sample-loc-btn" id="sample-out-btn" onclick="setSampleLocation('out')" style="flex:1;padding:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;background:transparent;color:rgba(255,255,255,0.4)">⬆ Discharge (Out)</button>
+            </div>
             <div class="fluid-select">
                 <select id="fluid-type" onchange="saveTitrationData()">
                     <option value="aphron">Aphron Mud</option>
@@ -786,10 +812,15 @@ function bblToInches(bbl) {
     return closest;
 }
 function inchesToBbl(inches) {
-    const r = Math.round(inches);
-    if (r <= 0) return 0;
-    if (r > 104) return STICK_CHART[104];
-    return STICK_CHART[r] || 0;
+    if (inches <= 0) return 0;
+    if (inches >= 104) return STICK_CHART[104];
+    const lower = Math.floor(inches);
+    const upper = Math.ceil(inches);
+    if (lower === upper || lower <= 0) return STICK_CHART[upper] || 0;
+    const lowerBbl = lower === 0 ? 0 : (STICK_CHART[lower] || 0);
+    const upperBbl = STICK_CHART[upper] || 0;
+    const frac = inches - lower;
+    return Math.round(lowerBbl + (upperBbl - lowerBbl) * frac);
 }
 
 const pumpTypes = [
@@ -923,11 +954,10 @@ function loadTitrationUI() {
 }
 
 function switchMainTab(tab) {
-    document.querySelectorAll('.main-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='tanks') || (i===1 && tab==='transfer') || (i===2 && tab==='injection') || (i===3 && tab==='titrations')));
-    document.getElementById('tanks-tab').classList.toggle('active', tab==='tanks');
-    document.getElementById('transfer-tab').classList.toggle('active', tab==='transfer');
-    document.getElementById('injection-tab').classList.toggle('active', tab==='injection');
-    document.getElementById('titrations-tab').classList.toggle('active', tab==='titrations');
+    const tabs = ['tanks','gainloss','transfer','injection','titrations'];
+    document.querySelectorAll('.main-tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===tab));
+    tabs.forEach(id => { const el=document.getElementById(id+'-tab'); if(el) el.classList.toggle('active', id===tab); });
+    if(tab==='gainloss') renderGLTotals();
 }
 function switchSide(side) {
     currentSide = side;
@@ -1083,7 +1113,7 @@ function getTankFillColor(color) {
     };
     return colors[color] || colors.other;
 }
-function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); const maxBbl=tank.type==='sandcat'?185:500; const fillPct=Math.min(100,Math.round((tank.bbls/maxBbl)*100)); const fc=getTankFillColor(color); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';badges+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} const keywords=tank.voiceKeywords||[]; const micClass=keywords.length?'configured':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'" onclick="openVoiceKeywordModal(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+'</div></div></div>'; }
+function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); const maxBbl=tank.type==='sandcat'?185:500; const fillPct=Math.min(100,Math.round((tank.bbls/maxBbl)*100)); const fc=getTankFillColor(color); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';badges+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} const keywords=tank.voiceKeywords||[]; const micClass=keywords.length?'configured':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'" onclick="openVoiceKeywordModal(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" step="0.25" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+'</div></div></div>'; }
 function render() { 
     const pumpEl = document.getElementById('pump-tanks');
     const returnEl = document.getElementById('return-tanks');
@@ -1111,6 +1141,7 @@ function render() {
     if(el('jetted-total')) el('jetted-total').textContent=data.jetsShift+' BBL'; 
     if(el('jets-hour')) el('jets-hour').textContent=data.jetsHour; 
     if(el('transfer-shift-total')) el('transfer-shift-total').textContent=data.jetsShift+' BBL';
+    renderGLTotals();
     // Gain/Loss display
     const lastCheckEl=document.getElementById('last-check-time'),elapsedEl=document.getElementById('elapsed-time'),truEl=document.getElementById('true-change'),rateEl=document.getElementById('rate-per-hour');
     if(lastCheckEl && data.lastCheckTime){
@@ -1128,13 +1159,39 @@ function render() {
     if(rateEl && last&&last.ratePerHour!==null){const r=parseFloat(last.ratePerHour);rateEl.textContent=(r>=0?'+':'')+last.ratePerHour;rateEl.className='gl-value '+(r>0?'gain':r<0?'loss':'neutral');}else if(rateEl){rateEl.textContent='--';rateEl.className='gl-value neutral';}
 }
 
+function renderGLTotals() {
+    const totals = calculateTotals();
+    const el = (id) => document.getElementById(id);
+    if(el('gl-total-brine')) el('gl-total-brine').textContent = totals.brine;
+    if(el('gl-total-packer')) el('gl-total-packer').textContent = totals.packer;
+    if(el('gl-total-mud')) el('gl-total-mud').textContent = totals.mud;
+    if(el('gl-total-recirc')) el('gl-total-recirc').textContent = totals.recirc;
+    if(el('gl-total-freshwater')) el('gl-total-freshwater').textContent = totals.freshwater;
+    if(el('gl-total-other')) el('gl-total-other').textContent = totals.other;
+    if(el('gl-system-total')) el('gl-system-total').textContent = totals.system + ' BBL';
+    if(el('gl-jetted-total')) el('gl-jetted-total').textContent = data.jetsShift + ' BBL';
+}
+
 function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
 function hideTankReport() { document.getElementById('tank-report').classList.remove('show'); }
-function showTitrationReport() { const names={aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Freshwater'}; document.getElementById('tit-report-fluid').textContent=names[titData.fluidType]||titData.fluidType; const cl=document.getElementById('tit-chlorides').textContent,ha=document.getElementById('tit-hardness').textContent,ca=document.getElementById('tit-calcium').textContent,mg=document.getElementById('tit-magnesium').textContent; const surfaceVol=getSurfaceVolumeForFluid(titData.fluidType); let html='<div class="report-section"><div class="report-section-title">Basic Properties</div><div class="report-row"><span class="report-row-label">Viscosity</span><span class="report-row-value">'+(titData.viscosity||'--')+' sec</span></div><div class="report-row"><span class="report-row-label">Density</span><span class="report-row-value">'+(titData.density||'--')+' ppg</span></div><div class="report-row"><span class="report-row-label">pH</span><span class="report-row-value">'+(titData.ph||'--')+'</span></div><div class="report-row"><span class="report-row-label">PF</span><span class="report-row-value">'+(titData.pf||'--')+'</span></div><div class="report-row"><span class="report-row-label">MF</span><span class="report-row-value">'+(titData.mf||'--')+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Chemical Analysis</div><div class="report-row"><span class="report-row-label">Chlorides</span><span class="report-row-value">'+cl+' ppm</span></div><div class="report-row"><span class="report-row-label">Calcium</span><span class="report-row-value">'+ca+' ppm</span></div><div class="report-row"><span class="report-row-label">Total Hardness</span><span class="report-row-value">'+ha+' ppm</span></div><div class="report-row"><span class="report-row-label">Magnesium</span><span class="report-row-value">'+mg+' ppm</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Volume</div><div class="report-row"><span class="report-row-label">Surface Volume ('+names[titData.fluidType]+')</span><span class="report-row-value">'+surfaceVol+' bbl</span></div></div>'; html+='<div class="report-timestamp">'+new Date().toLocaleString()+'</div>'; document.getElementById('tit-report-content').innerHTML=html; document.getElementById('titration-report').classList.add('show'); }
+function showTitrationReport() { const names={aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Freshwater'}; const locText = sampleLocation === 'out' ? 'Discharge (Out)' : 'Pump Side (In)'; const locColor = sampleLocation === 'out' ? '#ff7043' : '#42a5f5'; document.getElementById('tit-report-fluid').textContent=names[titData.fluidType]||titData.fluidType; const cl=document.getElementById('tit-chlorides').textContent,ha=document.getElementById('tit-hardness').textContent,ca=document.getElementById('tit-calcium').textContent,mg=document.getElementById('tit-magnesium').textContent; const surfaceVol=getSurfaceVolumeForFluid(titData.fluidType); let html='<div class="report-section"><div class="report-section-title">Sample Info</div><div class="report-row"><span class="report-row-label">Sample Location</span><span class="report-row-value" style="color:'+locColor+'">'+locText+'</span></div><div class="report-row"><span class="report-row-label">Fluid Type</span><span class="report-row-value">'+(names[titData.fluidType]||titData.fluidType)+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Basic Properties</div><div class="report-row"><span class="report-row-label">Viscosity</span><span class="report-row-value">'+(titData.viscosity||'--')+' sec</span></div><div class="report-row"><span class="report-row-label">Density</span><span class="report-row-value">'+(titData.density||'--')+' ppg</span></div><div class="report-row"><span class="report-row-label">pH</span><span class="report-row-value">'+(titData.ph||'--')+'</span></div><div class="report-row"><span class="report-row-label">PF</span><span class="report-row-value">'+(titData.pf||'--')+'</span></div><div class="report-row"><span class="report-row-label">MF</span><span class="report-row-value">'+(titData.mf||'--')+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Chemical Analysis</div><div class="report-row"><span class="report-row-label">Chlorides</span><span class="report-row-value">'+cl+' ppm</span></div><div class="report-row"><span class="report-row-label">Calcium</span><span class="report-row-value">'+ca+' ppm</span></div><div class="report-row"><span class="report-row-label">Total Hardness</span><span class="report-row-value">'+ha+' ppm</span></div><div class="report-row"><span class="report-row-label">Magnesium</span><span class="report-row-value">'+mg+' ppm</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Volume</div><div class="report-row"><span class="report-row-label">Surface Volume ('+names[titData.fluidType]+')</span><span class="report-row-value">'+surfaceVol+' bbl</span></div></div>'; html+='<div class="report-timestamp">'+new Date().toLocaleString()+'</div>'; document.getElementById('tit-report-content').innerHTML=html; document.getElementById('titration-report').classList.add('show'); }
 function hideTitrationReport() { document.getElementById('titration-report').classList.remove('show'); }
 
 // Titration log
 let titrationLog = [];
+let sampleLocation = 'in'; // 'in' = pump side, 'out' = discharge
+function setSampleLocation(loc) {
+    sampleLocation = loc;
+    const inBtn = document.getElementById('sample-in-btn');
+    const outBtn = document.getElementById('sample-out-btn');
+    if(loc === 'in') {
+        inBtn.style.background = '#1565c0'; inBtn.style.color = 'white';
+        outBtn.style.background = 'transparent'; outBtn.style.color = 'rgba(255,255,255,0.4)';
+    } else {
+        outBtn.style.background = '#e65100'; outBtn.style.color = 'white';
+        inBtn.style.background = 'transparent'; inBtn.style.color = 'rgba(255,255,255,0.4)';
+    }
+}
 function loadTitrationLog() { const s = localStorage.getItem('ipsTitrationLog'); if(s) titrationLog = JSON.parse(s); }
 function saveTitrationLog() { localStorage.setItem('ipsTitrationLog', JSON.stringify(titrationLog)); }
 function logTitration() {
@@ -1146,6 +1203,7 @@ function logTitration() {
     const entry = {
         time: new Date().toISOString(),
         initials: profileData.initials || '',
+        sampleLocation: sampleLocation,
         fluidType: titData.fluidType,
         fluidName: names[titData.fluidType] || titData.fluidType,
         viscosity: titData.viscosity,
@@ -1172,24 +1230,26 @@ function renderTitrationLog() {
     const fluidColors = {aphron:'#a1887f',brine:'#42a5f5',recirc:'#ba68c8',freshwater:'#4db6ac',fresh:'#4db6ac'};
     el.innerHTML = titrationLog.slice(0, 20).map(log => {
         const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-        const wt = log.density ? log.density + '#' : '';
-        const visc = log.viscosity ? log.viscosity + 's' : '';
         const fluidColor = fluidColors[log.fluidType] || '#ba68c8';
         const initials = log.initials ? '<span style="color:#66bb6a;font-weight:600">' + log.initials + '</span> &nbsp; ' : '';
-        let html = '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f">' +
-            initials +
-            '<span style="color:#4fc3f7">' + t + '</span> &nbsp; ' +
-            '<span style="color:' + fluidColor + '">' + log.fluidName + '</span> &nbsp; ' +
-            '<span style="color:#ffa726">' + wt + '</span> &nbsp; ' +
-            '<span style="color:#888">' + visc + '</span>';
+        const locLabel = log.sampleLocation === 'out' ? '<span style="color:#ff7043;font-weight:600;font-size:9px;background:rgba(255,112,67,0.2);padding:1px 4px;border-radius:3px">OUT</span>' : '<span style="color:#42a5f5;font-weight:600;font-size:9px;background:rgba(66,165,245,0.2);padding:1px 4px;border-radius:3px">IN</span>';
+        // Line 1: User / Time / Fluid / In or Out
+        let line1 = initials + '<span style="color:#4fc3f7">' + t + '</span> &nbsp; <span style="color:' + fluidColor + '">' + log.fluidName + '</span> &nbsp; ' + locLabel;
+        // Line 2: Weight / Viscosity / Chemistry
+        let parts = [];
+        if (log.density) parts.push('<span style="color:#ffa726">' + log.density + '#</span>');
+        if (log.viscosity) parts.push('<span style="color:#888">' + log.viscosity + 's</span>');
         if (log.fullTitration) {
-            html += ' &nbsp; <span style="color:#42a5f5">Cl:' + log.chlorides + '</span>' +
-                ' &nbsp; <span style="color:#26a69a">Ca:' + log.calcium + '</span>' +
-                ' &nbsp; <span style="color:#ab47bc">H:' + log.hardness + '</span>' +
-                ' &nbsp; <span style="color:#66bb6a">Mg:' + (log.magnesium || '--') + '</span>';
+            parts.push('<span style="color:#42a5f5">Cl:' + log.chlorides + '</span>');
+            parts.push('<span style="color:#26a69a">Ca:' + log.calcium + '</span>');
+            parts.push('<span style="color:#ab47bc">H:' + log.hardness + '</span>');
+            parts.push('<span style="color:#66bb6a">Mg:' + (log.magnesium || '--') + '</span>');
         }
-        html += '</div>';
-        return html;
+        let line2 = parts.length ? parts.join(' &nbsp; ') : '<span style="color:#666">--</span>';
+        return '<div style="padding:6px 0;border-bottom:1px solid #2d4a6f">' +
+            '<div style="font-size:11px">' + line1 + '</div>' +
+            '<div style="font-size:10px;padding-left:2px;margin-top:3px">' + line2 + '</div>' +
+            '</div>';
     }).join('');
 }
 function resetTitrationLog() { if(confirm('Clear titration history?')) { titrationLog = []; saveTitrationLog(); renderTitrationLog(); } }
@@ -1420,7 +1480,8 @@ function showTurnoverReport() {
             const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
             let details = '<span style="color:#ffa726">' + (log.density ? log.density + '#' : '') + '</span>';
             if (log.viscosity) details += ' <span style="color:#888">' + log.viscosity + 's</span>';
-            html += '<div class="report-row"><span class="report-row-label">' + t + ' - ' + log.fluidName + '</span><span class="report-row-value">' + details + '</span></div>';
+            const locBadge = log.sampleLocation === 'out' ? '<span style="color:#ff7043;font-size:9px;font-weight:600">OUT</span>' : '<span style="color:#42a5f5;font-size:9px;font-weight:600">IN</span>';
+            html += '<div class="report-row"><span class="report-row-label">' + t + ' ' + locBadge + ' - ' + log.fluidName + '</span><span class="report-row-value">' + details + '</span></div>';
             if (log.fullTitration) {
                 html += '<div style="font-size:10px;padding-left:4px;color:#888">';
                 html += 'Cl: <span style="color:#42a5f5">' + log.chlorides + '</span> &nbsp; ';
@@ -1540,7 +1601,7 @@ function sendTurnoverReportText() {
         text += '\n=== TITRATION LOG ===\n';
         titrationLog.slice(0, 10).forEach(log => {
             const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-            text += t + ' ' + log.fluidName + ': ' + (log.density ? log.density + '#' : '') + (log.viscosity ? ' ' + log.viscosity + 's' : '');
+            text += t + ' [' + (log.sampleLocation === 'out' ? 'OUT' : 'IN') + '] ' + log.fluidName + ': ' + (log.density ? log.density + '#' : '') + (log.viscosity ? ' ' + log.viscosity + 's' : '');
             if (log.fullTitration) { text += ' Cl:' + log.chlorides + ' Ca:' + log.calcium + ' H:' + log.hardness + ' Mg:' + (log.magnesium || '--'); }
             text += '\n';
         });
@@ -1555,7 +1616,7 @@ function sendTurnoverReportText() {
 
 // Start New Shift
 function startNewShift() {
-    if (!confirm('Start New Shift?\n\nThis will reset:\n• Volume log\n• Jets this hour\n• Shift jetted total\n• Transfer log\n• Injection log\n\nTank volumes and titration data will be preserved.')) return;
+    if (!confirm('Start New Shift?\n\nThis will reset:\n• Gain/Loss log\n• Jets this hour\n• Shift jetted total\n• Transfer log\n• Injection log\n\nTank volumes and titration data will be preserved.')) return;
     
     data.lastSystemTotal = null;
     data.lastCheckTime = null;
@@ -1570,6 +1631,7 @@ function startNewShift() {
     render();
     renderInjHist();
     renderTransferLog();
+    renderVolumeLog();
     
     alert('New shift started!\n\nAll shift-specific data has been cleared.');
 }
