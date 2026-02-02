@@ -122,11 +122,13 @@
         .jet-toggle-btn { flex: 1; padding: 8px; border: none; background: transparent; font-size: 12px; font-weight: 600; color: #888; border-radius: 4px; cursor: pointer; }
         .jet-toggle-btn.active.out { background: #c62828; color: white; }
         .jet-toggle-btn.active.in { background: #2e7d32; color: white; }
+        .jet-toggle-btn.active.build { background: #6d4c41; color: white; }
         .jet-row { display: flex; gap: 8px; align-items: center; }
         .jet-row select, .jet-row input { flex: 1; padding: 8px; border: 1px solid #2d4a6f; border-radius: 6px; font-size: 14px; background: #1b2838; color: #e0e0e0; }
         .jet-btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; color: white; }
         .jet-btn.out { background: #c62828; }
         .jet-btn.in { background: #2e7d32; }
+        .jet-btn.build { background: #6d4c41; }
         
         /* Totals Bar */
         .totals-bar { display: flex; justify-content: space-around; padding: 10px 8px; background: #243447; border-top: 1px solid #2d4a6f; flex-wrap: wrap; gap: 6px; }
@@ -507,11 +509,34 @@
                 <div class="jet-toggle">
                     <button class="jet-toggle-btn out active" onclick="setJetType('out')">Jet Out</button>
                     <button class="jet-toggle-btn in" onclick="setJetType('in')">Jet In</button>
+                    <button class="jet-toggle-btn build" onclick="setJetType('build')">Build</button>
                 </div>
-                <div class="jet-row">
+                <!-- Jet In/Out row -->
+                <div class="jet-row" id="jet-row-standard">
                     <select id="jet-source"><option value="">Select tank...</option></select>
                     <input type="number" id="jet-volume" value="120" style="max-width:80px">
                     <button class="jet-btn out" id="jet-action-btn" onclick="startJetProcess()">Jet Out</button>
+                </div>
+                <!-- Build row -->
+                <div id="build-row" style="display:none">
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+                        <select id="build-dest" style="flex:1;padding:8px;border:1px solid #2d4a6f;border-radius:6px;font-size:14px;background:#1b2838;color:#e0e0e0"><option value="">Send to tank...</option></select>
+                        <input type="number" id="build-volume" value="35" onchange="updateBuildTotal()" style="max-width:80px;padding:8px;border:1px solid #2d4a6f;border-radius:6px;font-size:14px;background:#1b2838;color:#e0e0e0">
+                        <span style="font-size:11px;color:#888;white-space:nowrap">BBL/batch</span>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:10px">
+                        <button onclick="adjustBuildCount(-1)" style="width:44px;height:44px;border:1px solid #6d4c41;border-radius:8px;background:#1b2838;color:#a1887f;font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+                        <div style="text-align:center;min-width:80px">
+                            <div style="font-size:36px;font-weight:800;color:#a1887f" id="build-count">1</div>
+                            <div style="font-size:10px;color:#888;text-transform:uppercase">Batches</div>
+                        </div>
+                        <button onclick="adjustBuildCount(1)" style="width:44px;height:44px;border:1px solid #6d4c41;border-radius:8px;background:#1b2838;color:#a1887f;font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+                    </div>
+                    <div style="text-align:center;margin-bottom:10px">
+                        <span style="font-size:12px;color:#888">Total: </span>
+                        <span style="font-size:20px;font-weight:700;color:#a1887f" id="build-total-display">35 BBL</span>
+                    </div>
+                    <button class="jet-btn build" onclick="executeBuild()" style="width:100%;padding:12px">Build Mud</button>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #2d4a6f">
                     <div><span style="font-size:11px;color:#888">Shift Total: </span><span style="font-size:16px;font-weight:700;color:#ffa726" id="transfer-shift-total">0 BBL</span></div>
@@ -970,8 +995,77 @@ function setJetType(type) {
     document.querySelectorAll('.jet-toggle-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.jet-toggle-btn.'+type).classList.add('active');
     const btn = document.getElementById('jet-action-btn');
-    btn.className = 'jet-btn '+type;
-    btn.textContent = type==='out' ? 'Jet Out' : 'Jet In';
+    const stdRow = document.getElementById('jet-row-standard');
+    const buildRow = document.getElementById('build-row');
+    if (type === 'build') {
+        stdRow.style.display = 'none';
+        buildRow.style.display = 'block';
+        populateBuildDest();
+    } else {
+        stdRow.style.display = 'flex';
+        buildRow.style.display = 'none';
+        btn.className = 'jet-btn '+type;
+        btn.textContent = type==='out' ? 'Jet Out' : 'Jet In';
+    }
+}
+let buildCount = 1;
+function adjustBuildCount(delta) {
+    buildCount = Math.max(1, buildCount + delta);
+    document.getElementById('build-count').textContent = buildCount;
+    const perBatch = parseFloat(document.getElementById('build-volume').value) || 35;
+    document.getElementById('build-total-display').textContent = (buildCount * perBatch) + ' BBL';
+}
+function populateBuildDest() {
+    const sel = document.getElementById('build-dest');
+    sel.innerHTML = '<option value="">Send to tank...</option>';
+    // Mud tanks (aphron type on pump side)
+    data.pumpTanks.filter(t => t.type === 'aphron').forEach(t => {
+        sel.innerHTML += '<option value="' + t.id + '">' + t.name + ' (' + t.bbls + ')</option>';
+    });
+    // Also return tanks with mud contents
+    data.returnTanks.filter(t => t.contents === 'mud').forEach(t => {
+        sel.innerHTML += '<option value="' + t.id + '">' + t.name + ' (' + t.bbls + ')</option>';
+    });
+}
+function updateBuildTotal() {
+    const perBatch = parseFloat(document.getElementById('build-volume').value) || 35;
+    document.getElementById('build-total-display').textContent = (buildCount * perBatch) + ' BBL';
+}
+function executeBuild() {
+    const destId = parseInt(document.getElementById('build-dest').value);
+    const perBatch = parseFloat(document.getElementById('build-volume').value) || 35;
+    const totalVol = buildCount * perBatch;
+    if (!destId) { alert('Select a destination tank'); return; }
+    const result = findTank(destId);
+    if (!result) { alert('Tank not found'); return; }
+    const { tank, side } = result;
+    // Equalize logic - find other mud tanks on same side
+    const eqTanks = getEqualizableTanks(tank, side);
+    if (eqTanks.length > 0) {
+        pendingJet = { tank, side, volume: totalVol, equalizableTanks: eqTanks, isBuild: true };
+        showBuildEqualizeModal(tank, eqTanks, totalVol);
+    } else {
+        finalizeBuild([tank], totalVol);
+    }
+}
+function showBuildEqualizeModal(dest, eqTanks, vol) {
+    const all = [dest, ...eqTanks], per = Math.round(vol / all.length);
+    document.getElementById('equalize-question').innerHTML = 'Is <strong>' + dest.name + '</strong> equalized?<br><br>' + vol + ' BBL build split = <strong>' + per + ' BBL</strong> each';
+    document.getElementById('equalize-tanks-list').innerHTML = all.map(t => t.name).join(', ');
+    document.getElementById('equalize-modal').classList.add('show');
+}
+function finalizeBuild(tanks, totalVol) {
+    const per = Math.round(totalVol / tanks.length);
+    tanks.forEach(t => { t.bbls += per; t.inches = bblToInches(t.bbls); t.estimated = true; });
+    if (!data.transferLog) data.transferLog = [];
+    data.transferLog.unshift({ time: new Date().toISOString(), initials: profileData.initials || '', type: 'build', volume: totalVol, batches: buildCount, perBatch: parseFloat(document.getElementById('build-volume').value) || 35, tanks: tanks.map(t => t.name) });
+    buildCount = 1;
+    document.getElementById('build-count').textContent = '1';
+    const perBatch = parseFloat(document.getElementById('build-volume').value) || 35;
+    document.getElementById('build-total-display').textContent = perBatch + ' BBL';
+    saveData(); render(); renderTransferLog(); populateBuildDest();
+    if (tanks.length === 1) alert('Built ' + totalVol + ' BBL\n' + tanks[0].name + ': ' + tanks[0].bbls + ' BBL (est ' + tanks[0].inches + '")');
+    else alert('Built ' + totalVol + ' BBL across ' + tanks.length + ' tanks');
 }
 function resetShiftJetted() { if(confirm('Reset shift jetted total?')) { data.jetsShift=0; saveData(); render(); } }
 
@@ -1042,7 +1136,7 @@ function getEqualizableTanks(tank,side) { if(side==='pump')return data.pumpTanks
 function startJetProcess() { const srcId=parseInt(document.getElementById('jet-source').value),vol=parseFloat(document.getElementById('jet-volume').value)||120; if(!srcId){alert('Select a tank');return;} const result=findTank(srcId); if(!result){alert('Tank not found');return;} const{tank,side}=result,eqTanks=getEqualizableTanks(tank,side); if(eqTanks.length>0&&jetType==='out'){pendingJet={tank,side,volume:vol,equalizableTanks:eqTanks};showEqualizeModal(tank,eqTanks,vol);}else{executeJet([tank],vol);} }
 function showEqualizeModal(src,eqTanks,vol) { const all=[src,...eqTanks],per=Math.round(vol/all.length); document.getElementById('equalize-question').innerHTML='Is <strong>'+src.name+'</strong> equalized?<br><br>'+vol+' BBL split = <strong>'+per+' BBL</strong> each'; document.getElementById('equalize-tanks-list').innerHTML=all.map(t=>t.name).join(', '); document.getElementById('equalize-modal').classList.add('show'); }
 function hideEqualizeModal() { document.getElementById('equalize-modal').classList.remove('show'); pendingJet=null; }
-function confirmEqualize(isEq) { if(!pendingJet)return; const{tank,volume,equalizableTanks}=pendingJet; executeJet(isEq?[tank,...equalizableTanks]:[tank],volume); hideEqualizeModal(); }
+function confirmEqualize(isEq) { if(!pendingJet)return; const{tank,volume,equalizableTanks,isBuild}=pendingJet; if(isBuild){finalizeBuild(isEq?[tank,...equalizableTanks]:[tank],volume);}else{executeJet(isEq?[tank,...equalizableTanks]:[tank],volume);} hideEqualizeModal(); }
 function executeJet(tanks,totalVol) { const per=Math.round(totalVol/tanks.length); tanks.forEach(t=>{if(jetType==='out')t.bbls=Math.max(0,t.bbls-per);else t.bbls+=per;t.inches=bblToInches(t.bbls);t.estimated=true;}); if(jetType==='out'){data.jetsHour+=totalVol;data.jetsShift+=totalVol;} if(!data.transferLog)data.transferLog=[]; data.transferLog.unshift({time:new Date().toISOString(),initials:profileData.initials||'',type:jetType,volume:totalVol,tanks:tanks.map(t=>t.name)}); document.getElementById('jet-volume').value='120'; saveData();render();renderTransferLog(); const act=jetType==='out'?'Jetted out':'Jetted in'; if(tanks.length===1)alert(act+' '+totalVol+' BBL\n'+tanks[0].name+': '+tanks[0].bbls+' BBL (est '+tanks[0].inches+'")'); else alert(act+' '+totalVol+' BBL across '+tanks.length+' tanks'); }
 function logGainLossCheck() { 
     const totals=calculateTotals(),curr=totals.system,last=data.lastSystemTotal,now=new Date();
@@ -1276,8 +1370,12 @@ function renderTransferLog() {
     }
     el.innerHTML = data.transferLog.slice(0, 50).map(log => {
         const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-        const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
         const initials = log.initials ? '<span style="color:#66bb6a;font-weight:600">' + log.initials + '</span> &nbsp; ' : '';
+        if (log.type === 'build') {
+            const batchInfo = log.batches > 1 ? log.batches + '×' + log.perBatch : log.volume;
+            return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f">' + initials + '<span style="color:#4fc3f7">' + t + '</span> &nbsp; <span style="color:#a1887f;font-weight:600">BUILD</span> &nbsp; ' + batchInfo + ' BBL &nbsp; → ' + log.tanks.join(', ') + '</div>';
+        }
+        const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
         return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid #2d4a6f">' + initials + '<span style="color:#4fc3f7">' + t + '</span> &nbsp; <span style="color:' + typeColor + '">' + (log.type === 'out' ? 'OUT' : 'IN') + '</span> &nbsp; ' + log.volume + ' BBL &nbsp; ' + log.tanks.join(', ') + '</div>';
     }).join('');
 }
@@ -1371,8 +1469,13 @@ function showTransferReport() {
         html += '<div class="report-section"><div class="report-section-title">Transfer Log</div>';
         data.transferLog.forEach(log => {
             const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-            const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
-            html += '<div class="report-row"><span class="report-row-label">' + t + ' - ' + log.tanks.join(', ') + '</span><span class="report-row-value" style="color:' + typeColor + '">' + (log.type === 'out' ? '-' : '+') + log.volume + ' BBL</span></div>';
+            if (log.type === 'build') {
+                const batchInfo = log.batches > 1 ? log.batches + '×' + log.perBatch : log.volume;
+                html += '<div class="report-row"><span class="report-row-label">' + t + ' - BUILD → ' + log.tanks.join(', ') + '</span><span class="report-row-value" style="color:#a1887f">+' + batchInfo + ' BBL</span></div>';
+            } else {
+                const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
+                html += '<div class="report-row"><span class="report-row-label">' + t + ' - ' + log.tanks.join(', ') + '</span><span class="report-row-value" style="color:' + typeColor + '">' + (log.type === 'out' ? '-' : '+') + log.volume + ' BBL</span></div>';
+            }
         });
         html += '</div>';
     }
@@ -1431,8 +1534,13 @@ function showTurnoverReport() {
     if (data.transferLog && data.transferLog.length) {
         data.transferLog.slice(0, 10).forEach(log => {
             const t = new Date(log.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-            const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
-            html += '<div class="report-row"><span class="report-row-label">' + t + ' - ' + log.tanks.join(', ') + '</span><span class="report-row-value" style="color:' + typeColor + '">' + (log.type === 'out' ? '-' : '+') + log.volume + ' BBL</span></div>';
+            if (log.type === 'build') {
+                const batchInfo = log.batches > 1 ? log.batches + '×' + log.perBatch : log.volume;
+                html += '<div class="report-row"><span class="report-row-label">' + t + ' BUILD → ' + log.tanks.join(', ') + '</span><span class="report-row-value" style="color:#a1887f">+' + batchInfo + ' BBL</span></div>';
+            } else {
+                const typeColor = log.type === 'out' ? '#ef5350' : '#4caf50';
+                html += '<div class="report-row"><span class="report-row-label">' + t + ' - ' + log.tanks.join(', ') + '</span><span class="report-row-value" style="color:' + typeColor + '">' + (log.type === 'out' ? '-' : '+') + log.volume + ' BBL</span></div>';
+            }
         });
     } else {
         html += '<div style="color:#666;font-size:12px;text-align:center;padding:10px">No transfers this shift</div>';
