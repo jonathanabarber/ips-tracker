@@ -244,10 +244,6 @@
             background: linear-gradient(135deg, #1565c0, #0d47a1);
             color: white;
         }
-        .voice-master-btn.confirming {
-            background: linear-gradient(135deg, #f57c00, #e65100);
-            color: white; animation: pulse 0.5s infinite;
-        }
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -1285,7 +1281,7 @@ function getTankFillColor(color) {
     };
     return colors[color] || colors.other;
 }
-function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); const maxBbl=tank.type==='sandcat'?185:500; const fillPct=Math.min(100,Math.round((tank.bbls/maxBbl)*100)); const fc=getTankFillColor(color); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';badges+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} const keywords=tank.voiceKeywords||[]; const isVoiceWaiting=voiceIsListening&&voiceCurrentTank&&voiceCurrentTank.id===tank.id&&voiceCurrentSide===side&&(voiceState==='CONFIRMING_TANK'||voiceState==='WAITING_NUMBER'||voiceState==='CONFIRMING_VALUE'); const isVoiceDone=voiceDoneTankSide===side&&voiceDoneTankId===tank.id; const micClass=isVoiceWaiting?'voice-waiting':isVoiceDone?'voice-done':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const bleClass=bleConnected&&bleActiveTankSide===side&&bleActiveTankId===tank.id?'ble-waiting':bleDoneTankSide===side&&bleDoneTankId===tank.id?'ble-done':'inactive'; const bleBtn='<div class="tank-ble-btn '+bleClass+'" onclick="toggleBleTank(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" step="0.25" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+bleBtn+'</div></div></div>'; }
+function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); const maxBbl=tank.type==='sandcat'?185:500; const fillPct=Math.min(100,Math.round((tank.bbls/maxBbl)*100)); const fc=getTankFillColor(color); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';badges+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} const keywords=tank.voiceKeywords||[]; const isVoiceWaiting=voiceIsListening&&voiceCurrentTank&&voiceCurrentTank.id===tank.id&&voiceCurrentSide===side&&voiceState==='WAITING_NUMBER'; const isVoiceDone=voiceDoneTankSide===side&&voiceDoneTankId===tank.id; const micClass=isVoiceWaiting?'voice-waiting':isVoiceDone?'voice-done':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const bleClass=bleConnected&&bleActiveTankSide===side&&bleActiveTankId===tank.id?'ble-waiting':bleDoneTankSide===side&&bleDoneTankId===tank.id?'ble-done':'inactive'; const bleBtn='<div class="tank-ble-btn '+bleClass+'" onclick="toggleBleTank(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" step="0.25" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+bleBtn+'</div></div></div>'; }
 function render() { 
     const pumpEl = document.getElementById('pump-tanks');
     const returnEl = document.getElementById('return-tanks');
@@ -1934,7 +1930,7 @@ function voiceSpeakAndThen(text, callback) {
             };
             const fallback = text.length * 80 + 1500;
             setTimeout(() => { 
-                if ((voiceState === 'CONFIRMING_TANK' || voiceState === 'CONFIRMING_VALUE') && voiceConfirmTimeout === null) {
+                if (voiceState === 'WAITING_NUMBER' && voiceSpeaking) {
                     voiceSpeaking = false;
                     if (voiceIsListening && voiceRecognition) {
                         try { voiceRecognition.start(); } catch(e) {}
@@ -2077,32 +2073,15 @@ function processVoiceInput(text) {
             if (text.includes(match.keyword)) {
                 voiceCurrentTank = match.tank;
                 voiceCurrentSide = match.tank.side;
-                voiceState = 'CONFIRMING_TANK';
-                voicePlayDing();
+                voiceState = 'WAITING_NUMBER';
                 render();
                 document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
-                updateVoiceStatus(match.tank.name, 'Say "no" to cancel...');
-                highlightTankCard(match.tank.side, match.tank.id);
-                // Speak tank name, then wait for "no" for 2 seconds
-                voiceSpeakAndThen(speakableName(match.tank.name), () => {
-                    if (voiceState === 'CONFIRMING_TANK') startTankConfirmCountdown();
-                });
+                updateVoiceStatus(match.tank.name, 'Say the inches');
+                // Speak tank name then beep - no waiting
+                voiceSpeak(speakableName(match.tank.name));
+                setTimeout(() => { if (voiceState === 'WAITING_NUMBER') voicePlayDing(); }, 800);
                 return;
             }
-        }
-    } else if (voiceState === 'CONFIRMING_TANK') {
-        // User can say "no" to cancel tank selection
-        if (text.includes('no') || text.includes('nope') || text.includes('wrong')) {
-            if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
-            voicePlayError();
-            voiceState = 'LISTENING';
-            voiceCurrentTank = null;
-            updateVoiceStatus('Cancelled', 'Say a tank keyword');
-            document.getElementById('voice-master-btn').className = 'voice-master-btn active';
-            voiceSpeak('Cancelled');
-            clearTankHighlights();
-            render();
-            return;
         }
     } else if (voiceState === 'WAITING_NUMBER') {
         if (text.includes('no') || text.includes('nope') || text.includes('wrong')) {
@@ -2121,11 +2100,9 @@ function processVoiceInput(text) {
         if (text.includes('full') && voiceCurrentTank && voiceCurrentTank.type === 'sandcat') {
             voicePendingInches = 41;
             voicePendingBbls = 185;
-            voiceState = 'CONFIRMING_VALUE';
-            document.getElementById('voice-master-btn').className = 'voice-master-btn confirming';
-            updateVoiceStatus(`Full = 185 BBL`, 'Say "no" to retry...');
+            updateVoiceStatus(`Full = 185 BBL`, speakableName(voiceCurrentTank.name));
             voiceSpeakAndThen(`Full, 185 barrels`, () => {
-                if (voiceState === 'CONFIRMING_VALUE') startValueConfirmCountdown();
+                voiceConfirmEntry();
             });
             return;
         }
@@ -2134,22 +2111,10 @@ function processVoiceInput(text) {
         if (num !== null && num >= 0 && num <= 96) {
             voicePendingInches = num;
             voicePendingBbls = STICK_CHART[num] || 0;
-            voiceState = 'CONFIRMING_VALUE';
-            document.getElementById('voice-master-btn').className = 'voice-master-btn confirming';
-            updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, 'Say "no" to retry...');
-            voiceSpeakAndThen(`${voicePendingInches} inches, ${voicePendingBbls} barrels`, () => {
-                if (voiceState === 'CONFIRMING_VALUE') startValueConfirmCountdown();
+            updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, speakableName(voiceCurrentTank.name));
+            voiceSpeakAndThen(`${voicePendingInches}, ${voicePendingBbls} barrels`, () => {
+                voiceConfirmEntry();
             });
-        }
-    } else if (voiceState === 'CONFIRMING_VALUE') {
-        if (text.includes('no') || text.includes('nope') || text.includes('wrong') || text.includes('retry')) {
-            if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
-            voicePlayError();
-            voiceState = 'WAITING_NUMBER';
-            document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
-            updateVoiceStatus(voiceCurrentTank.name, 'Say the inches again');
-            voicePlayDing();
-            voiceSpeak('Say inches');
         }
     }
 }
@@ -2170,44 +2135,6 @@ function extractVoiceNumber(text) {
         if (n !== undefined) { found = true; total += n; }
     });
     return found ? total : null;
-}
-
-// Tank confirmation countdown (2 seconds after saying tank name)
-function startTankConfirmCountdown() {
-    if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
-    let seconds = 2;
-    const tick = () => {
-        if (voiceState !== 'CONFIRMING_TANK') return;
-        seconds--;
-        if (seconds > 0) {
-            updateVoiceStatus(voiceCurrentTank.name, `${seconds}...`);
-            voiceConfirmTimeout = setTimeout(tick, 1000);
-        } else {
-            // Tank confirmed, now ask for inches
-            voicePlayDing();
-            voiceState = 'WAITING_NUMBER';
-            document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
-            updateVoiceStatus(voiceCurrentTank.name, 'Say the inches');
-        }
-    };
-    voiceConfirmTimeout = setTimeout(tick, 1000);
-}
-
-// Value confirmation countdown (2 seconds after saying inches/bbls)
-function startValueConfirmCountdown() {
-    if (voiceConfirmTimeout) clearTimeout(voiceConfirmTimeout);
-    let seconds = 2;
-    const tick = () => {
-        if (voiceState !== 'CONFIRMING_VALUE') return;
-        seconds--;
-        if (seconds > 0) {
-            updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, `${seconds}...`);
-            voiceConfirmTimeout = setTimeout(tick, 1000);
-        } else {
-            voiceConfirmEntry();
-        }
-    };
-    voiceConfirmTimeout = setTimeout(tick, 1000);
 }
 
 function voiceConfirmEntry() {
@@ -2231,8 +2158,7 @@ function voiceConfirmEntry() {
         setTimeout(() => { voiceDoneTankSide = null; voiceDoneTankId = null; render(); }, 2000);
     }
     
-    voicePlaySuccess();
-    voiceSpeak('Entered');
+    voicePlaySuccess(); // double beep
     updateVoiceStatus('✓ Entered!', `${voiceCurrentTank.name}: ${voicePendingInches}" = ${voicePendingBbls} BBL`);
     document.getElementById('voice-master-btn').className = 'voice-master-btn active';
     
