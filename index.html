@@ -554,6 +554,33 @@
             width: 100%; padding: 14px; background: #455a64; border: none; border-radius: 6px;
             color: white; font-weight: 600; cursor: pointer;
         }
+
+        /* Log Edit Modal */
+        .log-edit-overlay { position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999; }
+        .log-edit-panel { position:fixed;top:0;left:0;right:0;bottom:0;background:#0d1b2a;z-index:1000;display:flex;flex-direction:column;overflow:hidden; }
+        .log-edit-header { display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:#1b2838;border-bottom:1px solid #2d4a6f;flex-shrink:0; }
+        .log-edit-title { font-size:16px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px; }
+        .log-edit-close-btn { background:none;border:1px solid #2d4a6f;color:#e0e0e0;width:32px;height:32px;border-radius:6px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+        .log-edit-clear-btn { background:#5a2020;border:1px solid #ef5350;color:#ef5350;padding:6px 12px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px; }
+        .log-edit-body { flex:1;overflow-y:auto;padding:12px;padding-bottom:80px; }
+        .log-edit-entry { background:#1b2838;border-radius:8px;margin-bottom:10px;overflow:hidden;border:1px solid #2d4a6f; }
+        .log-edit-entry-header { display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;background:#243447; }
+        .log-edit-entry-header:active { background:#2d4a6f; }
+        .log-edit-entry-title { font-weight:600;color:#e0e0e0;font-size:13px; }
+        .log-edit-entry-sub { font-size:10px;color:#888; }
+        .log-edit-entry-actions { display:flex;gap:8px;align-items:center; }
+        .log-edit-delete-btn { background:none;border:none;color:#ef5350;font-size:18px;cursor:pointer;padding:0 4px;line-height:1; }
+        .log-edit-expand-icon { color:#888;font-size:14px;transition:transform 0.2s; }
+        .log-edit-entry.expanded .log-edit-expand-icon { transform:rotate(180deg); }
+        .log-edit-entry-fields { display:none;padding:12px 14px;border-top:1px solid #2d4a6f; }
+        .log-edit-entry.expanded .log-edit-entry-fields { display:block; }
+        .log-edit-field { display:flex;align-items:center;margin-bottom:8px;gap:8px; }
+        .log-edit-field-label { font-size:11px;color:#888;min-width:80px;text-transform:uppercase; }
+        .log-edit-field-input { flex:1;padding:8px 10px;background:#0d1b2a;border:1px solid #2d4a6f;border-radius:6px;color:#e0e0e0;font-size:13px;font-family:inherit; }
+        .log-edit-field-input:focus { border-color:#4fc3f7;outline:none; }
+        .log-edit-field-select { flex:1;padding:8px 10px;background:#0d1b2a;border:1px solid #2d4a6f;border-radius:6px;color:#e0e0e0;font-size:13px; }
+        .log-edit-save-btn { width:100%;padding:14px;background:#1565c0;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;letter-spacing:0.5px; }
+        .log-edit-save-btn:active { background:#0d47a1; }
     </style>
 </head>
 <body>
@@ -806,7 +833,7 @@ RIH Wt: 50K
                 <div class="system-total"><div class="system-total-label">Jetted (Shift)</div><div class="system-total-value jetted" id="gl-jetted-total">0 BBL</div></div>
             </div>
             <div style="background:#1b2838;border-radius:6px;padding:10px;max-height:400px;overflow-y:auto">
-                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Volume Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="clearVolumeLog()">Clear</button></div>
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Volume Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="openLogEdit('volume')">Edit</button></div>
                 <div id="volume-log-content"><em style="color:#666">No volume checks logged</em></div>
             </div>
             <button class="report-btn" onclick="showTurnoverReport()">📋 Generate Turnover Report</button>
@@ -859,7 +886,7 @@ RIH Wt: 50K
                 </div>
             </div>
             <div style="background:#1b2838;border-radius:6px;padding:10px;margin-top:12px;max-height:350px;overflow-y:auto">
-                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Transfer Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="resetTransferLog()">Clear</button></div>
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Transfer Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="openLogEdit('transfer')">Edit</button></div>
                 <div id="transfer-log-content"><em style="color:#666">No transfers logged</em></div>
             </div>
             <button class="report-btn" onclick="showTransferReport()">Generate Transfer Report</button>
@@ -937,7 +964,7 @@ RIH Wt: 50K
                 <button onclick="logInjChange('lube')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">Log Lube Change</button>
             </div>
             <div style="background:#1b2838;border-radius:6px;padding:10px;max-height:150px;overflow-y:auto">
-                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Injection Log <button onclick="resetInjHistory()" style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer">Clear</button></div>
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Injection Log <button onclick="openLogEdit('injection')" style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer">Edit</button></div>
                 <div id="inj-history"><em style="color:#666">No changes logged</em></div>
             </div>
             <button class="report-btn" onclick="showInjReport()">Generate Injection Report</button>
@@ -998,7 +1025,7 @@ RIH Wt: 50K
             </div>
             <button class="report-btn" onclick="logTitration()" style="background:#2e7d32">📝 Log Titration</button>
             <div style="background:#1b2838;border-radius:6px;padding:10px;margin-top:12px;max-height:200px;overflow-y:auto">
-                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Titration Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="resetTitrationLog()">Clear</button></div>
+                <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Titration Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="openLogEdit('titration')">Edit</button></div>
                 <div id="titration-log-content"><em style="color:#666">No titrations logged</em></div>
             </div>
             <button class="report-btn" onclick="showTitrationReport()">Generate Titration Report</button>
@@ -1119,7 +1146,7 @@ RIH Wt: 50K
                 <div style="background:#1b2838;border-radius:6px;padding:10px;margin-top:12px;max-height:300px;overflow-y:auto">
                     <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
                         Plug Log <span id="plug-log-count" style="color:#4fc3f7"></span>
-                        <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="resetPlugLog()">Clear</button>
+                        <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="openLogEdit('plug')">Edit</button>
                     </div>
                     <div id="plug-log-content"><em style="color:#666">No plugs logged</em></div>
                 </div>
@@ -1658,6 +1685,265 @@ function resetPlugLog() {
     if (!confirm('Clear all logged plugs?')) return;
     localStorage.removeItem('ips_plug_log');
     renderPlugLog();
+}
+
+// ========== UNIVERSAL LOG EDIT SYSTEM ==========
+let _logEditType = null;
+
+function openLogEdit(type) {
+    _logEditType = type;
+    const modal = document.getElementById('log-edit-modal');
+    const title = document.getElementById('log-edit-title');
+    const body = document.getElementById('log-edit-body');
+    const clearBtn = document.getElementById('log-edit-clear-btn');
+
+    const titles = {volume:'Volume Log',transfer:'Transfer Log',injection:'Injection Log',titration:'Titration Log',plug:'Plug Log'};
+    title.textContent = titles[type] || 'Edit Log';
+    clearBtn.onclick = function() { logEditClearAll(); };
+    modal.classList.add('show');
+    renderLogEditEntries(type);
+}
+
+function hideLogEditModal() {
+    document.getElementById('log-edit-modal').classList.remove('show');
+    _logEditType = null;
+}
+
+function logEditClearAll() {
+    if (!confirm('Clear ALL entries from this log?')) return;
+    if (_logEditType === 'volume') { data.history = []; data.lastCheckTime = null; data.lastSystemTotal = null; saveData(); render(); renderVolumeLog(); }
+    else if (_logEditType === 'transfer') { data.transferLog = []; saveData(); renderTransferLog(); }
+    else if (_logEditType === 'injection') { injData.history = []; saveInjData(); renderInjHist(); }
+    else if (_logEditType === 'titration') { titrationLog = []; saveTitrationLog(); renderTitrationLog(); }
+    else if (_logEditType === 'plug') { localStorage.removeItem('ips_plug_log'); renderPlugLog(); }
+    hideLogEditModal();
+}
+
+function getLogEntries(type) {
+    if (type === 'volume') return data.history || [];
+    if (type === 'transfer') return data.transferLog || [];
+    if (type === 'injection') return (injData.history || []);
+    if (type === 'titration') return titrationLog || [];
+    if (type === 'plug') return JSON.parse(localStorage.getItem('ips_plug_log') || '[]');
+    return [];
+}
+
+function saveLogEntries(type, entries) {
+    if (type === 'volume') { data.history = entries; saveData(); renderVolumeLog(); render(); }
+    else if (type === 'transfer') { data.transferLog = entries; saveData(); renderTransferLog(); }
+    else if (type === 'injection') { injData.history = entries; saveInjData(); renderInjHist(); }
+    else if (type === 'titration') { titrationLog = entries; saveTitrationLog(); renderTitrationLog(); }
+    else if (type === 'plug') { localStorage.setItem('ips_plug_log', JSON.stringify(entries)); renderPlugLog(); }
+}
+
+function getEntryTitle(type, entry, idx) {
+    const t = entry.time || entry._timestamp;
+    const timeStr = t ? new Date(t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : '';
+    const dateStr = t ? new Date(t).toLocaleDateString([], {month:'short',day:'numeric'}) : '';
+    const ini = entry.initials ? entry.initials + ' — ' : '';
+
+    if (type === 'volume') {
+        const ft = entry.filterType;
+        const fluidNames = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Fresh',other:'Other'};
+        const label = ft ? fluidNames[ft] || ft : 'System';
+        return {title: ini + label + ': ' + entry.systemTotal + ' BBL', sub: dateStr + ' ' + timeStr};
+    }
+    if (type === 'transfer') {
+        const tLabel = entry.type === 'out' ? 'OUT' : entry.type === 'in' ? 'IN' : 'BUILD';
+        return {title: ini + tLabel + ' ' + entry.volume + ' BBL', sub: dateStr + ' ' + timeStr + ' — ' + (entry.tanks||[]).join(', ')};
+    }
+    if (type === 'injection') {
+        if (entry.type === 'pump') return {title: 'Pump: ' + entry.from + ' → ' + entry.to + ' BPM', sub: dateStr + ' ' + timeStr};
+        return {title: (entry.type==='fr'?'FR':'Lube') + ': ' + entry.treat + '/10bbl', sub: dateStr + ' ' + timeStr + ' @ ' + entry.pumpRate + ' BPM'};
+    }
+    if (type === 'titration') {
+        return {title: ini + (entry.fluidName||'--') + ' — ' + (entry.density||'--') + '#', sub: dateStr + ' ' + timeStr + (entry.sampleLocation === 'out' ? ' OUT' : ' IN')};
+    }
+    if (type === 'plug') {
+        return {title: 'Plug ' + (entry['plug-num']||'?') + '/' + (entry['plug-total']||'?'), sub: dateStr + ' ' + timeStr + (entry['plug-depth'] ? ' — ' + Number(entry['plug-depth']).toLocaleString() + "\'" : '')};
+    }
+    return {title:'Entry ' + idx, sub:''};
+}
+
+function getEditableFields(type, entry) {
+    if (type === 'volume') {
+        return [
+            {key:'initials',label:'Initials',type:'text'},
+            {key:'systemTotal',label:'System Total',type:'number'},
+            {key:'apparentChange',label:'Apparent',type:'number'},
+            {key:'trueChange',label:'Actual G/L',type:'number'},
+            {key:'ratePerHour',label:'Hourly Rate',type:'text'},
+            {key:'elapsedMin',label:'Elapsed Min',type:'number'}
+        ];
+    }
+    if (type === 'transfer') {
+        return [
+            {key:'initials',label:'Initials',type:'text'},
+            {key:'type',label:'Type',type:'select',options:[{v:'out',l:'Out'},{v:'in',l:'In'},{v:'build',l:'Build'}]},
+            {key:'volume',label:'Volume (BBL)',type:'number'},
+            {key:'tanks',label:'Tanks',type:'text',isArray:true}
+        ];
+    }
+    if (type === 'injection') {
+        if (entry.type === 'pump') {
+            return [
+                {key:'from',label:'From (BPM)',type:'text'},
+                {key:'to',label:'To (BPM)',type:'text'}
+            ];
+        }
+        return [
+            {key:'type',label:'Type',type:'select',options:[{v:'fr',l:'FR'},{v:'lube',l:'Lube'}]},
+            {key:'treat',label:'Treatment',type:'text'},
+            {key:'pumpRate',label:'Pump Rate',type:'text'},
+            {key:'gpm',label:'GPM',type:'number'}
+        ];
+    }
+    if (type === 'titration') {
+        return [
+            {key:'initials',label:'Initials',type:'text'},
+            {key:'fluidName',label:'Fluid',type:'text'},
+            {key:'sampleLocation',label:'Sample',type:'select',options:[{v:'in',l:'In'},{v:'out',l:'Out'}]},
+            {key:'density',label:'Density',type:'text'},
+            {key:'viscosity',label:'Viscosity',type:'text'},
+            {key:'ph',label:'pH',type:'text'},
+            {key:'chlorides',label:'Chlorides',type:'text'},
+            {key:'calcium',label:'Calcium',type:'text'},
+            {key:'hardness',label:'Hardness',type:'text'},
+            {key:'magnesium',label:'Magnesium',type:'text'},
+            {key:'surfaceVol',label:'Surface Vol',type:'text'}
+        ];
+    }
+    if (type === 'plug') {
+        return [
+            {key:'plug-num',label:'Plug #',type:'text'},
+            {key:'plug-total',label:'Total Plugs',type:'text'},
+            {key:'plug-jnt',label:'Joint',type:'text'},
+            {key:'plug-jnt-out',label:'JNT Out',type:'text'},
+            {key:'plug-depth',label:'Depth',type:'number'},
+            {key:'plug-drill-time',label:'Drill Time',type:'text'},
+            {key:'plug-wash-time',label:'Wash Time',type:'text'},
+            {key:'plug-rih-wt',label:'RIH Wt',type:'text'},
+            {key:'plug-neutral-wt',label:'Neutral Wt',type:'text'},
+            {key:'plug-pu-wt',label:'P/U Wt',type:'text'},
+            {key:'plug-rpm',label:'RPM',type:'text'},
+            {key:'plug-wob',label:'WOB',type:'text'},
+            {key:'plug-circ',label:'CIRC',type:'text'},
+            {key:'plug-pr',label:'Pump Rate',type:'text'},
+            {key:'plug-mp',label:'Motor PSI',type:'text'},
+            {key:'plug-rr',label:'Return Rate',type:'text'},
+            {key:'plug-choke',label:'Choke',type:'text'},
+            {key:'plug-mw-in',label:'MW In',type:'text'},
+            {key:'plug-mw-out',label:'MW Out',type:'text'},
+            {key:'plug-mv-in',label:'MV In',type:'text'},
+            {key:'plug-mv-out',label:'MV Out',type:'text'},
+            {key:'plug-cl-in',label:'Cl In',type:'text'},
+            {key:'plug-cl-out',label:'Cl Out',type:'text'},
+            {key:'plug-marker-sent',label:'Marker Sent',type:'text'},
+            {key:'plug-surface-time',label:'Surface Time',type:'text'},
+            {key:'plug-sand',label:'Sand',type:'text'},
+            {key:'plug-gas',label:'Gas',type:'text'},
+            {key:'plug-comments',label:'Comments',type:'text'}
+        ];
+    }
+    return [];
+}
+
+function renderLogEditEntries(type) {
+    const entries = getLogEntries(type);
+    const body = document.getElementById('log-edit-body');
+    if (!entries.length) {
+        body.innerHTML = '<div style="text-align:center;color:#666;padding:40px">No entries to edit</div>';
+        return;
+    }
+
+    // For volume log, newest first (already unshifted). For plug log, show newest first too.
+    const displayEntries = type === 'plug' ? [...entries].reverse() : entries;
+
+    let html = '';
+    displayEntries.forEach((entry, displayIdx) => {
+        // Map display index back to actual array index
+        const realIdx = type === 'plug' ? (entries.length - 1 - displayIdx) : displayIdx;
+        const info = getEntryTitle(type, entry, realIdx);
+        const fields = getEditableFields(type, entry);
+
+        html += '<div class="log-edit-entry" id="log-edit-entry-' + realIdx + '">';
+        html += '<div class="log-edit-entry-header" onclick="toggleLogEditEntry(' + realIdx + ')">';
+        html += '<div><div class="log-edit-entry-title">' + info.title + '</div>';
+        html += '<div class="log-edit-entry-sub">' + info.sub + '</div></div>';
+        html += '<div class="log-edit-entry-actions">';
+        html += '<button class="log-edit-delete-btn" onclick="event.stopPropagation();deleteLogEditEntry(' + realIdx + ')">🗑</button>';
+        html += '<span class="log-edit-expand-icon">▼</span>';
+        html += '</div></div>';
+
+        html += '<div class="log-edit-entry-fields">';
+        fields.forEach(f => {
+            let val = entry[f.key];
+            if (val === null || val === undefined) val = '';
+            if (f.isArray && Array.isArray(val)) val = val.join(', ');
+
+            html += '<div class="log-edit-field">';
+            html += '<span class="log-edit-field-label">' + f.label + '</span>';
+
+            if (f.type === 'select') {
+                html += '<select class="log-edit-field-select" data-idx="' + realIdx + '" data-key="' + f.key + '">';
+                f.options.forEach(o => {
+                    html += '<option value="' + o.v + '"' + (String(val) === String(o.v) ? ' selected' : '') + '>' + o.l + '</option>';
+                });
+                html += '</select>';
+            } else {
+                html += '<input class="log-edit-field-input" type="' + (f.type === 'number' ? 'number' : 'text') + '" value="' + String(val).replace(/"/g, '&quot;') + '" data-idx="' + realIdx + '" data-key="' + f.key + '"' + (f.isArray ? ' data-array="1"' : '') + '>';
+            }
+            html += '</div>';
+        });
+        html += '<button class="log-edit-save-btn" onclick="saveLogEditEntry(' + realIdx + ')">✓ Confirm Changes</button>';
+        html += '</div></div>';
+    });
+
+    body.innerHTML = html;
+}
+
+function toggleLogEditEntry(idx) {
+    const el = document.getElementById('log-edit-entry-' + idx);
+    if (el) el.classList.toggle('expanded');
+}
+
+function deleteLogEditEntry(idx) {
+    if (!confirm('Delete this entry?')) return;
+    const entries = getLogEntries(_logEditType);
+    entries.splice(idx, 1);
+    saveLogEntries(_logEditType, entries);
+    renderLogEditEntries(_logEditType);
+}
+
+function saveLogEditEntry(idx) {
+    const entries = getLogEntries(_logEditType);
+    if (!entries[idx]) return;
+    const entry = entries[idx];
+
+    // Gather all inputs/selects for this index
+    const inputs = document.querySelectorAll('[data-idx="' + idx + '"]');
+    inputs.forEach(inp => {
+        const key = inp.dataset.key;
+        let val = inp.value;
+        if (inp.dataset.array === '1') {
+            val = val.split(',').map(s => s.trim()).filter(s => s);
+        } else if (inp.type === 'number' && val !== '') {
+            val = parseFloat(val);
+            if (isNaN(val)) val = null;
+        }
+        entry[key] = val;
+    });
+
+    entries[idx] = entry;
+    saveLogEntries(_logEditType, entries);
+    renderLogEditEntries(_logEditType);
+
+    // Brief visual feedback
+    const el = document.getElementById('log-edit-entry-' + idx);
+    if (el) {
+        el.style.borderColor = '#4caf50';
+        setTimeout(() => { el.style.borderColor = ''; }, 800);
+    }
 }
 
 function showPlugReport() {
@@ -4319,5 +4605,20 @@ if (document.readyState === 'complete') {
 }
 window.addEventListener('load', safeInit);
 </script>
+
+    <!-- ========== UNIVERSAL LOG EDIT MODAL ========== -->
+    <div class="modal" id="log-edit-modal">
+        <div class="log-edit-overlay" onclick="hideLogEditModal()"></div>
+        <div class="log-edit-panel">
+            <div class="log-edit-header">
+                <span class="log-edit-title" id="log-edit-title">Edit Log</span>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <button class="log-edit-clear-btn" id="log-edit-clear-btn" onclick="logEditClearAll()">Clear All</button>
+                    <button class="log-edit-close-btn" onclick="hideLogEditModal()">✕</button>
+                </div>
+            </div>
+            <div class="log-edit-body" id="log-edit-body"></div>
+        </div>
+    </div>
 </body>
 </html>
