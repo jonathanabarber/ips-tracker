@@ -232,21 +232,21 @@
         
         /* Voice Entry Styles */
         .voice-master-btn, .ble-master-btn {
-            width: 36px; height: 36px; border-radius: 50%; border: none;
-            background: #455a64; color: #888;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #1b2838; border: 2px solid #455a64; color: #455a64;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.3s;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
         }
-        .ble-master-btn { background: #1a3a5c; color: #4fc3f7; }
         .voice-master-btn svg, .ble-master-btn svg { width: 20px; height: 20px; }
         .voice-master-btn.active, .ble-master-btn.active {
-            background: linear-gradient(135deg, #2e7d32, #1b5e20);
-            color: white; box-shadow: 0 0 12px rgba(46,125,50,0.5);
+            border-color: #66bb6a; color: #66bb6a;
+            background: rgba(46,125,50,0.2); box-shadow: 0 0 8px rgba(102,187,106,0.4);
             animation: pulse 2s infinite;
         }
         .voice-master-btn.heard, .ble-master-btn.heard {
-            background: linear-gradient(135deg, #1565c0, #0d47a1);
-            color: white;
+            border-color: #4fc3f7; color: #4fc3f7;
+            background: rgba(79,195,247,0.15);
         }
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
@@ -351,13 +351,15 @@
         
         /* Profile Button & Modal */
         .profile-btn {
-            width: 36px; height: 36px; border-radius: 50%; border: none;
-            background: #2d4a6f; color: #4fc3f7;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #1b2838; border: 2px solid #2d4a6f; color: #4fc3f7;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.3s;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+            margin-left: 4px;
         }
         .profile-btn svg { width: 20px; height: 20px; }
-        .profile-btn.has-profile { background: #2e7d32; color: white; }
+        .profile-btn.has-profile { border-color: #4fc3f7; color: #4fc3f7; background: rgba(79,195,247,0.1); }
         
         .profile-modal-overlay {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -400,11 +402,6 @@
             <p>Fluid Tracking System</p>
         </div>
         <div class="header-actions">
-            <button class="profile-btn" id="profile-btn" onclick="openProfileModal()">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-                </svg>
-            </button>
             <button class="voice-master-btn" id="voice-master-btn" onclick="toggleVoiceMaster()">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
@@ -416,7 +413,12 @@
                     <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
                 </svg>
             </button>
-
+            <button class="profile-btn" id="profile-btn" onclick="openProfileModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M20 21a8 8 0 1 0-16 0"/>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -2487,23 +2489,18 @@ async function toggleBleTank(side, tankId) {
 
 async function connectBle() {
     try {
+        // Force focus back to window — helps Android Chrome render BT picker devices
+        window.focus();
+        await new Promise(r => setTimeout(r, 300));
+        
         let device = null;
         try {
             device = await navigator.bluetooth.requestDevice({
-                filters: [
-                    { namePrefix: 'Bosch' },
-                    { namePrefix: 'Blaze' },
-                    { namePrefix: 'GLM' }
-                ],
+                acceptAllDevices: true,
                 optionalServices: [BOSCH_SERVICE_UUID]
             });
         } catch(filterErr) {
-            if (filterErr.name === 'NotFoundError') {
-                device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: [BOSCH_SERVICE_UUID]
-                });
-            } else { throw filterErr; }
+            throw filterErr;
         }
         bleDevice = device;
         bleDevice.addEventListener('gattserverdisconnected', onBleDisconnect);
