@@ -502,7 +502,7 @@
 
     <div class="main-tabs">
         <button class="main-tab active" onclick="switchMainTab('tanks')">Tanks</button>
-        <button class="main-tab" onclick="switchMainTab('gainloss')">G/L</button>
+        <button class="main-tab" onclick="switchMainTab('gainloss')">Monitor</button>
         <button class="main-tab" onclick="switchMainTab('transfer')">Transfer</button>
         <button class="main-tab" onclick="switchMainTab('injection')">Injection</button>
         <button class="main-tab" onclick="switchMainTab('titrations')">Titrations</button>
@@ -535,23 +535,24 @@
     <div id="gainloss-tab" class="tab-content">
         <div style="padding:12px;padding-bottom:80px">
             <div class="controls" style="margin-bottom:0">
-                <button class="ctrl-btn blue" onclick="logGainLossCheck()" style="flex:1">📋 Gain/Loss Check</button>
-                <button style="background:#2d4a6f;color:#e0e0e0;border:none;padding:10px 12px;border-radius:6px;font-size:11px;cursor:pointer" onclick="resetGainLoss()">Reset G/L</button>
+                <button class="ctrl-btn blue" onclick="logGainLossCheck()" style="flex:1">📋 Capture</button>
+                <button style="background:#2d4a6f;color:#e0e0e0;border:none;padding:10px 12px;border-radius:6px;font-size:11px;cursor:pointer" onclick="resetGainLoss()">Reset</button>
             </div>
+            <div id="gl-filter-label" style="display:none;text-align:center;font-size:11px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px;padding:8px 0 4px"></div>
             <div class="gain-loss-bar">
                 <div class="gl-box"><div class="gl-label">Last Check</div><div class="gl-value neutral" id="last-check-time">--</div><div class="gl-sublabel" id="elapsed-time"></div></div>
                 <div class="gl-box"><div class="gl-label">Apparent</div><div class="gl-value neutral" id="apparent-change">--</div></div>
-                <div class="gl-box"><div class="gl-label">True G/L</div><div class="gl-value neutral" id="true-change">--</div></div>
+                <div class="gl-box"><div class="gl-label">Actual</div><div class="gl-value neutral" id="true-change">--</div></div>
                 <div class="gl-box"><div class="gl-label">Rate/Hr</div><div class="gl-value neutral" id="rate-per-hour">--</div></div>
                 <div class="gl-box"><div class="gl-label">Jets/Hr</div><div class="gl-value" id="jets-hour" style="color:#ffa726">0</div></div>
             </div>
             <div class="totals-bar" style="margin:0 -12px">
-                <div class="total-item"><div class="total-label">Brine</div><div class="total-value brine" id="gl-total-brine">0</div></div>
-                <div class="total-item"><div class="total-label">Packer</div><div class="total-value packer" id="gl-total-packer">0</div></div>
-                <div class="total-item"><div class="total-label">Mud</div><div class="total-value mud" id="gl-total-mud">0</div></div>
-                <div class="total-item"><div class="total-label">Recirc</div><div class="total-value recirc" id="gl-total-recirc">0</div></div>
-                <div class="total-item"><div class="total-label">Fresh</div><div class="total-value freshwater" id="gl-total-freshwater">0</div></div>
-                <div class="total-item"><div class="total-label">Other</div><div class="total-value other" id="gl-total-other">0</div></div>
+                <div class="total-item" id="gl-filter-brine" onclick="setGLFluidFilter('brine')"><div class="total-label">Brine</div><div class="total-value brine" id="gl-total-brine">0</div></div>
+                <div class="total-item" id="gl-filter-packer" onclick="setGLFluidFilter('packer')"><div class="total-label">Packer</div><div class="total-value packer" id="gl-total-packer">0</div></div>
+                <div class="total-item" id="gl-filter-mud" onclick="setGLFluidFilter('mud')"><div class="total-label">Mud</div><div class="total-value mud" id="gl-total-mud">0</div></div>
+                <div class="total-item" id="gl-filter-recirc" onclick="setGLFluidFilter('recirc')"><div class="total-label">Recirc</div><div class="total-value recirc" id="gl-total-recirc">0</div></div>
+                <div class="total-item" id="gl-filter-freshwater" onclick="setGLFluidFilter('freshwater')"><div class="total-label">Fresh</div><div class="total-value freshwater" id="gl-total-freshwater">0</div></div>
+                <div class="total-item" id="gl-filter-other" onclick="setGLFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="gl-total-other">0</div></div>
             </div>
             <div class="system-totals" style="margin:0 0 12px">
                 <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="gl-system-total">0 BBL</div></div>
@@ -1207,14 +1208,9 @@ function hideEqualizeModal() { document.getElementById('equalize-modal').classLi
 function confirmEqualize(isEq) { if(!pendingJet)return; const{tank,volume,equalizableTanks,isBuild}=pendingJet; if(isBuild){finalizeBuild(isEq?[tank,...equalizableTanks]:[tank],volume);}else{executeJet(isEq?[tank,...equalizableTanks]:[tank],volume);} hideEqualizeModal(); }
 function executeJet(tanks,totalVol) { const per=Math.round(totalVol/tanks.length); tanks.forEach(t=>{if(jetType==='out')t.bbls=Math.max(0,t.bbls-per);else t.bbls+=per;t.inches=bblToInches(t.bbls);t.estimated=true;}); if(jetType==='out'){data.jetsHour+=totalVol;data.jetsShift+=totalVol;} if(!data.transferLog)data.transferLog=[]; data.transferLog.unshift({time:new Date().toISOString(),initials:profileData.initials||'',type:jetType,volume:totalVol,tanks:tanks.map(t=>t.name)}); document.getElementById('jet-volume').value='120'; saveData();render();renderTransferLog(); const act=jetType==='out'?'Jetted out':'Jetted in'; if(tanks.length===1)alert(act+' '+totalVol+' BBL\n'+tanks[0].name+': '+tanks[0].bbls+' BBL (est '+tanks[0].inches+'")'); else alert(act+' '+totalVol+' BBL across '+tanks.length+' tanks'); }
 function logGainLossCheck() { 
-    const totals=calculateTotals(),curr=totals.system,last=data.lastSystemTotal,now=new Date();
-    let app=last!==null?curr-last:null,tru=app!==null?app+data.jetsHour:null;
-    let ratePerHour=null,elapsedMin=null;
-    if(data.lastCheckTime && tru!==null) {
-        const lastTime=new Date(data.lastCheckTime);
-        elapsedMin=Math.round((now-lastTime)/60000);
-        if(elapsedMin>0) ratePerHour=((tru/elapsedMin)*60).toFixed(1);
-    }
+    const totals = calculateTotals(), curr = totals.system, now = new Date();
+    const lastCheckTime = data.lastCheckTime ? new Date(data.lastCheckTime) : null;
+    
     // Build lookup: tank name -> fluid category
     const tankFluidMap = {};
     data.pumpTanks.forEach(t => {
@@ -1233,9 +1229,11 @@ function logGainLossCheck() {
         else if(f==='freshwater') tankFluidMap[t.name]='freshwater';
         else tankFluidMap[t.name]='other';
     });
+    
     // Snapshot all tank BBLs
     const tankSnap = {};
     [...data.pumpTanks,...data.returnTanks].forEach(t => { tankSnap[t.name] = t.bbls; });
+    
     // Compare to previous snapshot to find per-tank changes
     const tankChanges = [];
     const prevSnap = (data.history.length && data.history[0].tankSnap) ? data.history[0].tankSnap : null;
@@ -1247,13 +1245,104 @@ function logGainLossCheck() {
             }
         }
     }
-    data.history.unshift({time:now.toISOString(),initials:profileData.initials||'',systemTotal:curr,apparentChange:app,trueChange:tru,jetsHour:data.jetsHour,ratePerHour:ratePerHour,elapsedMin:elapsedMin,totals:{...totals},tankSnap:tankSnap,tankChanges:tankChanges});
-    data.lastSystemTotal=curr;data.lastCheckTime=now.toISOString();data.jetsHour=0;
-    saveData();render();renderVolumeLog();
-    let msg='Check logged!\nSystem: '+curr+' BBL';
-    if(tru!==null)msg+='\nNet Gain/Loss: '+(tru>=0?'+':'')+tru+' bbl';
-    if(ratePerHour!==null)msg+='\nRate: '+(parseFloat(ratePerHour)>=0?'+':'')+ratePerHour+' bbl/hr';
-    alert(msg);
+    
+    // === Calculate ALL transfers since last check, broken down by fluid type ===
+    const fluidTypes = ['brine','packer','mud','recirc','freshwater','other'];
+    const xferByType = {};
+    fluidTypes.forEach(f => { xferByType[f] = { out: 0, in: 0, build: 0 }; });
+    let xferTotalOut = 0, xferTotalIn = 0, xferTotalBuild = 0;
+    
+    if (data.transferLog && lastCheckTime) {
+        data.transferLog.forEach(tl => {
+            const tlTime = new Date(tl.time);
+            if (tlTime > lastCheckTime && tlTime <= now) {
+                const perTank = tl.tanks && tl.tanks.length ? Math.round(tl.volume / tl.tanks.length) : tl.volume;
+                if (tl.type === 'out') {
+                    xferTotalOut += tl.volume;
+                    if (tl.tanks) tl.tanks.forEach(name => {
+                        const ft = tankFluidMap[name] || 'other';
+                        xferByType[ft].out += perTank;
+                    });
+                } else if (tl.type === 'in') {
+                    xferTotalIn += tl.volume;
+                    if (tl.tanks) tl.tanks.forEach(name => {
+                        const ft = tankFluidMap[name] || 'other';
+                        xferByType[ft].in += perTank;
+                    });
+                } else if (tl.type === 'build') {
+                    xferTotalBuild += tl.volume;
+                    if (tl.tanks) tl.tanks.forEach(name => {
+                        const ft = tankFluidMap[name] || 'other';
+                        xferByType[ft].build += perTank;
+                    });
+                }
+            }
+        });
+    }
+    
+    // === System-level calculations ===
+    // Apparent = simple difference in system total
+    const last = data.lastSystemTotal;
+    const sysApp = last !== null ? curr - last : null;
+    // Actual = Apparent + stuff_removed - stuff_added (jet outs restore, jet ins/builds subtract)
+    const sysActual = sysApp !== null ? sysApp + xferTotalOut - xferTotalIn - xferTotalBuild : null;
+    
+    let elapsedMin = null, sysRate = null;
+    if (lastCheckTime) {
+        elapsedMin = Math.round((now - lastCheckTime) / 60000);
+        if (elapsedMin > 0 && sysActual !== null) sysRate = ((sysActual / elapsedMin) * 60).toFixed(1);
+    }
+    
+    // === Store history entry with full transfer data ===
+    data.history.unshift({
+        time: now.toISOString(),
+        initials: profileData.initials || '',
+        systemTotal: curr,
+        apparentChange: sysApp,
+        trueChange: sysActual,
+        ratePerHour: sysRate,
+        elapsedMin: elapsedMin,
+        totals: {...totals},
+        tankSnap: tankSnap,
+        tankChanges: tankChanges,
+        filterType: glFluidFilter || null,
+        transfersByType: xferByType,
+        transfersTotal: { out: xferTotalOut, in: xferTotalIn, build: xferTotalBuild }
+    });
+    
+    data.lastSystemTotal = curr;
+    data.lastCheckTime = now.toISOString();
+    data.jetsHour = 0;
+    saveData(); render(); renderVolumeLog();
+    
+    // === Alert message ===
+    const fluidNames = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Freshwater',other:'Other'};
+    if (glFluidFilter) {
+        const ft = glFluidFilter;
+        const fName = fluidNames[ft] || ft;
+        const fSurface = totals[ft] || 0;
+        const prevTotals = data.history.length > 1 ? data.history[1].totals : null;
+        const prevTypeTotal = prevTotals ? (prevTotals[ft] || 0) : null;
+        const fApp = prevTypeTotal !== null ? fSurface - prevTypeTotal : null;
+        const xf = xferByType[ft];
+        const fActual = fApp !== null ? fApp + xf.out - xf.in - xf.build : null;
+        let fRate = null;
+        if (elapsedMin && elapsedMin > 0 && fActual !== null) fRate = ((fActual / elapsedMin) * 60).toFixed(1);
+        
+        let msg = fName + ' Check logged!\n' + fName + ' Surface: ' + fSurface + ' BBL';
+        if (fApp !== null) msg += '\nApparent: ' + (fApp >= 0 ? '+' : '') + fApp + ' bbl';
+        if (fActual !== null) msg += '\nActual G/L: ' + (fActual >= 0 ? '+' : '') + fActual + ' bbl';
+        const netXfer = xf.out - xf.in - xf.build;
+        if (xf.out || xf.in || xf.build) msg += '\nTransfers: ' + (netXfer >= 0 ? '+' : '') + netXfer + ' bbl';
+        if (fRate !== null) msg += '\nRate: ' + (parseFloat(fRate) >= 0 ? '+' : '') + fRate + ' bbl/hr';
+        alert(msg);
+    } else {
+        let msg = 'Check logged!\nSystem: ' + curr + ' BBL';
+        if (sysApp !== null) msg += '\nApparent: ' + (sysApp >= 0 ? '+' : '') + sysApp + ' bbl';
+        if (sysActual !== null) msg += '\nActual G/L: ' + (sysActual >= 0 ? '+' : '') + sysActual + ' bbl';
+        if (sysRate !== null) msg += '\nRate: ' + (parseFloat(sysRate) >= 0 ? '+' : '') + sysRate + ' bbl/hr';
+        alert(msg);
+    }
 }
 
 function hasContentsDropdown(tank) { const t=returnTypes.find(x=>x.value===tank.type); return t&&t.hasContents; }
@@ -1364,6 +1453,13 @@ function render() {
     if(appEl && last&&last.apparentChange!==null){appEl.textContent=(last.apparentChange>=0?'+':'')+last.apparentChange;appEl.className='gl-value '+(last.apparentChange>0?'gain':last.apparentChange<0?'loss':'neutral');}else if(appEl){appEl.textContent='--';appEl.className='gl-value neutral';}
     if(truEl && last&&last.trueChange!==null){truEl.textContent=(last.trueChange>=0?'+':'')+last.trueChange;truEl.className='gl-value '+(last.trueChange>0?'gain':last.trueChange<0?'loss':'neutral');}else if(truEl){truEl.textContent='--';truEl.className='gl-value neutral';}
     if(rateEl && last&&last.ratePerHour!==null){const r=parseFloat(last.ratePerHour);rateEl.textContent=(r>=0?'+':'')+last.ratePerHour;rateEl.className='gl-value '+(r>0?'gain':r<0?'loss':'neutral');}else if(rateEl){rateEl.textContent='--';rateEl.className='gl-value neutral';}
+    // Apply GL fluid filter if active
+    if (glFluidFilter) renderGLFiltered();
+    // Update GL filter button highlights
+    ['brine','packer','mud','recirc','freshwater','other'].forEach(t => {
+        const btn = document.getElementById('gl-filter-' + t);
+        if (btn) btn.classList.toggle('filter-active', glFluidFilter === t);
+    });
 }
 
 function renderGLTotals() {
@@ -1502,59 +1598,112 @@ function renderVolumeLog() {
     }
     const fluidLabels = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Fresh',other:'Other'};
     const fluidColors = {brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};
-    let html = '<table style="width:100%;border-collapse:collapse;font-size:11px">';
-    html += '<tr style="color:#666;font-size:9px;text-transform:uppercase;border-bottom:1px solid #2d4a6f">' +
-        '<td style="padding:3px 2px">Time</td>' +
-        '<td style="padding:3px 2px">Tanks</td>' +
-        '<td style="padding:3px 2px;text-align:right">Total</td>' +
-        '<td style="padding:3px 2px;text-align:right">G/L</td>' +
-        '<td style="padding:3px 2px;text-align:right">Rate/Hr</td>' +
-        '<td style="padding:3px 2px;text-align:right;color:#ffa726">Jets</td></tr>';
-    data.history.slice(0, 30).forEach(h => {
+    
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:10px">';
+    // Header row 1
+    html += '<tr style="color:#555;font-size:8px;text-transform:uppercase">' +
+        '<td style="padding:2px 2px">Time</td>' +
+        '<td style="padding:2px 2px">Fluid</td>' +
+        '<td style="padding:2px 2px;text-align:right">Surface</td>' +
+        '<td style="padding:2px 2px;text-align:right">Wellbore</td>' +
+        '<td style="padding:2px 2px;text-align:right">Total</td></tr>';
+    // Header row 2
+    html += '<tr style="color:#555;font-size:8px;text-transform:uppercase;border-bottom:1px solid #2d4a6f">' +
+        '<td style="padding:0 2px 3px"></td>' +
+        '<td style="padding:0 2px 3px">Apparent</td>' +
+        '<td style="padding:0 2px 3px;text-align:right">Actual</td>' +
+        '<td style="padding:0 2px 3px;text-align:right">Transfers</td>' +
+        '<td style="padding:0 2px 3px;text-align:right">Hourly</td></tr>';
+    
+    data.history.slice(0, 30).forEach((h, idx) => {
         const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         const initials = h.initials ? '<span style="color:#66bb6a;font-weight:600">' + h.initials + '</span> ' : '';
-        // Tank changes - names only
-        let tankStr = '<span style="color:#888">--</span>';
-        if (h.tankChanges && h.tankChanges.length) {
-            tankStr = h.tankChanges.map(tc => {
-                const clr = tc.delta > 0 ? '#4caf50' : tc.delta < 0 ? '#ef5350' : '#888';
-                return '<span style="color:' + clr + '">' + tc.name.replace(/ /g,'&nbsp;') + '</span>';
-            }).join(', ');
+        
+        // Determine fluid type for this entry
+        const ft = h.filterType || null;
+        const fluidName = ft ? (fluidLabels[ft] || ft) : 'System';
+        const fluidClr = ft ? (fluidColors[ft] || '#e0e0e0') : '#e0e0e0';
+        
+        // Surface = fluid type total (or system total)
+        let surface = h.systemTotal;
+        if (ft && h.totals && h.totals[ft] !== undefined) {
+            surface = h.totals[ft];
         }
-        // Fluid type total - show the total for the fluid type that changed
-        let fluidTotal = '<span style="color:#ffffff">' + h.systemTotal + '</span>';
-        if (h.tankChanges && h.tankChanges.length && h.totals) {
-            // Get unique fluid types that changed
-            const changedFluids = [...new Set(h.tankChanges.map(tc => tc.fluid).filter(Boolean))];
-            if (changedFluids.length) {
-                fluidTotal = changedFluids.map(f => {
-                    const val = h.totals[f] !== undefined ? h.totals[f] : '?';
-                    const clr = fluidColors[f] || '#ffffff';
-                    const lbl = fluidLabels[f] || f;
-                    return '<span style="color:' + clr + '">' + lbl + '&nbsp;' + val + '</span>';
-                }).join('<br>');
+        
+        // Wellbore = blank for now
+        const wellbore = '--';
+        // Total = surface + wellbore (wellbore is 0 for now)
+        const total = surface;
+        
+        // === APPARENT: compare to previous entry's total for this type ===
+        const prevEntry = (idx < data.history.length - 1) ? data.history[idx + 1] : null;
+        let apparent = null, actual = null;
+        
+        if (ft) {
+            // Filtered entry — compare this type's total to previous entry
+            const prevTypeTotal = prevEntry && prevEntry.totals ? (prevEntry.totals[ft] || 0) : null;
+            if (prevTypeTotal !== null) {
+                apparent = surface - prevTypeTotal;
+                // Actual = Apparent + jet_outs - jet_ins - builds for this fluid type
+                const xf = h.transfersByType && h.transfersByType[ft] 
+                    ? h.transfersByType[ft] : { out: 0, in: 0, build: 0 };
+                actual = apparent + xf.out - xf.in - xf.build;
             }
+        } else {
+            // System entry — use stored values (already computed correctly)
+            apparent = h.apparentChange;
+            actual = h.trueChange;
         }
-        // G/L
-        let gl = '<span style="color:#888">--</span>';
-        if (h.trueChange !== null) {
-            const clr = h.trueChange > 0 ? '#4caf50' : h.trueChange < 0 ? '#ef5350' : '#888';
-            gl = '<span style="color:' + clr + '">' + (h.trueChange >= 0 ? '+' : '') + h.trueChange + '</span>';
+        
+        // === TRANSFERS display ===
+        let transferStr = '<span style="color:#888">--</span>';
+        if (h.transfersByType || h.transfersTotal) {
+            // New format — use stored transfer data
+            const xf = ft 
+                ? (h.transfersByType && h.transfersByType[ft] ? h.transfersByType[ft] : null) 
+                : h.transfersTotal;
+            if (xf) {
+                const parts = [];
+                if (xf.out > 0) parts.push('<span style="color:#ef5350">OUT&nbsp;' + xf.out + '</span>');
+                if (xf.in > 0) parts.push('<span style="color:#4caf50">IN&nbsp;' + xf.in + '</span>');
+                if (xf.build > 0) parts.push('<span style="color:#a1887f">BLD&nbsp;' + xf.build + '</span>');
+                if (parts.length) transferStr = parts.join('<br>');
+            }
+        } else if (h.jetsHour && h.jetsHour > 0) {
+            // Legacy entries — fallback to jetsHour
+            transferStr = '<span style="color:#ef5350">OUT&nbsp;' + h.jetsHour + '</span>';
         }
-        // Rate
-        let rate = '<span style="color:#888">--</span>';
-        if (h.ratePerHour !== null) {
-            const r = parseFloat(h.ratePerHour);
-            const rClr = r > 0 ? '#4caf50' : r < 0 ? '#ef5350' : '#888';
-            rate = '<span style="color:' + rClr + '">' + (r >= 0 ? '+' : '') + h.ratePerHour + '</span>';
+        
+        // === HOURLY RATE ===
+        let hourly = '<span style="color:#888">--</span>';
+        if (actual !== null && h.elapsedMin && h.elapsedMin > 0) {
+            const r = ((actual / h.elapsedMin) * 60).toFixed(1);
+            const rClr = parseFloat(r) > 0 ? '#4caf50' : parseFloat(r) < 0 ? '#ef5350' : '#888';
+            hourly = '<span style="color:' + rClr + '">' + (parseFloat(r) >= 0 ? '+' : '') + r + '</span>';
         }
-        html += '<tr style="border-bottom:1px solid #2d4a6f">' +
-            '<td style="padding:4px 2px;white-space:nowrap">' + initials + '<span style="color:#4fc3f7">' + t + '</span></td>' +
-            '<td style="padding:4px 2px;font-size:10px">' + tankStr + '</td>' +
-            '<td style="padding:4px 2px;text-align:right;white-space:nowrap;font-size:10px">' + fluidTotal + '</td>' +
-            '<td style="padding:4px 2px;text-align:right;white-space:nowrap">' + gl + '</td>' +
-            '<td style="padding:4px 2px;text-align:right;white-space:nowrap">' + rate + '</td>' +
-            '<td style="padding:4px 2px;text-align:right;white-space:nowrap;color:#ffa726">' + (h.jetsHour || '0') + '</td></tr>';
+        
+        // Format apparent/actual with color
+        const fmtGL = (v) => {
+            if (v === null) return '<span style="color:#888">--</span>';
+            const clr = v > 0 ? '#4caf50' : v < 0 ? '#ef5350' : '#888';
+            return '<span style="color:' + clr + '">' + (v >= 0 ? '+' : '') + v + '</span>';
+        };
+        
+        // ROW 1: Time / Fluid / Surface / Wellbore / Total
+        html += '<tr style="border-top:1px solid #2d4a6f">' +
+            '<td style="padding:4px 2px 0;white-space:nowrap">' + initials + '<span style="color:#4fc3f7">' + t + '</span></td>' +
+            '<td style="padding:4px 2px 0;color:' + fluidClr + ';font-weight:600">' + fluidName + '</td>' +
+            '<td style="padding:4px 2px 0;text-align:right;color:#e0e0e0">' + surface + '</td>' +
+            '<td style="padding:4px 2px 0;text-align:right;color:#555">' + wellbore + '</td>' +
+            '<td style="padding:4px 2px 0;text-align:right;color:#e0e0e0;font-weight:600">' + total + '</td></tr>';
+        
+        // ROW 2: Apparent / Actual / Transfers / Hourly
+        html += '<tr>' +
+            '<td style="padding:0 2px 4px"></td>' +
+            '<td style="padding:0 2px 4px">' + fmtGL(apparent) + '</td>' +
+            '<td style="padding:0 2px 4px;text-align:right">' + fmtGL(actual) + '</td>' +
+            '<td style="padding:0 2px 4px;text-align:right;font-size:9px">' + transferStr + '</td>' +
+            '<td style="padding:0 2px 4px;text-align:right">' + hourly + '</td></tr>';
     });
     html += '</table>';
     el.innerHTML = html;
@@ -2640,6 +2789,90 @@ function getTankFluidType(tank, side) {
 function setFluidFilter(type) {
     activeFluidFilter = activeFluidFilter === type ? null : type;
     render();
+}
+
+let glFluidFilter = null;
+
+function setGLFluidFilter(type) {
+    glFluidFilter = glFluidFilter === type ? null : type;
+    // Update button highlights
+    ['brine','packer','mud','recirc','freshwater','other'].forEach(t => {
+        const btn = document.getElementById('gl-filter-' + t);
+        if (btn) btn.classList.toggle('filter-active', glFluidFilter === t);
+    });
+    // Update label
+    const label = document.getElementById('gl-filter-label');
+    const fluidNames = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Freshwater',other:'Other'};
+    const fluidLabelColors = {brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};
+    if (label) {
+        if (glFluidFilter) {
+            label.style.display = 'block';
+            const fName = fluidNames[glFluidFilter] || glFluidFilter;
+            const fClr = fluidLabelColors[glFluidFilter] || '#e0e0e0';
+            label.innerHTML = 'Capture <span style="color:' + fClr + '">' + fName + '</span> Only';
+        } else {
+            label.style.display = 'none';
+        }
+    }
+    // Re-render the GL display from last check with filter applied
+    renderGLFiltered();
+}
+
+function renderGLFiltered() {
+    const last = data.history[0];
+    const appEl = document.getElementById('apparent-change');
+    const truEl = document.getElementById('true-change');
+    const rateEl = document.getElementById('rate-per-hour');
+    
+    if (!last) return;
+    
+    const fmtVal = (el, val) => {
+        if (!el) return;
+        if (val === null) { el.textContent = '--'; el.className = 'gl-value neutral'; return; }
+        el.textContent = (val >= 0 ? '+' : '') + val;
+        el.className = 'gl-value ' + (val > 0 ? 'gain' : val < 0 ? 'loss' : 'neutral');
+    };
+    const fmtRate = (el, val) => {
+        if (!el) return;
+        if (val === null) { el.textContent = '--'; el.className = 'gl-value neutral'; return; }
+        const r = parseFloat(val);
+        el.textContent = (r >= 0 ? '+' : '') + val;
+        el.className = 'gl-value ' + (r > 0 ? 'gain' : r < 0 ? 'loss' : 'neutral');
+    };
+    
+    if (glFluidFilter) {
+        // Get previous entry's totals for this fluid type
+        const prevEntry = data.history.length > 1 ? data.history[1] : null;
+        const prevTypeTotal = prevEntry && prevEntry.totals ? (prevEntry.totals[glFluidFilter] || 0) : null;
+        const currTypeTotal = last.totals ? (last.totals[glFluidFilter] || 0) : null;
+        
+        if (prevTypeTotal !== null && currTypeTotal !== null) {
+            const fApp = currTypeTotal - prevTypeTotal;
+            
+            // Get transfers for this fluid type
+            const xf = last.transfersByType && last.transfersByType[glFluidFilter] 
+                ? last.transfersByType[glFluidFilter] 
+                : { out: 0, in: 0, build: 0 };
+            // Actual = Apparent + jet_outs - jet_ins - builds
+            const fActual = fApp + xf.out - xf.in - xf.build;
+            
+            fmtVal(appEl, fApp);
+            fmtVal(truEl, fActual);
+            
+            if (last.elapsedMin && last.elapsedMin > 0) {
+                fmtRate(rateEl, ((fActual / last.elapsedMin) * 60).toFixed(1));
+            } else {
+                fmtRate(rateEl, null);
+            }
+        } else {
+            fmtVal(appEl, null); fmtVal(truEl, null); fmtRate(rateEl, null);
+        }
+    } else {
+        // No filter — show system values (already computed correctly in history)
+        fmtVal(appEl, last.apparentChange);
+        fmtVal(truEl, last.trueChange);
+        fmtRate(rateEl, last.ratePerHour);
+    }
 }
 
 function initApp() {
