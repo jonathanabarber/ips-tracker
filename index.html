@@ -1769,6 +1769,7 @@ function getEditableFields(type, entry) {
     if (type === 'volume') {
         return [
             {key:'initials',label:'Initials',type:'text'},
+            {key:'filterType',label:'Fluid Type',type:'select',options:[{v:'',l:'System'},{v:'brine',l:'Brine'},{v:'packer',l:'Packer'},{v:'mud',l:'Mud'},{v:'recirc',l:'Recirc'},{v:'freshwater',l:'Freshwater'},{v:'other',l:'Other'}]},
             {key:'systemTotal',label:'System Total',type:'number'},
             {key:'apparentChange',label:'Apparent',type:'number'},
             {key:'trueChange',label:'Actual G/L',type:'number'},
@@ -1780,6 +1781,7 @@ function getEditableFields(type, entry) {
         return [
             {key:'initials',label:'Initials',type:'text'},
             {key:'type',label:'Type',type:'select',options:[{v:'out',l:'Out'},{v:'in',l:'In'},{v:'build',l:'Build'}]},
+            {key:'fluidType',label:'Fluid Type',type:'select',options:[{v:'',l:'--'},{v:'brine',l:'Brine'},{v:'packer',l:'Packer'},{v:'mud',l:'Mud'},{v:'recirc',l:'Recirc'},{v:'freshwater',l:'Freshwater'},{v:'other',l:'Other'}]},
             {key:'volume',label:'Volume (BBL)',type:'number'},
             {key:'tanks',label:'Tanks',type:'text',isArray:true}
         ];
@@ -1932,6 +1934,8 @@ function saveLogEditEntry(idx) {
             if (isNaN(val)) val = null;
         }
         entry[key] = val;
+        // filterType uses null for "System", not empty string
+        if (key === 'filterType' && val === '') entry[key] = null;
     });
 
     entries[idx] = entry;
