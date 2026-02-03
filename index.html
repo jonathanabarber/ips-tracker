@@ -2453,7 +2453,8 @@ function handleBleMeasurement(event) {
     const meters = val.getFloat32(7, true);
     if (meters <= 0.01 || meters > 50) return; // sanity check
     const rawInches = meters * 39.3701;
-    const adjustedInches = Math.max(0, Math.round(rawInches * 4) / 4 - bleOffsetInches);
+    // Laser reads distance to surface from top; fluid level = total depth - reading
+    const adjustedInches = Math.max(0, Math.round((bleOffsetInches - rawInches) * 4) / 4);
 
     if (bleActiveTankSide && bleActiveTankId) {
         const tanks = bleActiveTankSide === 'pump' ? data.pumpTanks : data.returnTanks;
