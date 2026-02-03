@@ -349,7 +349,143 @@
             color: white; font-weight: 600; cursor: pointer;
         }
         
-        /* Profile Button & Modal */
+        /* Chat Feed Button */
+        .chat-feed-btn {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #1b2838; border: 2px solid #455a64; color: #455a64;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+            position: relative;
+        }
+        .chat-feed-btn svg { width: 20px; height: 20px; }
+        .chat-feed-btn.has-data { border-color: #25d366; color: #25d366; background: rgba(37,211,102,0.1); }
+
+        /* Chat Feed Full-Screen Overlay */
+        .chat-feed-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: #1b2838; z-index: 500; flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-feed-overlay.show { display: flex; }
+        .chat-feed-header {
+            background: linear-gradient(135deg, #0d1b2a, #1b2838);
+            padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+            border-bottom: 1px solid #2d4a6f; flex-shrink: 0;
+        }
+        .chat-feed-header-icon { color: #25d366; display: flex; align-items: center; }
+        .chat-feed-header-icon svg { width: 24px; height: 24px; }
+        .chat-feed-header-title { flex: 1; }
+        .chat-feed-header-title h2 { font-size: 14px; font-weight: 600; color: #e0e0e0; margin: 0; }
+        .chat-feed-header-title p { font-size: 10px; color: #888; margin: 0; }
+        .chat-feed-close {
+            background: #2d4a6f; border: none; color: white; width: 32px; height: 32px;
+            border-radius: 50%; font-size: 18px; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .chat-feed-body { flex: 1; overflow-y: auto; padding: 12px; }
+        .chat-feed-tabs {
+            display: flex; background: #0d1b2a; border-radius: 8px; padding: 3px; margin-bottom: 12px;
+        }
+        .chat-feed-tab {
+            flex: 1; padding: 10px; border: none; background: transparent;
+            font-size: 13px; font-weight: 600; color: #888; border-radius: 6px; cursor: pointer;
+        }
+        .chat-feed-tab.active { background: #2d4a6f; color: #4fc3f7; }
+        .chat-feed-input-area {
+            background: #243447; border-radius: 8px; padding: 12px; margin-bottom: 12px;
+            border: 1px solid #2d4a6f;
+        }
+        .chat-feed-textarea {
+            width: 100%; min-height: 160px; padding: 10px; border: 1px solid #2d4a6f;
+            border-radius: 6px; background: #1b2838; color: #e0e0e0; font-size: 13px;
+            font-family: 'Courier New', monospace; resize: vertical; line-height: 1.5;
+        }
+        .chat-feed-textarea::placeholder { color: #556; }
+        .chat-feed-upload-zone {
+            border: 2px dashed #2d4a6f; border-radius: 8px; padding: 30px 16px;
+            text-align: center; cursor: pointer; transition: all 0.2s;
+            background: #1b2838;
+        }
+        .chat-feed-upload-zone:hover, .chat-feed-upload-zone.dragover {
+            border-color: #25d366; background: rgba(37,211,102,0.05);
+        }
+        .chat-feed-upload-zone svg { width: 40px; height: 40px; color: #455a64; margin-bottom: 8px; }
+        .chat-feed-upload-zone p { color: #888; font-size: 13px; margin: 4px 0; }
+        .chat-feed-upload-zone .upload-hint { font-size: 11px; color: #556; }
+        .chat-feed-preview-img {
+            max-width: 100%; max-height: 200px; border-radius: 6px; margin-top: 10px;
+            border: 1px solid #2d4a6f;
+        }
+        .chat-feed-process-btn {
+            width: 100%; padding: 14px; background: #25d366; color: #fff; border: none;
+            border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+            margin-bottom: 12px; display: flex; align-items: center; justify-content: center;
+            gap: 8px; transition: all 0.2s; letter-spacing: 0.3px;
+        }
+        .chat-feed-process-btn:disabled { background: #455a64; cursor: not-allowed; }
+        .chat-feed-process-btn:not(:disabled):hover { background: #20bd5a; }
+        .chat-feed-process-btn svg { width: 18px; height: 18px; }
+        .chat-feed-results {
+            background: #243447; border-radius: 8px; border: 1px solid #2d4a6f; overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .chat-feed-results-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 12px; border-bottom: 1px solid #2d4a6f; background: #1b2838;
+        }
+        .chat-feed-results-title { font-size: 12px; font-weight: 600; color: #25d366; text-transform: uppercase; letter-spacing: 0.5px; }
+        .chat-feed-results-count { font-size: 11px; color: #888; }
+        .chat-feed-results-body { max-height: 50vh; overflow-y: auto; }
+        .chat-feed-record {
+            border-bottom: 1px solid #2d4a6f; padding: 10px 12px;
+        }
+        .chat-feed-record:last-child { border-bottom: none; }
+        .chat-feed-record-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        }
+        .chat-feed-record-plug { font-size: 15px; font-weight: 700; color: #4fc3f7; }
+        .chat-feed-record-depth { font-size: 12px; color: #ffa726; }
+        .chat-feed-record-time { font-size: 11px; color: #888; }
+        .chat-feed-field-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 2px 16px;
+        }
+        .chat-feed-field {
+            display: flex; justify-content: space-between; padding: 3px 0;
+            font-size: 11px; border-bottom: 1px solid rgba(45,74,111,0.3);
+        }
+        .chat-feed-field-label { color: #888; }
+        .chat-feed-field-value { color: #e0e0e0; font-weight: 600; }
+        .chat-feed-empty {
+            text-align: center; padding: 30px; color: #556;
+        }
+        .chat-feed-empty svg { width: 48px; height: 48px; color: #334; margin-bottom: 10px; }
+        .chat-feed-empty p { font-size: 13px; margin: 4px 0; }
+        .chat-feed-history-section {
+            margin-top: 12px;
+        }
+        .chat-feed-history-title {
+            font-size: 11px; color: #4fc3f7; text-transform: uppercase; letter-spacing: 0.5px;
+            font-weight: 600; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .chat-feed-history-clear {
+            background: #2d4a6f; border: none; color: #e0e0e0; padding: 3px 8px;
+            border-radius: 4px; font-size: 9px; cursor: pointer;
+        }
+        .chat-feed-badge {
+            position: absolute; top: -2px; right: -2px; background: #25d366; color: #fff;
+            font-size: 9px; font-weight: 700; width: 16px; height: 16px; border-radius: 50%;
+            display: none; align-items: center; justify-content: center;
+        }
+        .chat-feed-badge.show { display: flex; }
+        .chat-feed-mud-section {
+            background: #1b2838; border-radius: 6px; padding: 8px 10px; margin-top: 6px;
+            border: 1px solid rgba(45,74,111,0.5);
+        }
+        .chat-feed-mud-title {
+            font-size: 10px; color: #ffa726; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;
+        }
+
         .profile-btn {
             width: 36px; height: 36px; border-radius: 50%;
             background: #1b2838; border: 2px solid #2d4a6f; color: #4fc3f7;
@@ -412,6 +548,12 @@
                 <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
                 </svg>
+            </button>
+            <button class="chat-feed-btn" id="chat-feed-btn" onclick="openChatFeed()">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.82 14.01c-.25.7-1.23 1.43-1.97 1.62-.5.13-1.15.24-3.34-.72-2.8-1.22-4.6-4.06-4.74-4.25-.14-.19-1.13-1.51-1.13-2.88s.71-2.04.97-2.32c.26-.28.56-.35.75-.35h.54c.17 0 .41-.07.64.49.25.56.84 2.04.91 2.19.07.14.12.31.02.5-.1.19-.15.31-.29.47l-.43.5c-.14.14-.3.3-.13.58.17.29.75 1.23 1.61 2 1.1.98 2.03 1.28 2.32 1.43.28.14.45.12.62-.07.17-.19.71-.83.9-1.12.19-.28.38-.24.64-.14.26.1 1.65.78 1.93.92.28.14.47.21.54.33.07.12.07.68-.18 1.38z"/>
+                </svg>
+                <span class="chat-feed-badge" id="chat-feed-badge">0</span>
             </button>
             <button class="profile-btn" id="profile-btn" onclick="openProfileModal()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -497,6 +639,72 @@
             <button class="profile-action-btn" style="border-color:#c62828;color:#ef5350" onclick="closeProfileModal();startNewShift()"><span class="action-icon">🔄</span> Start New Shift</button>
             <hr class="profile-divider">
             <button class="profile-clear-btn" onclick="closeProfileModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Chat Feed Overlay -->
+    <div class="chat-feed-overlay" id="chat-feed-overlay">
+        <div class="chat-feed-header">
+            <div class="chat-feed-header-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.82 14.01c-.25.7-1.23 1.43-1.97 1.62-.5.13-1.15.24-3.34-.72-2.8-1.22-4.6-4.06-4.74-4.25-.14-.19-1.13-1.51-1.13-2.88s.71-2.04.97-2.32c.26-.28.56-.35.75-.35h.54c.17 0 .41-.07.64.49.25.56.84 2.04.91 2.19.07.14.12.31.02.5-.1.19-.15.31-.29.47l-.43.5c-.14.14-.3.3-.13.58.17.29.75 1.23 1.61 2 1.1.98 2.03 1.28 2.32 1.43.28.14.45.12.62-.07.17-.19.71-.83.9-1.12.19-.28.38-.24.64-.14.26.1 1.65.78 1.93.92.28.14.47.21.54.33.07.12.07.68-.18 1.38z"/></svg>
+            </div>
+            <div class="chat-feed-header-title">
+                <h2>Chat Data Feed</h2>
+                <p>Extract drilling data from chat messages</p>
+            </div>
+            <button class="chat-feed-close" onclick="closeChatFeed()">✕</button>
+        </div>
+        <div class="chat-feed-body">
+            <div class="chat-feed-tabs">
+                <button class="chat-feed-tab active" id="cf-tab-paste" onclick="switchChatFeedTab('paste')">📋 Paste Text</button>
+                <button class="chat-feed-tab" id="cf-tab-image" onclick="switchChatFeedTab('image')">📷 Screenshot</button>
+            </div>
+
+            <!-- Paste Mode -->
+            <div class="chat-feed-input-area" id="cf-paste-area">
+                <textarea class="chat-feed-textarea" id="cf-text-input" placeholder="Paste chat text here...
+
+Example:
+Plug: 79 of 91
+JNT: 362/ 4 out
+Depth: 11,387
+Time: 06:59
+Drill: 3 min
+Wash time: 14 minutes
+RIH Wt: 50K
+..."></textarea>
+            </div>
+
+            <!-- Image Mode -->
+            <div class="chat-feed-input-area" id="cf-image-area" style="display:none">
+                <div class="chat-feed-upload-zone" id="cf-upload-zone" onclick="document.getElementById('cf-file-input').click()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <p>Tap to upload screenshot</p>
+                    <p class="upload-hint">JPG, PNG — from WhatsApp chat</p>
+                </div>
+                <input type="file" id="cf-file-input" accept="image/*" style="display:none" onchange="handleChatFeedImage(event)">
+                <div id="cf-image-preview" style="display:none;text-align:center;margin-top:10px">
+                    <img id="cf-preview-img" class="chat-feed-preview-img" src="">
+                    <p style="font-size:11px;color:#888;margin-top:6px">Image loaded — ready to extract</p>
+                </div>
+            </div>
+
+            <button class="chat-feed-process-btn" id="cf-process-btn" onclick="processChatFeed()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Extract Data
+            </button>
+
+            <!-- Results -->
+            <div id="cf-results-container"></div>
+
+            <!-- History -->
+            <div class="chat-feed-history-section" id="cf-history-section" style="display:none">
+                <div class="chat-feed-history-title">
+                    Extraction Log
+                    <button class="chat-feed-history-clear" onclick="clearChatFeedHistory()">Clear All</button>
+                </div>
+                <div class="chat-feed-results" id="cf-history-results"></div>
+            </div>
         </div>
     </div>
 
@@ -3118,6 +3326,339 @@ function renderGLFiltered() {
         fmtRate(rateEl, last.ratePerHour);
     }
 }
+
+// ========== CHAT DATA FEED ==========
+let chatFeedHistory = JSON.parse(localStorage.getItem('ips_chat_feed_history') || '[]');
+let chatFeedCurrentTab = 'paste';
+let chatFeedImageData = null;
+
+function openChatFeed() {
+    document.getElementById('chat-feed-overlay').classList.add('show');
+    renderChatFeedHistory();
+}
+
+function closeChatFeed() {
+    document.getElementById('chat-feed-overlay').classList.remove('show');
+}
+function switchChatFeedTab(tab) {
+    chatFeedCurrentTab = tab;
+    document.getElementById('cf-tab-paste').className = 'chat-feed-tab' + (tab === 'paste' ? ' active' : '');
+    document.getElementById('cf-tab-image').className = 'chat-feed-tab' + (tab === 'image' ? ' active' : '');
+    document.getElementById('cf-paste-area').style.display = tab === 'paste' ? 'block' : 'none';
+    document.getElementById('cf-image-area').style.display = tab === 'image' ? 'block' : 'none';
+}
+
+function handleChatFeedImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        chatFeedImageData = e.target.result;
+        document.getElementById('cf-preview-img').src = chatFeedImageData;
+        document.getElementById('cf-image-preview').style.display = 'block';
+        document.getElementById('cf-upload-zone').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+}
+
+function parseDrillingReport(text) {
+    // Normalize Unicode: replace non-breaking spaces, zero-width chars, smart quotes, etc.
+    text = text.replace(/[\u00A0\u2000-\u200F\u2028\u2029\u202F\u205F\u3000\uFEFF]/g, ' ');
+    text = text.replace(/[\u2018\u2019\u201C\u201D]/g, '"');
+    text = text.replace(/\u2013|\u2014/g, '-');
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    // Field mapping with flexible regex patterns — allow colon, equals, space, or dash as separator
+    const sep = '[:\\s=\\-]+';
+    const fieldPatterns = [
+        { key: 'plug', label: 'Plug', pattern: new RegExp('^plug' + sep + '(.+)', 'i') },
+        { key: 'jnt', label: 'JNT', pattern: new RegExp('^jn?t' + sep + '(.+)', 'i') },
+        { key: 'depth', label: 'Depth', pattern: new RegExp('^depth' + sep + '(.+)', 'i') },
+        { key: 'time', label: 'Time', pattern: new RegExp('^time' + sep + '(.+)', 'i') },
+        { key: 'drill', label: 'Drill Time', pattern: new RegExp('^drill(?:\\s*time)?' + sep + '(.+)', 'i') },
+        { key: 'washTime', label: 'Wash Time', pattern: new RegExp('^wash\\s*time' + sep + '(.+)', 'i') },
+        { key: 'rihWt', label: 'RIH Wt', pattern: new RegExp('^rih\\s*w(?:t|eight)' + sep + '(.+)', 'i') },
+        { key: 'nw', label: 'Nw', pattern: new RegExp('^nw' + sep + '(.+)', 'i') },
+        { key: 'puWt', label: 'P/U Wt', pattern: new RegExp('^p[/\\\\]?u\\s*w(?:t|eight)' + sep + '(.+)', 'i') },
+        { key: 'torqueOff', label: 'Torque Off', pattern: new RegExp('^torque\\s*off' + sep + '(.+)', 'i') },
+        { key: 'torqueOn', label: 'Torque On', pattern: new RegExp('^torque\\s*on' + sep + '(.+)', 'i') },
+        { key: 'rpm', label: 'RPM', pattern: new RegExp('^rpm' + sep + '(.+)', 'i') },
+        { key: 'wob', label: 'WOB', pattern: new RegExp('^wob\\s+(.+)', 'i') },
+        { key: 'circ', label: 'CIRC', pattern: new RegExp('^circ' + sep + '(.+)', 'i') },
+        { key: 'pr', label: 'PR', pattern: new RegExp('^pr' + sep + '(.+)', 'i') },
+        { key: 'mp', label: 'MP', pattern: new RegExp('^mp' + sep + '(.+)', 'i') },
+        { key: 'rr', label: 'RR', pattern: new RegExp('^rr' + sep + '(.+)', 'i') },
+        { key: 'chkSize', label: 'Chk Size', pattern: new RegExp('^chk\\s*(?:size)?' + sep + '(.+)', 'i') },
+        { key: 'mudWt', label: 'Mud Wt In/Out', pattern: new RegExp('^mud\\s*w(?:t|eight)\\.?\\s*(?:in[/\\\\]?out)?' + sep + '(.+)', 'i') },
+        { key: 'mudVisc', label: 'Mud Visc In/Out', pattern: new RegExp('^mud\\s*visc\\.?\\s*(?:in[/\\\\]?out)?' + sep + '(.+)', 'i') },
+        { key: 'chlorides', label: 'Chlorides In/Out', pattern: new RegExp('^chlorides?\\s*(?:in[/\\\\]?out)?' + sep + '(.+)', 'i') },
+        { key: 'marker', label: 'Marker Sent', pattern: new RegExp('^marker\\s*(?:sent)?' + sep + '(.*)', 'i') },
+        { key: 'surfaceTime', label: 'Surface Time', pattern: new RegExp('^surface\\s*time' + sep + '(.*)', 'i') },
+        { key: 'interval', label: 'Int', pattern: new RegExp('^int' + sep + '(.*)', 'i') },
+        { key: 'stalls', label: 'Stalls', pattern: new RegExp('^stalls?' + sep + '(.*)', 'i') },
+        { key: 'fr', label: 'FR', pattern: new RegExp('^fr' + sep + '(.*)', 'i') },
+        { key: 'pop', label: 'POP', pattern: new RegExp('^pop' + sep + '(.*)', 'i') },
+        { key: 'sand', label: 'Sand', pattern: new RegExp('^sand' + sep + '(.+)', 'i') },
+        { key: 'gas', label: 'Gas', pattern: new RegExp('^gas' + sep + '(.*)', 'i') },
+        { key: 'eta', label: 'ETA', pattern: new RegExp('^eta' + sep + '(.+)', 'i') },
+        { key: 'comments', label: 'Comments', pattern: new RegExp('^comments?' + sep + '(.*)', 'i') },
+    ];
+    
+    const records = [];
+    let currentRecord = null;
+    
+    for (const line of lines) {
+        // Check if this line starts a new plug record
+        const plugMatch = line.match(/^plug[\s:=\-]+(.+)/i);
+        if (plugMatch) {
+            if (currentRecord && Object.keys(currentRecord.fields).length > 0) {
+                records.push(currentRecord);
+            }
+            currentRecord = { fields: {}, raw: [] };
+        }
+        
+        if (!currentRecord) {
+            currentRecord = { fields: {}, raw: [] };
+        }
+        
+        currentRecord.raw.push(line);
+        
+        // Try to match each field
+        let matched = false;
+        for (const fp of fieldPatterns) {
+            const m = line.match(fp.pattern);
+            if (m) {
+                currentRecord.fields[fp.key] = { label: fp.label, value: m[1].trim() || '—' };
+                matched = true;
+                break;
+            }
+        }
+        
+        // Handle "WOB 2k" style (no colon)
+        if (!matched) {
+            const wobNoColon = line.match(/^wob\s+(.+)/i);
+            if (wobNoColon) {
+                currentRecord.fields['wob'] = { label: 'WOB', value: wobNoColon[1].trim() };
+            }
+        }
+    }
+    
+    // Push last record
+    if (currentRecord && Object.keys(currentRecord.fields).length > 0) {
+        records.push(currentRecord);
+    }
+    
+    return records;
+}
+
+function processChatFeed() {
+    let text = '';
+    
+    if (chatFeedCurrentTab === 'paste') {
+        text = document.getElementById('cf-text-input').value.trim();
+        if (!text) { alert('Paste some chat text first'); return; }
+    } else {
+        if (!chatFeedImageData) { alert('Upload a screenshot first'); return; }
+        // For image mode, show a message that OCR needs AI API
+        // For now, prompt user to manually transcribe or use paste mode
+        alert('Screenshot processing requires an AI vision API (coming soon).\n\nFor now, copy the text from the chat and use Paste mode.');
+        switchChatFeedTab('paste');
+        return;
+    }
+    
+    const records = parseDrillingReport(text);
+    
+    if (records.length === 0) {
+        document.getElementById('cf-results-container').innerHTML = `
+            <div class="chat-feed-results">
+                <div style="padding:20px;text-align:center;color:#ef5350;">
+                    <div style="font-size:28px;margin-bottom:8px">⚠️</div>
+                    <div style="font-size:13px;font-weight:600">No data extracted</div>
+                    <div style="font-size:11px;color:#888;margin-top:4px">Check that the text matches a drilling report format</div>
+                </div>
+            </div>`;
+        return;
+    }
+    
+    // Save to history
+    const entry = {
+        id: Date.now(),
+        timestamp: new Date().toLocaleString(),
+        records: records,
+        source: chatFeedCurrentTab
+    };
+    chatFeedHistory.unshift(entry);
+    if (chatFeedHistory.length > 50) chatFeedHistory = chatFeedHistory.slice(0, 50);
+    localStorage.setItem('ips_chat_feed_history', JSON.stringify(chatFeedHistory));
+    
+    // Render results
+    renderChatFeedResults(records, 'cf-results-container', true);
+    renderChatFeedHistory();
+    updateChatFeedBadge();
+    
+    // === AUTO-SYNC: Push PR to Injection tab pump rate ===
+    const latestRecord = records[records.length - 1]; // use most recent plug
+    if (latestRecord && latestRecord.fields.pr) {
+        const prRaw = latestRecord.fields.pr.value;
+        const prNum = parseFloat(prRaw);
+        if (!isNaN(prNum) && prNum >= 1 && prNum <= 8) {
+            // Find closest matching option in the pump rate select
+            const sel = document.getElementById('pump-rate-select');
+            const options = Array.from(sel.options).map(o => parseFloat(o.value)).filter(v => !isNaN(v));
+            let closest = options[0];
+            let minDiff = Math.abs(prNum - closest);
+            for (const opt of options) {
+                const diff = Math.abs(prNum - opt);
+                if (diff < minDiff) { closest = opt; minDiff = diff; }
+            }
+            // Only auto-set if it's a close match (within 0.25)
+            if (minDiff <= 0.25) {
+                const matchVal = closest % 1 === 0 ? closest.toString() : closest.toString();
+                sel.value = matchVal;
+                updatePumpRate();
+                // Show a brief confirmation
+                const btn = document.getElementById('cf-process-btn');
+                const origText = btn.innerHTML;
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Extracted — Pump Rate set to ' + matchVal + ' BPM';
+                btn.style.background = '#2e7d32';
+                setTimeout(() => { btn.innerHTML = origText; btn.style.background = ''; }, 3000);
+            }
+        }
+    }
+    
+    // Clear input
+    document.getElementById('cf-text-input').value = '';
+}
+
+function renderChatFeedResults(records, containerId, isNew) {
+    const container = document.getElementById(containerId);
+    let html = '<div class="chat-feed-results">';
+    html += '<div class="chat-feed-results-header">';
+    html += '<span class="chat-feed-results-title">' + (isNew ? '✓ Extracted' : 'Saved') + '</span>';
+    html += '<span class="chat-feed-results-count">' + records.length + ' record' + (records.length !== 1 ? 's' : '') + '</span>';
+    html += '</div><div class="chat-feed-results-body">';
+    
+    for (const rec of records) {
+        const f = rec.fields;
+        const plugLabel = f.plug ? f.plug.value : 'Unknown';
+        const depthLabel = f.depth ? f.depth.value : '';
+        const timeLabel = f.time ? f.time.value : '';
+        
+        html += '<div class="chat-feed-record">';
+        html += '<div class="chat-feed-record-header">';
+        html += '<span class="chat-feed-record-plug">Plug ' + plugLabel + '</span>';
+        html += '<span class="chat-feed-record-depth">' + (depthLabel ? depthLabel + ' ft' : '') + '</span>';
+        if (timeLabel) html += '<span class="chat-feed-record-time">' + timeLabel + '</span>';
+        html += '</div>';
+        
+        // Drilling params grid
+        const drillingKeys = ['jnt','drill','washTime','rihWt','nw','puWt','torqueOff','torqueOn','rpm','wob','circ','pr','mp','rr','chkSize','eta'];
+        const drillingFields = drillingKeys.filter(k => f[k] && f[k].value && f[k].value !== '—');
+        
+        if (drillingFields.length > 0) {
+            html += '<div class="chat-feed-field-grid">';
+            for (const k of drillingFields) {
+                html += '<div class="chat-feed-field"><span class="chat-feed-field-label">' + f[k].label + '</span><span class="chat-feed-field-value">' + f[k].value + '</span></div>';
+            }
+            html += '</div>';
+        }
+        
+        // Mud properties section
+        const mudKeys = ['mudWt','mudVisc','chlorides'];
+        const mudFields = mudKeys.filter(k => f[k] && f[k].value && f[k].value !== '—');
+        if (mudFields.length > 0) {
+            html += '<div class="chat-feed-mud-section">';
+            html += '<div class="chat-feed-mud-title">Mud Properties</div>';
+            html += '<div class="chat-feed-field-grid">';
+            for (const k of mudFields) {
+                html += '<div class="chat-feed-field"><span class="chat-feed-field-label">' + f[k].label + '</span><span class="chat-feed-field-value">' + f[k].value + '</span></div>';
+            }
+            html += '</div></div>';
+        }
+        
+        // Shows
+        const showKeys = ['sand','gas','stalls','fr','pop','marker','surfaceTime','interval','comments'];
+        const showFields = showKeys.filter(k => f[k] && f[k].value && f[k].value !== '—');
+        if (showFields.length > 0) {
+            html += '<div style="margin-top:6px">';
+            for (const k of showFields) {
+                const color = (k === 'sand' || k === 'gas') ? '#ffa726' : '#888';
+                html += '<span style="display:inline-block;font-size:10px;background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:3px;margin:2px;color:' + color + '">' + f[k].label + ': ' + f[k].value + '</span>';
+            }
+            html += '</div>';
+        }
+        
+        html += '</div>';
+    }
+    
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+function renderChatFeedHistory() {
+    const section = document.getElementById('cf-history-section');
+    const container = document.getElementById('cf-history-results');
+    
+    if (chatFeedHistory.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
+    section.style.display = 'block';
+    let html = '';
+    
+    for (const entry of chatFeedHistory.slice(0, 10)) {
+        const totalRecs = entry.records.length;
+        const firstPlug = entry.records[0]?.fields?.plug?.value || '?';
+        const lastPlug = entry.records[totalRecs - 1]?.fields?.plug?.value || '?';
+        
+        html += '<div class="chat-feed-record" style="cursor:pointer" onclick="expandChatFeedHistoryEntry(' + entry.id + ')">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+        html += '<div>';
+        html += '<div style="font-size:13px;font-weight:600;color:#e0e0e0">' + totalRecs + ' record' + (totalRecs !== 1 ? 's' : '') + ' — Plug ' + (totalRecs > 1 ? firstPlug + ' to ' + lastPlug : firstPlug) + '</div>';
+        html += '<div style="font-size:10px;color:#888">' + entry.timestamp + '</div>';
+        html += '</div>';
+        html += '<span style="color:#4fc3f7;font-size:16px">›</span>';
+        html += '</div>';
+        html += '</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+function expandChatFeedHistoryEntry(id) {
+    const entry = chatFeedHistory.find(e => e.id === id);
+    if (!entry) return;
+    renderChatFeedResults(entry.records, 'cf-results-container', false);
+}
+
+function clearChatFeedHistory() {
+    if (!confirm('Clear extraction log?')) return;
+    chatFeedHistory = [];
+    localStorage.setItem('ips_chat_feed_history', JSON.stringify(chatFeedHistory));
+    renderChatFeedHistory();
+    document.getElementById('cf-results-container').innerHTML = '';
+    updateChatFeedBadge();
+}
+
+function updateChatFeedBadge() {
+    const badge = document.getElementById('chat-feed-badge');
+    const btn = document.getElementById('chat-feed-btn');
+    const count = chatFeedHistory.length;
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.add('show');
+        btn.classList.add('has-data');
+    } else {
+        badge.classList.remove('show');
+        btn.classList.remove('has-data');
+    }
+}
+
+// Init badge on load
+setTimeout(updateChatFeedBadge, 100);
 
 function initApp() {
     console.log('initApp called, data:', data.pumpTanks.length, 'pump tanks,', data.returnTanks.length, 'return tanks');
