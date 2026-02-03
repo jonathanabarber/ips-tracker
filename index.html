@@ -129,7 +129,7 @@
         .jet-btn.build { background: #6d4c41; }
         
         /* Totals Bar */
-        .totals-bar { display: flex; justify-content: space-around; padding: 10px 8px; background: #243447; border-top: 1px solid #2d4a6f; flex-wrap: wrap; gap: 6px; }
+        .totals-bar { display: flex; justify-content: space-around; padding: 10px 8px; background: #243447; border-bottom: 1px solid #2d4a6f; flex-wrap: wrap; gap: 6px; }
         .total-item { text-align: center; padding: 6px 8px; border-radius: 6px; min-width: 48px; background: #1b2838; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
         .total-item:active { transform: scale(0.95); }
         .total-item.filter-active { border-color: currentColor; background: rgba(255,255,255,0.08); }
@@ -487,13 +487,6 @@
     </div>
 
     <div id="tanks-tab" class="tab-content active">
-        <div class="side-toggle" id="side-toggle">
-            <button class="side-tab active" onclick="switchSide('pump')">Pump Side</button>
-            <button class="side-tab" onclick="switchSide('return')">Return Side</button>
-        </div>
-        <div class="tanks-container active" id="pump-tanks"></div>
-        <div class="tanks-container" id="return-tanks"></div>
-        <div class="filtered-tanks" id="filtered-tanks"></div>
         <div class="totals-bar" id="totals-bar">
             <div class="total-item" id="filter-brine" onclick="setFluidFilter('brine')"><div class="total-label">Brine</div><div class="total-value brine" id="total-brine">0</div></div>
             <div class="total-item" id="filter-packer" onclick="setFluidFilter('packer')"><div class="total-label">Packer</div><div class="total-value packer" id="total-packer">0</div></div>
@@ -502,6 +495,13 @@
             <div class="total-item" id="filter-freshwater" onclick="setFluidFilter('freshwater')"><div class="total-label">Fresh</div><div class="total-value freshwater" id="total-freshwater">0</div></div>
             <div class="total-item" id="filter-other" onclick="setFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="total-other">0</div></div>
         </div>
+        <div class="side-toggle" id="side-toggle">
+            <button class="side-tab active" onclick="switchSide('pump')">Pump Side</button>
+            <button class="side-tab" onclick="switchSide('return')">Return Side</button>
+        </div>
+        <div class="tanks-container active" id="pump-tanks"></div>
+        <div class="tanks-container" id="return-tanks"></div>
+        <div class="filtered-tanks" id="filtered-tanks"></div>
         <div class="system-totals">
             <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="system-total">0 BBL</div></div>
             <div class="system-total"><div class="system-total-label">Jetted (Shift)</div><div class="system-total-value jetted" id="jetted-total">0 BBL</div></div>
