@@ -272,6 +272,8 @@
         .tank-mic-btn svg, .tank-ble-btn svg { width: 16px; height: 16px; }
         .tank-mic-btn.configured { border-color: #66bb6a; color: #66bb6a; }
         .tank-mic-btn.inactive, .tank-ble-btn.inactive { color: #455a64; }
+        .tank-mic-btn.voice-waiting { border-color: #ff9800; color: #ff9800; background: rgba(255,152,0,0.15); animation: blePulse 1s ease-in-out infinite; }
+        .tank-mic-btn.voice-done { border-color: #66bb6a; color: #66bb6a; background: rgba(46,125,50,0.25); box-shadow: 0 0 12px rgba(102,187,106,0.6); }
         .tank-mic-btn:hover, .tank-ble-btn:hover { background: #2d4a6f; }
         .tank-ble-btn.active { border-color: #66bb6a; color: #66bb6a; background: rgba(46,125,50,0.2); box-shadow: 0 0 8px rgba(102,187,106,0.4); }
         .tank-ble-btn.ble-waiting { border-color: #ff9800; color: #ff9800; background: rgba(255,152,0,0.15); animation: blePulse 1s ease-in-out infinite; }
@@ -427,7 +429,7 @@
         <div class="voice-status-sub" id="voice-status-sub">Say a tank keyword</div>
     </div>
 
-    <!-- Voice Keyword Modal -->
+    <!-- Voice Keyword Modal (single tank) -->
     <div class="voice-modal-overlay" id="voice-keyword-modal">
         <div class="voice-modal">
             <div class="voice-modal-title" id="voice-modal-tank-name">Tank Name</div>
@@ -448,6 +450,16 @@
         </div>
     </div>
 
+    <!-- Voice Keywords Manager (all tanks) -->
+    <div class="voice-modal-overlay" id="voice-keywords-manager">
+        <div class="voice-modal" style="max-height:85vh;overflow-y:auto">
+            <div class="voice-modal-title">🎤 Voice Keywords</div>
+            <div class="voice-modal-subtitle">Tap a tank to add/edit keywords</div>
+            <div id="voice-km-list"></div>
+            <button class="voice-modal-close" onclick="closeVoiceKeywordsManager()">Done</button>
+        </div>
+    </div>
+
     <!-- Profile Modal -->
     <div class="profile-modal-overlay" id="profile-modal">
         <div class="profile-modal">
@@ -465,6 +477,7 @@
             <div class="profile-section-label">Tank Management</div>
             <button class="profile-action-btn" onclick="closeProfileModal();showAddTankModal()"><span class="action-icon">➕</span> Add Tank</button>
             <button class="profile-action-btn" onclick="closeProfileModal();openTankGroupModal()"><span class="action-icon">📂</span> Manage Tank Groups</button>
+            <button class="profile-action-btn" onclick="closeProfileModal();openVoiceKeywordsManager()"><span class="action-icon">🎤</span> Set Voice Keywords</button>
             <hr class="profile-divider">
             <div class="profile-section-label">Laser / BLE</div>
             <div class="profile-input-group">
@@ -1273,7 +1286,7 @@ function getTankFillColor(color) {
     };
     return colors[color] || colors.other;
 }
-function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); const maxBbl=tank.type==='sandcat'?185:500; const fillPct=Math.min(100,Math.round((tank.bbls/maxBbl)*100)); const fc=getTankFillColor(color); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';badges+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} const keywords=tank.voiceKeywords||[]; const micClass=keywords.length?'configured':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'" onclick="openVoiceKeywordModal(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const bleClass=bleConnected&&bleActiveTankSide===side&&bleActiveTankId===tank.id?'ble-waiting':bleDoneTankSide===side&&bleDoneTankId===tank.id?'ble-done':'inactive'; const bleBtn='<div class="tank-ble-btn '+bleClass+'" onclick="toggleBleTank(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" step="0.25" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+bleBtn+'</div></div></div>'; }
+function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); const maxBbl=tank.type==='sandcat'?185:500; const fillPct=Math.min(100,Math.round((tank.bbls/maxBbl)*100)); const fc=getTankFillColor(color); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; if(tank.estimated)badges+='<span class="tank-badge badge-estimated">EST</span>'; if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';badges+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} const keywords=tank.voiceKeywords||[]; const isVoiceWaiting=voiceIsListening&&voiceCurrentTank&&voiceCurrentTank.id===tank.id&&voiceCurrentSide===side&&(voiceState==='CONFIRMING_TANK'||voiceState==='WAITING_NUMBER'||voiceState==='CONFIRMING_VALUE'); const isVoiceDone=voiceDoneTankSide===side&&voiceDoneTankId===tank.id; const micClass=isVoiceWaiting?'voice-waiting':isVoiceDone?'voice-done':keywords.length?'configured':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const bleClass=bleConnected&&bleActiveTankSide===side&&bleActiveTankId===tank.id?'ble-waiting':bleDoneTankSide===side&&bleDoneTankId===tank.id?'ble-done':'inactive'; const bleBtn='<div class="tank-ble-btn '+bleClass+'" onclick="toggleBleTank(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><span class="tank-name '+nameClass+'">'+tank.name+'</span>'+badges+'</div><div class="tank-inputs"><div class="input-group inches-group"><label>Inches</label><input type="number" step="0.25" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+bleBtn+'</div></div></div>'; }
 function render() { 
     const pumpEl = document.getElementById('pump-tanks');
     const returnEl = document.getElementById('return-tanks');
@@ -1838,6 +1851,7 @@ let voicePendingInches = null;
 let voicePendingBbls = null;
 let voiceConfirmTimeout = null;
 let voiceSpeaking = false;
+let voiceDoneTankSide = null, voiceDoneTankId = null;
 
 // Keyword modal state
 let voiceEditingTankId = null;
@@ -2037,6 +2051,7 @@ function processVoiceInput(text) {
         document.getElementById('voice-master-btn').className = 'voice-master-btn active';
         voiceSpeak('Cancelled');
         clearTankHighlights();
+        render();
         return;
     }
     
@@ -2065,6 +2080,7 @@ function processVoiceInput(text) {
                 voiceCurrentSide = match.tank.side;
                 voiceState = 'CONFIRMING_TANK';
                 voicePlayDing();
+                render();
                 document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
                 updateVoiceStatus(match.tank.name, 'Say "no" to cancel...');
                 highlightTankCard(match.tank.side, match.tank.id);
@@ -2086,6 +2102,7 @@ function processVoiceInput(text) {
             document.getElementById('voice-master-btn').className = 'voice-master-btn active';
             voiceSpeak('Cancelled');
             clearTankHighlights();
+            render();
             return;
         }
     } else if (voiceState === 'WAITING_NUMBER') {
@@ -2097,6 +2114,7 @@ function processVoiceInput(text) {
             document.getElementById('voice-master-btn').className = 'voice-master-btn active';
             voiceSpeak('Cancelled');
             clearTankHighlights();
+            render();
             return;
         }
         
@@ -2205,8 +2223,13 @@ function voiceConfirmEntry() {
         tank.estimated = false;
         tank.lastStrapTime = new Date().toISOString();
         tank.lastStrapBy = profileData.initials || '';
+        // Flash green on completed tank mic icon
+        voiceDoneTankSide = voiceCurrentSide;
+        voiceDoneTankId = voiceCurrentTank.id;
         saveData();
         render();
+        // Clear green after 2 seconds
+        setTimeout(() => { voiceDoneTankSide = null; voiceDoneTankId = null; render(); }, 2000);
     }
     
     voicePlaySuccess();
@@ -2257,6 +2280,38 @@ function closeVoiceKeywordModal() {
     voiceEditingTankId = null;
     voiceEditingSide = null;
     render();
+    // If manager is open, refresh it
+    if (document.getElementById('voice-keywords-manager').classList.contains('show')) renderVoiceKmList();
+}
+
+function openVoiceKeywordsManager() {
+    if (voiceIsListening) stopVoiceListening();
+    renderVoiceKmList();
+    document.getElementById('voice-keywords-manager').classList.add('show');
+}
+
+function closeVoiceKeywordsManager() {
+    document.getElementById('voice-keywords-manager').classList.remove('show');
+}
+
+function renderVoiceKmList() {
+    const el = document.getElementById('voice-km-list');
+    let html = '';
+    const renderSection = (tanks, side, title) => {
+        if (!tanks.length) return;
+        html += '<div style="font-size:11px;color:#4fc3f7;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;margin:12px 0 6px">' + title + '</div>';
+        tanks.forEach(t => {
+            const kws = t.voiceKeywords || [];
+            const kwText = kws.length ? kws.map(k => '<span style="background:#1b2838;padding:2px 8px;border-radius:4px;font-size:11px;color:#66bb6a">' + k + '</span>').join(' ') : '<span style="color:#666;font-size:12px">No keywords</span>';
+            html += '<div style="background:#1b2838;border-radius:6px;padding:10px 12px;margin-bottom:6px;cursor:pointer" onclick="closeVoiceKeywordsManager();openVoiceKeywordModal(\'' + side + '\',' + t.id + ')">';
+            html += '<div style="font-size:14px;font-weight:600;color:#e0e0e0;margin-bottom:4px">' + t.name + '</div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:4px">' + kwText + '</div>';
+            html += '</div>';
+        });
+    };
+    renderSection(data.pumpTanks, 'pump', 'Pump Side');
+    renderSection(data.returnTanks, 'return', 'Return Side');
+    el.innerHTML = html;
 }
 
 function renderVoiceKeywordList() {
