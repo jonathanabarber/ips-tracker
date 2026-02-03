@@ -231,19 +231,20 @@
         .report-company { text-align: center; font-size: 11px; color: #4fc3f7; font-weight: 600; margin-bottom: 14px; }
         
         /* Voice Entry Styles */
-        .voice-master-btn {
+        .voice-master-btn, .ble-master-btn {
             width: 36px; height: 36px; border-radius: 50%; border: none;
             background: #455a64; color: #888;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.3s;
         }
-        .voice-master-btn svg { width: 20px; height: 20px; }
-        .voice-master-btn.active {
+        .ble-master-btn { background: #1a3a5c; color: #4fc3f7; }
+        .voice-master-btn svg, .ble-master-btn svg { width: 20px; height: 20px; }
+        .voice-master-btn.active, .ble-master-btn.active {
             background: linear-gradient(135deg, #2e7d32, #1b5e20);
             color: white; box-shadow: 0 0 12px rgba(46,125,50,0.5);
             animation: pulse 2s infinite;
         }
-        .voice-master-btn.heard {
+        .voice-master-btn.heard, .ble-master-btn.heard {
             background: linear-gradient(135deg, #1565c0, #0d47a1);
             color: white;
         }
@@ -260,6 +261,15 @@
         .voice-status.show { display: block; }
         .voice-status-main { font-size: 18px; font-weight: 700; color: #4fc3f7; }
         .voice-status-sub { font-size: 12px; color: #888; margin-top: 4px; }
+        
+        .ble-status {
+            position: fixed; top: 60px; left: 10px; right: 10px;
+            background: #0a1628; border: 1px solid #1565c0; border-radius: 8px;
+            padding: 12px; text-align: center; z-index: 99; display: none;
+        }
+        .ble-status.show { display: block; }
+        .ble-status-main { font-size: 18px; font-weight: 700; color: #4fc3f7; }
+        .ble-status-sub { font-size: 12px; color: #888; margin-top: 4px; }
         
         .tank-mic-btn, .tank-ble-btn {
             width: 32px; height: 32px; border-radius: 50%;
@@ -401,6 +411,11 @@
                     <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
                 </svg>
             </button>
+            <button class="ble-master-btn" id="ble-master-btn" onclick="toggleBleMaster()">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
+                </svg>
+            </button>
 
         </div>
     </div>
@@ -409,6 +424,11 @@
     <div class="voice-status" id="voice-status">
         <div class="voice-status-main" id="voice-status-main">Listening...</div>
         <div class="voice-status-sub" id="voice-status-sub">Say a tank keyword</div>
+    </div>
+
+    <div class="ble-status" id="ble-status">
+        <div class="ble-status-main" id="ble-status-main">Connecting...</div>
+        <div class="ble-status-sub" id="ble-status-sub">Select your laser</div>
     </div>
 
     <!-- Voice Keyword Modal (single tank) -->
@@ -2352,6 +2372,7 @@ const BLE_LOG_CMD = new Uint8Array([0xC0, 0x55, 0x02, 0x01, 0x00, 0x1A]);
 let bleDevice = null, bleCharacteristic = null, bleConnected = false;
 let bleActiveTankSide = null, bleActiveTankId = null;
 let bleDoneTankSide = null, bleDoneTankId = null;
+let bleMasterActive = false;
 let bleOffsetInches = 108; // Default: 9 feet (tank lip to 0" mark)
 
 function loadBleOffset() {
@@ -2371,24 +2392,101 @@ function updateOffsetDisplay() {
     if (ft) ft.textContent = '= ' + (bleOffsetInches / 12).toFixed(1) + ' ft';
 }
 
+function updateBleStatus(main, sub) {
+    const m = document.getElementById('ble-status-main');
+    const s = document.getElementById('ble-status-sub');
+    if (m) m.textContent = main;
+    if (s) s.textContent = sub;
+}
+
+function updateBleMasterBtn() {
+    const btn = document.getElementById('ble-master-btn');
+    if (!btn) return;
+    if (bleMasterActive && bleConnected) {
+        btn.className = 'ble-master-btn active';
+    } else if (bleMasterActive) {
+        btn.className = 'ble-master-btn heard'; // connecting state
+    } else {
+        btn.className = 'ble-master-btn';
+    }
+}
+
+async function toggleBleMaster() {
+    if (bleMasterActive) {
+        // Turn off
+        bleMasterActive = false;
+        bleActiveTankSide = null;
+        bleActiveTankId = null;
+        document.getElementById('ble-status').classList.remove('show');
+        updateBleMasterBtn();
+        render();
+        return;
+    }
+    
+    // Turn on
+    bleMasterActive = true;
+    updateBleMasterBtn();
+    document.getElementById('ble-status').classList.add('show');
+    updateBleStatus('Connecting...', 'Select your laser');
+    
+    if (!bleConnected) {
+        const ok = await connectBle();
+        if (!ok) {
+            bleMasterActive = false;
+            document.getElementById('ble-status').classList.remove('show');
+            updateBleMasterBtn();
+            return;
+        }
+    }
+    
+    // Connected — assign first visible tank
+    const visibleTanks = getFilteredTanks();
+    if (visibleTanks.length) {
+        bleActiveTankSide = visibleTanks[0].side;
+        bleActiveTankId = visibleTanks[0].tank.id;
+        updateBleStatus(visibleTanks[0].tank.name, 'Shoot laser to measure');
+        updateBleMasterBtn();
+        render();
+        scrollToActiveBle();
+    } else {
+        updateBleStatus('No tanks', 'Add tanks first');
+    }
+}
+
+// Per-tank icon toggle still works for manual selection
 async function toggleBleTank(side, tankId) {
     if (bleActiveTankSide === side && bleActiveTankId === tankId) {
         bleActiveTankSide = null; bleActiveTankId = null;
+        if (bleMasterActive) updateBleStatus('Paused', 'Tap a tank or shoot laser');
         render();
         return;
     }
     if (!bleConnected) {
+        bleMasterActive = true;
+        updateBleMasterBtn();
+        document.getElementById('ble-status').classList.add('show');
+        updateBleStatus('Connecting...', 'Select your laser');
         const ok = await connectBle();
-        if (!ok) return;
+        if (!ok) {
+            bleMasterActive = false;
+            document.getElementById('ble-status').classList.remove('show');
+            updateBleMasterBtn();
+            return;
+        }
     }
+    bleMasterActive = true;
     bleActiveTankSide = side;
     bleActiveTankId = tankId;
+    const tanks = side === 'pump' ? data.pumpTanks : data.returnTanks;
+    const tank = tanks.find(t => t.id === tankId);
+    if (tank) updateBleStatus(tank.name, 'Shoot laser to measure');
+    updateBleMasterBtn();
+    document.getElementById('ble-status').classList.add('show');
     render();
 }
 
 async function connectBle() {
     try {
-        // Device may broadcast as "N/A" after factory reset — try name filters first, fallback to acceptAll
         let device = null;
         try {
             device = await navigator.bluetooth.requestDevice({
@@ -2400,9 +2498,7 @@ async function connectBle() {
                 optionalServices: [BOSCH_SERVICE_UUID]
             });
         } catch(filterErr) {
-            // If user cancelled, don't try fallback
             if (filterErr.name === 'NotFoundError') {
-                // No matching named device — try acceptAllDevices
                 device = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
                     optionalServices: [BOSCH_SERVICE_UUID]
@@ -2411,15 +2507,15 @@ async function connectBle() {
         }
         bleDevice = device;
         bleDevice.addEventListener('gattserverdisconnected', onBleDisconnect);
+        updateBleStatus('Pairing...', 'Connecting to ' + (device.name || 'device'));
         const server = await bleDevice.gatt.connect();
         const service = await server.getPrimaryService(BOSCH_SERVICE_UUID);
         bleCharacteristic = await service.getCharacteristic(BOSCH_CHAR_UUID);
-        // Subscribe to indications (Web Bluetooth uses startNotifications for both)
         await bleCharacteristic.startNotifications();
         bleCharacteristic.addEventListener('characteristicvaluechanged', handleBleMeasurement);
-        // Enable logging mode — device will auto-transmit on physical button press
         try { await bleCharacteristic.writeValue(BLE_LOG_CMD); } catch(e) { console.log('Log cmd write:', e); }
         bleConnected = true;
+        updateBleMasterBtn();
         render();
         return true;
     } catch(e) {
@@ -2433,21 +2529,21 @@ function onBleDisconnect() {
     bleConnected = false; bleCharacteristic = null; bleDevice = null;
     bleActiveTankSide = null; bleActiveTankId = null;
     bleDoneTankSide = null; bleDoneTankId = null;
+    bleMasterActive = false;
+    document.getElementById('ble-status').classList.remove('show');
+    updateBleMasterBtn();
     render();
 }
 
 function handleBleMeasurement(event) {
     const val = event.target.value;
     const len = val.byteLength;
-    // Filter: measurement packets are 20 bytes, start with C0 55, byte[3]=06 means data ready
     if (len < 20) return;
     if (val.getUint8(0) !== 0xC0 || val.getUint8(1) !== 0x55) return;
-    if (val.getUint8(3) !== 0x06) return; // 0x02 = laser on (no measurement yet)
-    // Bytes 7-10: IEEE-754 little-endian float = distance in meters
+    if (val.getUint8(3) !== 0x06) return;
     const meters = val.getFloat32(7, true);
-    if (meters <= 0.01 || meters > 50) return; // sanity check
+    if (meters <= 0.01 || meters > 50) return;
     const rawInches = meters * 39.3701;
-    // Laser reads distance to surface from top; fluid level = total depth - reading
     const adjustedInches = Math.max(0, Math.round((bleOffsetInches - rawInches) * 4) / 4);
 
     if (bleActiveTankSide && bleActiveTankId) {
@@ -2459,12 +2555,14 @@ function handleBleMeasurement(event) {
             tank.estimated = false;
             tank.lastStrapTime = new Date().toISOString();
             tank.lastStrapBy = profileData.initials || '';
-            // Flash green on completed tank
             bleDoneTankSide = bleActiveTankSide;
             bleDoneTankId = bleActiveTankId;
+            
+            updateBleStatus('✓ ' + tank.name + ': ' + adjustedInches + '" = ' + tank.bbls + ' BBL', 'Advancing...');
+            
             autoAdvanceBle();
             saveData(); render();
-            // Clear green after 2 seconds
+            scrollToActiveBle();
             setTimeout(() => { bleDoneTankSide = null; bleDoneTankId = null; render(); }, 2000);
         }
     }
@@ -2477,7 +2575,36 @@ function autoAdvanceBle() {
     if (currentIdx >= 0 && currentIdx < visibleTanks.length - 1) {
         const next = visibleTanks[currentIdx + 1];
         bleActiveTankSide = next.side; bleActiveTankId = next.tank.id;
+        updateBleStatus(next.tank.name, 'Shoot laser to measure');
+    } else {
+        // Last tank — done
+        bleActiveTankSide = null; bleActiveTankId = null;
+        updateBleStatus('✓ All done!', 'All visible tanks measured');
+        setTimeout(() => {
+            if (bleMasterActive && !bleActiveTankId) {
+                bleMasterActive = false;
+                document.getElementById('ble-status').classList.remove('show');
+                updateBleMasterBtn();
+            }
+        }, 3000);
     }
+}
+
+function scrollToActiveBle() {
+    if (!bleActiveTankSide || !bleActiveTankId) return;
+    setTimeout(() => {
+        // Look in both normal and filtered containers
+        const containers = ['pump-tanks', 'return-tanks', 'filtered-tanks'];
+        for (const cid of containers) {
+            const container = document.getElementById(cid);
+            if (!container) continue;
+            const card = container.querySelector('.tank-card[data-side="' + bleActiveTankSide + '"][data-id="' + bleActiveTankId + '"]');
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                break;
+            }
+        }
+    }, 100);
 }
 
 function getFilteredTanks() {
