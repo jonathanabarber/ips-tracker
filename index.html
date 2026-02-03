@@ -28,8 +28,6 @@
         .app-title p { font-size: 9px; opacity: 0.7; }
         .header-actions { display: flex; gap: 6px; }
         .header-btn { background: #2d4a6f; border: none; color: #4fc3f7; padding: 6px 10px; border-radius: 6px; font-size: 14px; cursor: pointer; }
-        .header-btn.turnover { background: #1565c0; color: white; }
-        .header-btn.newshift { background: #c62828; color: white; }
         
         /* Main Tabs */
         .main-tabs { display: flex; background: #0d1b2a; }
@@ -416,8 +414,7 @@
                     <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
                 </svg>
             </button>
-            <button class="header-btn turnover" onclick="showTurnoverReport()">📋</button>
-            <button class="header-btn newshift" onclick="startNewShift()">🔄</button>
+
         </div>
     </div>
 
@@ -465,6 +462,20 @@
             <div class="profile-section-label">Tank Management</div>
             <button class="profile-action-btn" onclick="closeProfileModal();showAddTankModal()"><span class="action-icon">➕</span> Add Tank</button>
             <button class="profile-action-btn" onclick="closeProfileModal();openTankGroupModal()"><span class="action-icon">📂</span> Manage Tank Groups</button>
+            <hr class="profile-divider">
+            <div class="profile-section-label">Laser / BLE</div>
+            <div class="profile-input-group">
+                <label>Tank Lip Offset (inches)</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input type="number" id="ble-offset-input" style="flex:1;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#1b2838;color:#e0e0e0;font-size:16px" placeholder="108" oninput="saveBleOffset()">
+                    <span style="font-size:12px;color:#888;white-space:nowrap" id="ble-offset-ft">= 9.0 ft</span>
+                </div>
+                <div style="font-size:11px;color:#888;margin-top:4px">Distance from laser rest point to 0" mark on stick chart</div>
+            </div>
+            <hr class="profile-divider">
+            <div class="profile-section-label">Shift Actions</div>
+            <button class="profile-action-btn" onclick="closeProfileModal();showTurnoverReport()"><span class="action-icon">📋</span> Generate Turnover Report</button>
+            <button class="profile-action-btn" style="border-color:#c62828;color:#ef5350" onclick="closeProfileModal();startNewShift()"><span class="action-icon">🔄</span> Start New Shift</button>
             <hr class="profile-divider">
             <button class="profile-clear-btn" onclick="closeProfileModal()">Close</button>
         </div>
@@ -909,7 +920,7 @@ const pumpTypes = [
 const returnTypes = [
     { value: 'sandcat', label: 'Sandcat', badgeText: 'SANDCAT', color: 'sandcat', hasContents: true },
     { value: 'trash', label: 'Trash Tank', badgeText: 'TRASH', color: 'trash', hasContents: true, canEqualize: true },
-    { value: 'return', label: 'Return Tank', badgeText: '', color: 'other', hasContents: true, canEqualize: true },
+    { value: 'return', label: 'Settling Tank', badgeText: '', color: 'other', hasContents: true, canEqualize: true },
     { value: 'processed', label: 'Processed Returns', badgeText: 'PROCESSED', color: 'processed', hasContents: true, canEqualize: true }
 ];
 const returnEqualizeTypes = ['trash', 'return', 'processed'];
@@ -949,6 +960,8 @@ function updateProfileButton() {
 function openProfileModal() {
     document.getElementById('profile-name-input').value = profileData.name || '';
     updateInitialsPreview();
+    const oi = document.getElementById('ble-offset-input');
+    if (oi) { oi.value = bleOffsetInches; updateOffsetDisplay(); }
     document.getElementById('profile-modal').classList.add('show');
 }
 function closeProfileModal() {
@@ -2346,7 +2359,24 @@ const BLE_LOG_CMD = new Uint8Array([0xC0, 0x55, 0x02, 0x01, 0x00, 0x1A]);
 
 let bleDevice = null, bleCharacteristic = null, bleConnected = false;
 let bleActiveTankSide = null, bleActiveTankId = null;
-const BLE_OFFSET_INCHES = 9; // Tank lip offset
+let bleOffsetInches = 108; // Default: 9 feet (tank lip to 0" mark)
+
+function loadBleOffset() {
+    const s = localStorage.getItem('ipsBleOffset');
+    if (s) bleOffsetInches = parseFloat(s) || 108;
+    const inp = document.getElementById('ble-offset-input');
+    if (inp) { inp.value = bleOffsetInches; updateOffsetDisplay(); }
+}
+function saveBleOffset() {
+    const inp = document.getElementById('ble-offset-input');
+    bleOffsetInches = parseFloat(inp.value) || 108;
+    localStorage.setItem('ipsBleOffset', bleOffsetInches);
+    updateOffsetDisplay();
+}
+function updateOffsetDisplay() {
+    const ft = document.getElementById('ble-offset-ft');
+    if (ft) ft.textContent = '= ' + (bleOffsetInches / 12).toFixed(1) + ' ft';
+}
 
 async function toggleBleTank(side, tankId) {
     if (bleActiveTankSide === side && bleActiveTankId === tankId) {
@@ -2423,7 +2453,7 @@ function handleBleMeasurement(event) {
     const meters = val.getFloat32(7, true);
     if (meters <= 0.01 || meters > 50) return; // sanity check
     const rawInches = meters * 39.3701;
-    const adjustedInches = Math.max(0, Math.round(rawInches * 4) / 4 - BLE_OFFSET_INCHES);
+    const adjustedInches = Math.max(0, Math.round(rawInches * 4) / 4 - bleOffsetInches);
 
     if (bleActiveTankSide && bleActiveTankId) {
         const tanks = bleActiveTankSide === 'pump' ? data.pumpTanks : data.returnTanks;
@@ -2564,6 +2594,16 @@ function initApp() {
     console.log('initApp called, data:', data.pumpTanks.length, 'pump tanks,', data.returnTanks.length, 'return tanks');
     loadProfile();
     loadData();
+    // Migrate: Rename "Return Tank" → "Settling Tank"
+    let migrated = false;
+    (data.returnTanks || []).forEach(t => {
+        if (t.name && t.name.startsWith('Return Tank')) {
+            t.name = t.name.replace('Return Tank', 'Settling Tank');
+            migrated = true;
+        }
+    });
+    if (migrated) saveData();
+    loadBleOffset();
     loadTankGroups();
     console.log('After loadData:', data.pumpTanks.length, 'pump tanks,', data.returnTanks.length, 'return tanks');
     loadInjUI();
