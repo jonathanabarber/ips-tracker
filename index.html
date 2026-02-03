@@ -4358,6 +4358,214 @@ function parseDrillingReport(text) {
     return records;
 }
 
+function applyChatFeedToApp(record) {
+    const f = record.fields;
+    const synced = [];
+    
+    // Helper: parse numeric, strip commas and "k" suffix for weights (klb)
+    function parseWeight(val) {
+        if (!val) return null;
+        val = val.toString().replace(/,/g, '').trim();
+        const m = val.match(/^([\d.]+)\s*k/i);
+        if (m) return parseFloat(m[1]);
+        return parseFloat(val) || null;
+    }
+    
+    // Helper: parse numeric, strip commas
+    function parseNum(val) {
+        if (!val) return null;
+        val = val.toString().replace(/,/g, '').trim();
+        const m = val.match(/^([\d.]+)/);
+        return m ? parseFloat(m[1]) : null;
+    }
+    
+    // Helper: parse chlorides with "k" meaning thousands of ppm
+    function parseChlorides(val) {
+        if (!val) return null;
+        val = val.toString().replace(/,/g, '').trim();
+        const m = val.match(/^([\d.]+)\s*k/i);
+        if (m) return parseFloat(m[1]) * 1000;
+        return parseFloat(val) || null;
+    }
+    
+    // Helper: parse in/out values like "6.6/6.6" or "5k / 10k"
+    function parseInOut(val) {
+        if (!val) return { inVal: null, outVal: null };
+        const parts = val.split('/').map(s => s.trim());
+        return { inVal: parts[0] || null, outVal: parts[1] || null };
+    }
+    
+    // Helper: set a field value and track it
+    function setField(id, value) {
+        const el = document.getElementById(id);
+        if (el && value !== null && value !== undefined && value !== '') {
+            el.value = value;
+            synced.push(id);
+        }
+    }
+    
+    // --- PLUG INFO ---
+    // Plug: "40 of 91" → plug-num=40, plug-total=91
+    if (f.plug) {
+        const pm = f.plug.value.match(/(\d+)\s*(?:of|\/)\s*(\d+)/i);
+        if (pm) {
+            setField('plug-num', pm[1]);
+            setField('plug-total', pm[2]);
+        } else {
+            const n = parseNum(f.plug.value);
+            if (n) setField('plug-num', n);
+        }
+    }
+    
+    // JNT: "616/ 28 ft out" or "362/ 4 out" → plug-jnt=616, plug-jnt-out=28
+    if (f.jnt) {
+        const jm = f.jnt.value.match(/([\d,]+)\s*\/\s*([\d.]+)/);
+        if (jm) {
+            setField('plug-jnt', jm[1].replace(/,/g, ''));
+            setField('plug-jnt-out', jm[2]);
+        } else {
+            const n = parseNum(f.jnt.value);
+            if (n) setField('plug-jnt', n);
+        }
+    }
+    
+    // Depth: "19,312" → 19312
+    if (f.depth) {
+        const d = parseNum(f.depth.value);
+        if (d) setField('plug-depth', d);
+    }
+    
+    // Time: "11:47" → plug-time (input type=time expects HH:MM)
+    if (f.time) {
+        const tv = f.time.value.trim();
+        const tm = tv.match(/^(\d{1,2}):(\d{2})/);
+        if (tm) {
+            const hh = tm[1].padStart(2, '0');
+            setField('plug-time', hh + ':' + tm[2]);
+        }
+    }
+    
+    // --- TIMING ---
+    if (f.drill) {
+        const d = parseNum(f.drill.value);
+        if (d) setField('plug-drill-time', d);
+    }
+    if (f.washTime) {
+        const w = parseNum(f.washTime.value);
+        if (w) setField('plug-wash-time', w);
+    }
+    if (f.eta) {
+        const ev = f.eta.value.trim();
+        const em = ev.match(/^(\d{1,2}):(\d{2})/);
+        if (em) {
+            const hh = em[1].padStart(2, '0');
+            setField('plug-eta', hh + ':' + em[2]);
+        }
+    }
+    
+    // --- STRING WEIGHTS (stored as klb, "48k" → 48) ---
+    if (f.rihWt) { const v = parseWeight(f.rihWt.value); if (v) setField('plug-rih-wt', v); }
+    if (f.nw) { const v = parseWeight(f.nw.value); if (v) setField('plug-neutral-wt', v); }
+    if (f.puWt) { const v = parseWeight(f.puWt.value); if (v) setField('plug-pu-wt', v); }
+    
+    // --- DRILLING PARAMETERS ---
+    if (f.torqueOff) { const v = parseNum(f.torqueOff.value); if (v) setField('plug-torque-off', v); }
+    if (f.torqueOn) { const v = parseNum(f.torqueOn.value); if (v) setField('plug-torque-on', v); }
+    if (f.rpm) { const v = parseNum(f.rpm.value); if (v) setField('plug-rpm', v); }
+    if (f.wob) { const v = parseWeight(f.wob.value); if (v) setField('plug-wob', v); }
+    
+    // --- PRESSURES & RATES ---
+    if (f.circ) { const v = parseNum(f.circ.value); if (v) setField('plug-circ', v); }
+    if (f.pr) { const v = parseNum(f.pr.value); if (v) setField('plug-pr', v); }
+    if (f.mp) { const v = parseNum(f.mp.value); if (v) setField('plug-mp', v); }
+    if (f.rr) { const v = parseNum(f.rr.value); if (v) setField('plug-rr', v); }
+    if (f.chkSize) { setField('plug-choke', f.chkSize.value); }
+    
+    // --- FLUID PROPERTIES (In/Out split) ---
+    if (f.mudWt) {
+        const io = parseInOut(f.mudWt.value);
+        if (io.inVal) { const v = parseNum(io.inVal); if (v) setField('plug-mw-in', v); }
+        if (io.outVal) { const v = parseNum(io.outVal); if (v) setField('plug-mw-out', v); }
+    }
+    if (f.mudVisc) {
+        const io = parseInOut(f.mudVisc.value);
+        if (io.inVal) { const v = parseNum(io.inVal); if (v) setField('plug-mv-in', v); }
+        if (io.outVal) { const v = parseNum(io.outVal); if (v) setField('plug-mv-out', v); }
+    }
+    if (f.chlorides) {
+        const io = parseInOut(f.chlorides.value);
+        if (io.inVal) { const v = parseChlorides(io.inVal); if (v) setField('plug-cl-in', v); }
+        if (io.outVal) { const v = parseChlorides(io.outVal); if (v) setField('plug-cl-out', v); }
+    }
+    
+    // --- MARKER & RETURNS ---
+    if (f.marker) { 
+        const mv = f.marker.value.trim();
+        if (mv && mv !== '—') {
+            const mm = mv.match(/^(\d{1,2}):(\d{2})/);
+            if (mm) setField('plug-marker-sent', mm[1].padStart(2,'0') + ':' + mm[2]);
+        }
+    }
+    if (f.surfaceTime) {
+        const sv = f.surfaceTime.value.trim();
+        if (sv && sv !== '—') {
+            const sm = sv.match(/^(\d{1,2}):(\d{2})/);
+            if (sm) setField('plug-surface-time', sm[1].padStart(2,'0') + ':' + sm[2]);
+        }
+    }
+    
+    // --- SHOWS / OTHER ---
+    if (f.sand && f.sand.value && f.sand.value !== '—') {
+        const sandSel = document.getElementById('plug-sand');
+        if (sandSel) {
+            const sv = f.sand.value.toLowerCase().trim();
+            for (const opt of sandSel.options) {
+                if (opt.value === sv) { sandSel.value = sv; synced.push('plug-sand'); break; }
+            }
+        }
+    }
+    if (f.gas && f.gas.value && f.gas.value !== '—') {
+        const gasSel = document.getElementById('plug-gas');
+        if (gasSel) {
+            const gv = f.gas.value.toLowerCase().trim();
+            for (const opt of gasSel.options) {
+                if (opt.value === gv) { gasSel.value = gv; synced.push('plug-gas'); break; }
+            }
+        }
+    }
+    if (f.interval && f.interval.value && f.interval.value !== '—') setField('plug-int', f.interval.value);
+    if (f.stalls && f.stalls.value && f.stalls.value !== '—') setField('plug-stalls', f.stalls.value);
+    if (f.fr && f.fr.value && f.fr.value !== '—') setField('plug-fr', f.fr.value);
+    if (f.pop && f.pop.value && f.pop.value !== '—') setField('plug-pop', f.pop.value);
+    if (f.comments && f.comments.value && f.comments.value !== '—') setField('plug-comments', f.comments.value);
+    
+    // --- Trigger plug tab updates ---
+    if (synced.length > 0) {
+        updatePlugHeader();
+        savePlugData();
+    }
+    
+    // --- INJECTION TAB: Sync pump rate ---
+    if (f.pr) {
+        const prNum = parseFloat(f.pr.value);
+        if (!isNaN(prNum) && prNum >= 1 && prNum <= 8) {
+            const sel = document.getElementById('pump-rate-select');
+            const options = Array.from(sel.options).map(o => parseFloat(o.value)).filter(v => !isNaN(v));
+            let closest = options[0], minDiff = Math.abs(prNum - closest);
+            for (const opt of options) {
+                const diff = Math.abs(prNum - opt);
+                if (diff < minDiff) { closest = opt; minDiff = diff; }
+            }
+            if (minDiff <= 0.25) {
+                sel.value = closest.toString();
+                updatePumpRate();
+            }
+        }
+    }
+    
+    return synced;
+}
+
 function processChatFeed() {
     let text = '';
     
@@ -4403,33 +4611,16 @@ function processChatFeed() {
     renderChatFeedHistory();
     updateChatFeedBadge();
     
-    // === AUTO-SYNC: Push PR to Injection tab pump rate ===
+    // === AUTO-SYNC: Push extracted data into Plugs tab and Injection tab ===
     const latestRecord = records[records.length - 1]; // use most recent plug
-    if (latestRecord && latestRecord.fields.pr) {
-        const prRaw = latestRecord.fields.pr.value;
-        const prNum = parseFloat(prRaw);
-        if (!isNaN(prNum) && prNum >= 1 && prNum <= 8) {
-            // Find closest matching option in the pump rate select
-            const sel = document.getElementById('pump-rate-select');
-            const options = Array.from(sel.options).map(o => parseFloat(o.value)).filter(v => !isNaN(v));
-            let closest = options[0];
-            let minDiff = Math.abs(prNum - closest);
-            for (const opt of options) {
-                const diff = Math.abs(prNum - opt);
-                if (diff < minDiff) { closest = opt; minDiff = diff; }
-            }
-            // Only auto-set if it's a close match (within 0.25)
-            if (minDiff <= 0.25) {
-                const matchVal = closest % 1 === 0 ? closest.toString() : closest.toString();
-                sel.value = matchVal;
-                updatePumpRate();
-                // Show a brief confirmation
-                const btn = document.getElementById('cf-process-btn');
-                const origText = btn.innerHTML;
-                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Extracted — Pump Rate set to ' + matchVal + ' BPM';
-                btn.style.background = '#2e7d32';
-                setTimeout(() => { btn.innerHTML = origText; btn.style.background = ''; }, 3000);
-            }
+    if (latestRecord) {
+        const synced = applyChatFeedToApp(latestRecord);
+        if (synced.length > 0) {
+            const btn = document.getElementById('cf-process-btn');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Extracted — ' + synced.length + ' fields synced';
+            btn.style.background = '#2e7d32';
+            setTimeout(() => { btn.innerHTML = origText; btn.style.background = ''; }, 3000);
         }
     }
     
