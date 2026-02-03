@@ -130,8 +130,11 @@
         
         /* Totals Bar */
         .totals-bar { display: flex; justify-content: space-around; padding: 10px 8px; background: #243447; border-top: 1px solid #2d4a6f; flex-wrap: wrap; gap: 6px; }
-        .total-item { text-align: center; padding: 6px 8px; border-radius: 6px; min-width: 48px; background: #1b2838; }
+        .total-item { text-align: center; padding: 6px 8px; border-radius: 6px; min-width: 48px; background: #1b2838; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+        .total-item:active { transform: scale(0.95); }
+        .total-item.filter-active { border-color: currentColor; background: rgba(255,255,255,0.08); }
         .total-label { font-size: 8px; color: #888; text-transform: uppercase; font-weight: 600; }
+        .total-item.filter-active .total-label { color: #ccc; }
         .total-value { font-size: 15px; font-weight: 700; }
         .total-value.brine { color: #42a5f5; }
         .total-value.packer { color: #ff7043; }
@@ -277,10 +280,10 @@
         @keyframes blePulse { 0%,100% { opacity: 1; box-shadow: 0 0 4px rgba(255,152,0,0.3); } 50% { opacity: 0.4; box-shadow: 0 0 12px rgba(255,152,0,0.7); } }
 
         /* Tank Group Bar */
-        .tank-group-bar { display: flex; gap: 6px; padding: 8px 10px; background: #243447; border-bottom: 1px solid #2d4a6f; overflow-x: auto; align-items: center; }
-        .tank-group-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid #2d4a6f; background: #1b2838; color: #888; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
-        .tank-group-btn.active { background: #2e7d32; color: white; border-color: #2e7d32; }
-        .tank-group-btn.manage { background: transparent; border: 1px dashed #455a64; color: #4fc3f7; font-size: 11px; padding: 8px 10px; }
+        .filtered-tanks { display: none; padding: 10px; }
+        .filtered-tanks.active { display: block; }
+        .filtered-side-label { font-size: 10px; color: #4fc3f7; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; padding: 8px 4px 4px; margin-top: 6px; }
+        .filtered-side-label:first-child { margin-top: 0; }
         
         /* Settings Dropdown in Profile Modal */
         .profile-divider { border: none; border-top: 1px solid #2d4a6f; margin: 16px 0; }
@@ -289,22 +292,6 @@
         .profile-action-btn:hover { background: #2d4a6f; }
         .profile-action-btn .action-icon { font-size: 18px; }
         
-        /* Tank Group Modal */
-        .tg-modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 350; align-items: center; justify-content: center; padding: 20px; }
-        .tg-modal-overlay.show { display: flex; }
-        .tg-modal { background: #243447; border-radius: 12px; padding: 20px; width: 100%; max-width: 380px; max-height: 85vh; overflow-y: auto; }
-        .tg-input { width: 100%; padding: 12px; border: 1px solid #2d4a6f; border-radius: 6px; background: #1b2838; color: #e0e0e0; font-size: 16px; margin-bottom: 12px; }
-        .tg-tank-list { max-height: 250px; overflow-y: auto; margin-bottom: 12px; }
-        .tg-tank-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: #1b2838; border-radius: 6px; margin-bottom: 6px; cursor: pointer; }
-        .tg-tank-item.selected { background: rgba(46,125,50,0.25); border: 1px solid #66bb6a; }
-        .tg-tank-item .tg-check { width: 22px; height: 22px; border-radius: 4px; border: 2px solid #455a64; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-        .tg-tank-item.selected .tg-check { border-color: #66bb6a; background: #2e7d32; color: white; }
-        .tg-tank-label { flex: 1; font-size: 14px; color: #e0e0e0; }
-        .tg-group-list { margin-bottom: 12px; }
-        .tg-group-item { display: flex; align-items: center; gap: 8px; padding: 10px; background: #1b2838; border-radius: 6px; margin-bottom: 6px; }
-        .tg-group-name { flex: 1; font-size: 14px; color: #e0e0e0; font-weight: 600; }
-        .tg-group-count { font-size: 12px; color: #888; }
-        .tg-group-del { background: none; border: none; color: #ef5350; font-size: 18px; cursor: pointer; padding: 0 4px; }
         
         /* Voice highlight removed - mic icon states handle feedback */
         
@@ -471,7 +458,6 @@
             <hr class="profile-divider">
             <div class="profile-section-label">Tank Management</div>
             <button class="profile-action-btn" onclick="closeProfileModal();showAddTankModal()"><span class="action-icon">➕</span> Add Tank</button>
-            <button class="profile-action-btn" onclick="closeProfileModal();openTankGroupModal()"><span class="action-icon">📂</span> Manage Tank Groups</button>
             <button class="profile-action-btn" onclick="closeProfileModal();openVoiceKeywordsManager()"><span class="action-icon">🎤</span> Set Voice Keywords</button>
             <hr class="profile-divider">
             <div class="profile-section-label">Laser / BLE</div>
@@ -501,22 +487,20 @@
     </div>
 
     <div id="tanks-tab" class="tab-content active">
-        <div class="tank-group-bar" id="tank-group-bar">
-            <button class="tank-group-btn active" onclick="setActiveGroup('all')">All Tanks</button>
-        </div>
-        <div class="side-toggle">
+        <div class="side-toggle" id="side-toggle">
             <button class="side-tab active" onclick="switchSide('pump')">Pump Side</button>
             <button class="side-tab" onclick="switchSide('return')">Return Side</button>
         </div>
         <div class="tanks-container active" id="pump-tanks"></div>
         <div class="tanks-container" id="return-tanks"></div>
-        <div class="totals-bar">
-            <div class="total-item"><div class="total-label">Brine</div><div class="total-value brine" id="total-brine">0</div></div>
-            <div class="total-item"><div class="total-label">Packer</div><div class="total-value packer" id="total-packer">0</div></div>
-            <div class="total-item"><div class="total-label">Mud</div><div class="total-value mud" id="total-mud">0</div></div>
-            <div class="total-item"><div class="total-label">Recirc</div><div class="total-value recirc" id="total-recirc">0</div></div>
-            <div class="total-item"><div class="total-label">Fresh</div><div class="total-value freshwater" id="total-freshwater">0</div></div>
-            <div class="total-item"><div class="total-label">Other</div><div class="total-value other" id="total-other">0</div></div>
+        <div class="filtered-tanks" id="filtered-tanks"></div>
+        <div class="totals-bar" id="totals-bar">
+            <div class="total-item" id="filter-brine" onclick="setFluidFilter('brine')"><div class="total-label">Brine</div><div class="total-value brine" id="total-brine">0</div></div>
+            <div class="total-item" id="filter-packer" onclick="setFluidFilter('packer')"><div class="total-label">Packer</div><div class="total-value packer" id="total-packer">0</div></div>
+            <div class="total-item" id="filter-mud" onclick="setFluidFilter('mud')"><div class="total-label">Mud</div><div class="total-value mud" id="total-mud">0</div></div>
+            <div class="total-item" id="filter-recirc" onclick="setFluidFilter('recirc')"><div class="total-label">Recirc</div><div class="total-value recirc" id="total-recirc">0</div></div>
+            <div class="total-item" id="filter-freshwater" onclick="setFluidFilter('freshwater')"><div class="total-label">Fresh</div><div class="total-value freshwater" id="total-freshwater">0</div></div>
+            <div class="total-item" id="filter-other" onclick="setFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="total-other">0</div></div>
         </div>
         <div class="system-totals">
             <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="system-total">0 BBL</div></div>
@@ -751,18 +735,6 @@
     </div>
 
     <!-- Tank Group Modal -->
-    <div class="tg-modal-overlay" id="tg-modal">
-        <div class="tg-modal">
-            <div class="profile-modal-title">📂 Tank Groups</div>
-            <div class="tg-group-list" id="tg-group-list"></div>
-            <hr class="profile-divider">
-            <div class="profile-section-label">Create New Group</div>
-            <input type="text" class="tg-input" id="tg-new-name" placeholder="Group name (e.g. Mud Tanks)">
-            <div class="tg-tank-list" id="tg-tank-checklist"></div>
-            <button class="profile-save-btn" id="tg-save-btn" onclick="saveTankGroup()">Create Group</button>
-            <button class="profile-clear-btn" onclick="closeTankGroupModal()">Close</button>
-        </div>
-    </div>
 
     <div class="report-screen" id="tank-report">
         <div class="report-header"><button class="report-close" onclick="hideTankReport()">×</button><h1>Tank Volume Report</h1><p id="tank-report-time"></p></div>
@@ -1285,17 +1257,51 @@ function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeTe
 function render() { 
     const pumpEl = document.getElementById('pump-tanks');
     const returnEl = document.getElementById('return-tanks');
+    const filteredEl = document.getElementById('filtered-tanks');
+    const sideToggle = document.getElementById('side-toggle');
     if (!pumpEl || !returnEl) {
         console.error('Tank containers not found, retrying in 100ms');
         setTimeout(render, 100);
         return;
     }
-    // Filter by active group
-    const groupFilter = activeGroup !== 'all' ? tankGroups.find(g => g.id === activeGroup) : null;
-    const filteredPump = groupFilter ? data.pumpTanks.filter(t => groupFilter.tankIds.includes(t.id)) : data.pumpTanks;
-    const filteredReturn = groupFilter ? data.returnTanks.filter(t => groupFilter.tankIds.includes(t.id)) : data.returnTanks;
-    pumpEl.innerHTML=filteredPump.length===0?'<div class="empty-state">No pump tanks'+(groupFilter?' in this group':'')+'</div>':filteredPump.map(t=>renderTankCard(t,'pump')).join(''); 
-    returnEl.innerHTML=filteredReturn.length===0?'<div class="empty-state">No return tanks'+(groupFilter?' in this group':'')+'</div>':filteredReturn.map(t=>renderTankCard(t,'return')).join(''); 
+    
+    // Fluid filter mode
+    if (activeFluidFilter) {
+        // Hide side toggle and normal containers, show filtered
+        sideToggle.style.display = 'none';
+        pumpEl.classList.remove('active');
+        returnEl.classList.remove('active');
+        filteredEl.classList.add('active');
+        
+        const matchPump = data.pumpTanks.filter(t => getTankFluidType(t, 'pump') === activeFluidFilter);
+        const matchReturn = data.returnTanks.filter(t => getTankFluidType(t, 'return') === activeFluidFilter);
+        
+        let html = '';
+        if (matchPump.length) {
+            html += '<div class="filtered-side-label">Pump Side</div>';
+            html += matchPump.map(t => renderTankCard(t, 'pump')).join('');
+        }
+        if (matchReturn.length) {
+            html += '<div class="filtered-side-label">Return Side</div>';
+            html += matchReturn.map(t => renderTankCard(t, 'return')).join('');
+        }
+        if (!matchPump.length && !matchReturn.length) {
+            html = '<div class="empty-state">No tanks with this fluid type</div>';
+        }
+        filteredEl.innerHTML = html;
+    } else {
+        // Normal pump/return mode
+        sideToggle.style.display = '';
+        filteredEl.classList.remove('active');
+        filteredEl.innerHTML = '';
+        // Restore active side
+        pumpEl.classList.toggle('active', currentSide === 'pump');
+        returnEl.classList.toggle('active', currentSide === 'return');
+        pumpEl.innerHTML = data.pumpTanks.length === 0 ? '<div class="empty-state">No pump tanks</div>' : data.pumpTanks.map(t => renderTankCard(t, 'pump')).join(''); 
+        returnEl.innerHTML = data.returnTanks.length === 0 ? '<div class="empty-state">No return tanks</div>' : data.returnTanks.map(t => renderTankCard(t, 'return')).join(''); 
+    }
+    
+    // Also render both containers for non-filtered data (jet source dropdown, etc.)
     const jetSel=document.getElementById('jet-source'); 
     if(jetSel) {
         jetSel.innerHTML='<option value="">Select tank...</option>'; 
@@ -1313,6 +1319,13 @@ function render() {
     if(el('jetted-total')) el('jetted-total').textContent=data.jetsShift+' BBL'; 
     if(el('jets-hour')) el('jets-hour').textContent=data.jetsHour; 
     if(el('transfer-shift-total')) el('transfer-shift-total').textContent=data.jetsShift+' BBL';
+    
+    // Update filter button active states
+    ['brine','packer','mud','recirc','freshwater','other'].forEach(type => {
+        const btn = el('filter-' + type);
+        if (btn) btn.classList.toggle('filter-active', activeFluidFilter === type);
+    });
+    
     renderGLTotals();
     // Gain/Loss display
     const lastCheckEl=document.getElementById('last-check-time'),elapsedEl=document.getElementById('elapsed-time'),truEl=document.getElementById('true-change'),rateEl=document.getElementById('rate-per-hour');
@@ -2101,9 +2114,8 @@ function processVoiceInput(text) {
             voicePendingInches = 41;
             voicePendingBbls = 185;
             updateVoiceStatus(`Full = 185 BBL`, speakableName(voiceCurrentTank.name));
-            voiceSpeakAndThen(`Full, 185 barrels`, () => {
-                voiceConfirmEntry();
-            });
+            voiceSpeak(`Full, 185 barrels`);
+            setTimeout(() => { voiceConfirmEntry(); }, 900);
             return;
         }
         
@@ -2112,9 +2124,8 @@ function processVoiceInput(text) {
             voicePendingInches = num;
             voicePendingBbls = STICK_CHART[num] || 0;
             updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, speakableName(voiceCurrentTank.name));
-            voiceSpeakAndThen(`${voicePendingInches}, ${voicePendingBbls} barrels`, () => {
-                voiceConfirmEntry();
-            });
+            voiceSpeak(`${voicePendingInches}, ${voicePendingBbls} barrels`);
+            setTimeout(() => { voiceConfirmEntry(); }, 900);
         }
     }
 }
@@ -2471,112 +2482,40 @@ function autoAdvanceBle() {
 
 function getFilteredTanks() {
     const all = [];
-    const pFiltered = activeGroup === 'all' ? data.pumpTanks : data.pumpTanks.filter(t => tankGroups.find(g => g.id === activeGroup)?.tankIds.includes(t.id));
-    const rFiltered = activeGroup === 'all' ? data.returnTanks : data.returnTanks.filter(t => tankGroups.find(g => g.id === activeGroup)?.tankIds.includes(t.id));
-    pFiltered.forEach(t => all.push({ tank: t, side: 'pump' }));
-    rFiltered.forEach(t => all.push({ tank: t, side: 'return' }));
+    if (activeFluidFilter) {
+        data.pumpTanks.filter(t => getTankFluidType(t, 'pump') === activeFluidFilter).forEach(t => all.push({ tank: t, side: 'pump' }));
+        data.returnTanks.filter(t => getTankFluidType(t, 'return') === activeFluidFilter).forEach(t => all.push({ tank: t, side: 'return' }));
+    } else {
+        data.pumpTanks.forEach(t => all.push({ tank: t, side: 'pump' }));
+        data.returnTanks.forEach(t => all.push({ tank: t, side: 'return' }));
+    }
     return all;
 }
 
-// ==================== TANK GROUPS ====================
-let tankGroups = [];
-let activeGroup = 'all';
-let editingGroupId = null;
+// ==================== FLUID TYPE FILTER ====================
+let activeFluidFilter = null;
 
-function loadTankGroups() {
-    const s = localStorage.getItem('ipsTankGroups');
-    if (s) try { tankGroups = JSON.parse(s); } catch(e) { tankGroups = []; }
-}
-function saveTankGroups() { localStorage.setItem('ipsTankGroups', JSON.stringify(tankGroups)); }
-
-function renderGroupBar() {
-    const bar = document.getElementById('tank-group-bar');
-    if (!bar) return;
-    let html = '<button class="tank-group-btn' + (activeGroup === 'all' ? ' active' : '') + '" onclick="setActiveGroup(\'all\')">All Tanks</button>';
-    tankGroups.forEach(g => {
-        html += '<button class="tank-group-btn' + (activeGroup === g.id ? ' active' : '') + '" onclick="setActiveGroup(\'' + g.id + '\')">' + g.name + '</button>';
-    });
-    bar.innerHTML = html;
-}
-
-function setActiveGroup(groupId) {
-    activeGroup = groupId;
-    renderGroupBar();
-    render();
-}
-
-function openTankGroupModal() {
-    editingGroupId = null;
-    document.getElementById('tg-new-name').value = '';
-    document.getElementById('tg-save-btn').textContent = 'Create Group';
-    renderTankGroupList();
-    renderTankChecklist([]);
-    document.getElementById('tg-modal').classList.add('show');
-}
-function closeTankGroupModal() {
-    document.getElementById('tg-modal').classList.remove('show');
-    editingGroupId = null;
-}
-
-function renderTankGroupList() {
-    const el = document.getElementById('tg-group-list');
-    if (!tankGroups.length) { el.innerHTML = '<div style="color:#666;font-size:13px;text-align:center;padding:8px">No groups yet</div>'; return; }
-    el.innerHTML = tankGroups.map(g => {
-        const cnt = g.tankIds.filter(id => data.pumpTanks.find(t=>t.id===id) || data.returnTanks.find(t=>t.id===id)).length;
-        return '<div class="tg-group-item"><span class="tg-group-name">' + g.name + '</span><span class="tg-group-count">' + cnt + ' tanks</span><button class="tg-group-del" onclick="editTankGroup(\'' + g.id + '\')">✏️</button><button class="tg-group-del" onclick="deleteTankGroup(\'' + g.id + '\')">×</button></div>';
-    }).join('');
-}
-
-function renderTankChecklist(selectedIds) {
-    const el = document.getElementById('tg-tank-checklist');
-    const allTanks = [...data.pumpTanks.map(t => ({...t, _side: 'pump'})), ...data.returnTanks.map(t => ({...t, _side: 'return'}))];
-    if (!allTanks.length) { el.innerHTML = '<div style="color:#666;font-size:13px;text-align:center;padding:12px">Add tanks first</div>'; return; }
-    el.innerHTML = allTanks.map(t => {
-        const sel = selectedIds.includes(t.id);
-        return '<div class="tg-tank-item' + (sel ? ' selected' : '') + '" onclick="toggleTankInGroup(' + t.id + ')"><div class="tg-check">' + (sel ? '✓' : '') + '</div><span class="tg-tank-label">' + t.name + ' <span style="font-size:11px;color:#888">(' + t._side + ')</span></span></div>';
-    }).join('');
-}
-
-let tgSelectedTankIds = [];
-function toggleTankInGroup(id) {
-    const idx = tgSelectedTankIds.indexOf(id);
-    if (idx >= 0) tgSelectedTankIds.splice(idx, 1); else tgSelectedTankIds.push(id);
-    renderTankChecklist(tgSelectedTankIds);
-}
-
-function saveTankGroup() {
-    const name = document.getElementById('tg-new-name').value.trim();
-    if (!name) { alert('Enter a group name'); return; }
-    if (!tgSelectedTankIds.length) { alert('Select at least one tank'); return; }
-    
-    if (editingGroupId) {
-        const g = tankGroups.find(x => x.id === editingGroupId);
-        if (g) { g.name = name; g.tankIds = [...tgSelectedTankIds]; }
-        editingGroupId = null;
-        document.getElementById('tg-save-btn').textContent = 'Create Group';
+function getTankFluidType(tank, side) {
+    if (side === 'pump') {
+        if (tank.type === 'brine10' || tank.type === 'brine119') return 'brine';
+        if (tank.type === 'packer') return 'packer';
+        if (tank.type === 'aphron') return 'mud';
+        if (tank.type === 'recirc') return 'recirc';
+        if (tank.type === 'freshwater') return 'freshwater';
+        return 'other';
     } else {
-        tankGroups.push({ id: 'grp_' + Date.now(), name, tankIds: [...tgSelectedTankIds] });
+        const f = tank.contents || '';
+        if (f === 'brine') return 'brine';
+        if (f === 'mud') return 'mud';
+        if (f === 'recirc') return 'recirc';
+        if (f === 'freshwater') return 'freshwater';
+        return 'other';
     }
-    saveTankGroups(); renderGroupBar(); renderTankGroupList();
-    document.getElementById('tg-new-name').value = '';
-    tgSelectedTankIds = []; renderTankChecklist([]);
 }
 
-function editTankGroup(id) {
-    const g = tankGroups.find(x => x.id === id);
-    if (!g) return;
-    editingGroupId = id;
-    document.getElementById('tg-new-name').value = g.name;
-    tgSelectedTankIds = [...g.tankIds];
-    renderTankChecklist(tgSelectedTankIds);
-    document.getElementById('tg-save-btn').textContent = 'Save Changes';
-}
-
-function deleteTankGroup(id) {
-    if (!confirm('Delete this group?')) return;
-    tankGroups = tankGroups.filter(g => g.id !== id);
-    if (activeGroup === id) activeGroup = 'all';
-    saveTankGroups(); renderGroupBar(); renderTankGroupList(); render();
+function setFluidFilter(type) {
+    activeFluidFilter = activeFluidFilter === type ? null : type;
+    render();
 }
 
 function initApp() {
@@ -2593,14 +2532,12 @@ function initApp() {
     });
     if (migrated) saveData();
     loadBleOffset();
-    loadTankGroups();
     console.log('After loadData:', data.pumpTanks.length, 'pump tanks,', data.returnTanks.length, 'return tanks');
     loadInjUI();
     renderTransferLog();
     renderVolumeLog();
     loadTitrationLog();
     renderTitrationLog();
-    renderGroupBar();
     console.log('About to render, pump-tanks element:', document.getElementById('pump-tanks'));
     render();
 }
