@@ -533,12 +533,20 @@
 
     <!-- GAIN/LOSS TAB -->
     <div id="gainloss-tab" class="tab-content">
+        <div class="totals-bar" id="gl-totals-bar">
+            <div class="total-item" id="gl-filter-brine" onclick="setGLFluidFilter('brine')"><div class="total-label">Brine</div><div class="total-value brine" id="gl-total-brine">0</div></div>
+            <div class="total-item" id="gl-filter-packer" onclick="setGLFluidFilter('packer')"><div class="total-label">Packer</div><div class="total-value packer" id="gl-total-packer">0</div></div>
+            <div class="total-item" id="gl-filter-mud" onclick="setGLFluidFilter('mud')"><div class="total-label">Mud</div><div class="total-value mud" id="gl-total-mud">0</div></div>
+            <div class="total-item" id="gl-filter-recirc" onclick="setGLFluidFilter('recirc')"><div class="total-label">Recirc</div><div class="total-value recirc" id="gl-total-recirc">0</div></div>
+            <div class="total-item" id="gl-filter-freshwater" onclick="setGLFluidFilter('freshwater')"><div class="total-label">Fresh</div><div class="total-value freshwater" id="gl-total-freshwater">0</div></div>
+            <div class="total-item" id="gl-filter-other" onclick="setGLFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="gl-total-other">0</div></div>
+        </div>
         <div style="padding:12px;padding-bottom:80px">
+            <div id="gl-filter-label" style="text-align:center;font-size:11px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px;padding:4px 0">Capture <span style="color:#e0e0e0">System</span></div>
             <div class="controls" style="margin-bottom:0">
-                <button class="ctrl-btn blue" onclick="logGainLossCheck()" style="flex:1">📋 Capture</button>
+                <button class="ctrl-btn blue" onclick="logGainLossCheck()" style="flex:1">Capture</button>
                 <button style="background:#2d4a6f;color:#e0e0e0;border:none;padding:10px 12px;border-radius:6px;font-size:11px;cursor:pointer" onclick="resetGainLoss()">Reset</button>
             </div>
-            <div id="gl-filter-label" style="display:none;text-align:center;font-size:11px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px;padding:8px 0 4px"></div>
             <div class="gain-loss-bar" style="margin-bottom:0;border-radius:6px 6px 0 0">
                 <div class="gl-box"><div class="gl-label">User</div><div class="gl-value neutral" id="cap-user" style="font-size:12px">--</div></div>
                 <div class="gl-box"><div class="gl-label">Fluid</div><div class="gl-value neutral" id="cap-fluid" style="font-size:12px">--</div></div>
@@ -552,14 +560,6 @@
                 <div class="gl-box"><div class="gl-label">Actual</div><div class="gl-value neutral" id="true-change">--</div></div>
                 <div class="gl-box"><div class="gl-label">Transfers</div><div class="gl-value neutral" id="cap-transfers" style="font-size:11px">--</div></div>
                 <div class="gl-box"><div class="gl-label">Hourly</div><div class="gl-value neutral" id="rate-per-hour">--</div></div>
-            </div>
-            <div class="totals-bar" style="margin:0 -12px">
-                <div class="total-item" id="gl-filter-brine" onclick="setGLFluidFilter('brine')"><div class="total-label">Brine</div><div class="total-value brine" id="gl-total-brine">0</div></div>
-                <div class="total-item" id="gl-filter-packer" onclick="setGLFluidFilter('packer')"><div class="total-label">Packer</div><div class="total-value packer" id="gl-total-packer">0</div></div>
-                <div class="total-item" id="gl-filter-mud" onclick="setGLFluidFilter('mud')"><div class="total-label">Mud</div><div class="total-value mud" id="gl-total-mud">0</div></div>
-                <div class="total-item" id="gl-filter-recirc" onclick="setGLFluidFilter('recirc')"><div class="total-label">Recirc</div><div class="total-value recirc" id="gl-total-recirc">0</div></div>
-                <div class="total-item" id="gl-filter-freshwater" onclick="setGLFluidFilter('freshwater')"><div class="total-label">Fresh</div><div class="total-value freshwater" id="gl-total-freshwater">0</div></div>
-                <div class="total-item" id="gl-filter-other" onclick="setGLFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="gl-total-other">0</div></div>
             </div>
             <div class="system-totals" style="margin:0 0 12px">
                 <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="gl-system-total">0 BBL</div></div>
@@ -575,27 +575,28 @@
 
     <!-- TRANSFER TAB -->
     <div id="transfer-tab" class="tab-content">
+        <div class="totals-bar" id="xfer-totals-bar">
+            <div class="total-item" id="xfer-filter-brine" onclick="setXferFluidFilter('brine')"><div class="total-label">Brine</div><div class="total-value brine" id="xfer-total-brine">0</div></div>
+            <div class="total-item" id="xfer-filter-packer" onclick="setXferFluidFilter('packer')"><div class="total-label">Packer</div><div class="total-value packer" id="xfer-total-packer">0</div></div>
+            <div class="total-item" id="xfer-filter-mud" onclick="setXferFluidFilter('mud')"><div class="total-label">Mud</div><div class="total-value mud" id="xfer-total-mud">0</div></div>
+            <div class="total-item" id="xfer-filter-recirc" onclick="setXferFluidFilter('recirc')"><div class="total-label">Recirc</div><div class="total-value recirc" id="xfer-total-recirc">0</div></div>
+            <div class="total-item" id="xfer-filter-freshwater" onclick="setXferFluidFilter('freshwater')"><div class="total-label">Fresh</div><div class="total-value freshwater" id="xfer-total-freshwater">0</div></div>
+            <div class="total-item" id="xfer-filter-other" onclick="setXferFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="xfer-total-other">0</div></div>
+        </div>
         <div style="padding:12px;padding-bottom:80px">
+            <div id="xfer-filter-label" style="text-align:center;font-size:11px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px;padding:4px 0 8px">Capture <span style="color:#e0e0e0">System</span></div>
             <div class="jet-section">
-                <div class="jet-title">Fluid Transfer</div>
                 <div class="jet-toggle">
                     <button class="jet-toggle-btn out active" onclick="setJetType('out')">Jet Out</button>
                     <button class="jet-toggle-btn in" onclick="setJetType('in')">Jet In</button>
                     <button class="jet-toggle-btn build" onclick="setJetType('build')">Build</button>
                 </div>
-                <!-- Jet In/Out row -->
-                <div class="jet-row" id="jet-row-standard">
-                    <select id="jet-source"><option value="">Select tank...</option></select>
-                    <input type="number" id="jet-volume" value="120" style="max-width:80px">
-                    <button class="jet-btn out" id="jet-action-btn" onclick="startJetProcess()">Jet Out</button>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:10px" id="xfer-volume-row">
+                    <input type="number" id="jet-volume" value="120" oninput="if(jetType==='build')updateBuildTotal()" style="flex:1;padding:10px;border:1px solid #2d4a6f;border-radius:6px;font-size:16px;background:#1b2838;color:#e0e0e0;text-align:center" placeholder="BBL">
+                    <span style="font-size:12px;color:#888">BBL</span>
                 </div>
-                <!-- Build row -->
-                <div id="build-row" style="display:none">
-                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-                        <select id="build-dest" style="flex:1;padding:8px;border:1px solid #2d4a6f;border-radius:6px;font-size:14px;background:#1b2838;color:#e0e0e0"><option value="">Send to tank...</option></select>
-                        <input type="number" id="build-volume" value="35" onchange="updateBuildTotal()" style="max-width:80px;padding:8px;border:1px solid #2d4a6f;border-radius:6px;font-size:14px;background:#1b2838;color:#e0e0e0">
-                        <span style="font-size:11px;color:#888;white-space:nowrap">BBL/batch</span>
-                    </div>
+                <!-- Build batch counter -->
+                <div id="build-row" style="display:none;margin-top:10px">
                     <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:10px">
                         <button onclick="adjustBuildCount(-1)" style="width:44px;height:44px;border:1px solid #6d4c41;border-radius:8px;background:#1b2838;color:#a1887f;font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
                         <div style="text-align:center;min-width:80px">
@@ -604,15 +605,17 @@
                         </div>
                         <button onclick="adjustBuildCount(1)" style="width:44px;height:44px;border:1px solid #6d4c41;border-radius:8px;background:#1b2838;color:#a1887f;font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
                     </div>
-                    <div style="text-align:center;margin-bottom:10px">
+                    <div style="text-align:center;margin-bottom:6px">
                         <span style="font-size:12px;color:#888">Total: </span>
-                        <span style="font-size:20px;font-weight:700;color:#a1887f" id="build-total-display">35 BBL</span>
+                        <span style="font-size:20px;font-weight:700;color:#a1887f" id="build-total-display">120 BBL</span>
                     </div>
-                    <button class="jet-btn build" onclick="executeBuild()" style="width:100%;padding:12px">Build Mud</button>
                 </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #2d4a6f">
-                    <div><span style="font-size:11px;color:#888">Shift Total: </span><span style="font-size:16px;font-weight:700;color:#ffa726" id="transfer-shift-total">0 BBL</span></div>
-                    <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:6px 12px;border-radius:4px;font-size:11px;cursor:pointer" onclick="resetShiftJetted()">Reset Shift</button>
+                <div class="controls" style="margin-top:10px;margin-bottom:0">
+                    <button class="ctrl-btn blue" onclick="startTransferCapture()" style="flex:1" id="xfer-capture-btn">Capture</button>
+                    <button style="background:#2d4a6f;color:#e0e0e0;border:none;padding:10px 12px;border-radius:6px;font-size:11px;cursor:pointer" onclick="resetShiftJetted()">Reset</button>
+                </div>
+                <div style="display:flex;justify-content:center;align-items:center;margin-top:10px">
+                    <span style="font-size:11px;color:#888">Shift Total: </span><span style="font-size:16px;font-weight:700;color:#ffa726;margin-left:6px" id="transfer-shift-total">0 BBL</span>
                 </div>
             </div>
             <div style="background:#1b2838;border-radius:6px;padding:10px;margin-top:12px;max-height:350px;overflow-y:auto">
@@ -620,6 +623,18 @@
                 <div id="transfer-log-content"><em style="color:#666">No transfers logged</em></div>
             </div>
             <button class="report-btn" onclick="showTransferReport()">Generate Transfer Report</button>
+        </div>
+    </div>
+    
+    <!-- TRANSFER TANK PICKER MODAL -->
+    <div class="modal" id="xfer-tank-modal" onclick="if(event.target===this)hideXferTankModal()">
+        <div style="background:#243447;border-radius:12px;padding:20px;width:90%;max-width:400px">
+            <div style="font-size:16px;font-weight:700;color:#e0e0e0;margin-bottom:12px;text-align:center" id="xfer-modal-title">Select Tank(s)</div>
+            <div id="xfer-tank-list" style="max-height:350px;overflow-y:auto"></div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <button class="ctrl-btn blue" onclick="confirmXferTankSelection()" style="flex:1">Confirm</button>
+                <button style="background:#2d4a6f;color:#e0e0e0;border:none;padding:10px 16px;border-radius:6px;font-size:13px;cursor:pointer" onclick="hideXferTankModal()">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -1059,6 +1074,7 @@ function switchMainTab(tab) {
     document.querySelectorAll('.main-tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===tab));
     tabs.forEach(id => { const el=document.getElementById(id+'-tab'); if(el) el.classList.toggle('active', id===tab); });
     if(tab==='gainloss') renderGLTotals();
+    if(tab==='transfer') renderXferTotals();
 }
 function switchSide(side) {
     currentSide = side;
@@ -1070,59 +1086,36 @@ function setJetType(type) {
     jetType = type;
     document.querySelectorAll('.jet-toggle-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.jet-toggle-btn.'+type).classList.add('active');
-    const btn = document.getElementById('jet-action-btn');
-    const stdRow = document.getElementById('jet-row-standard');
     const buildRow = document.getElementById('build-row');
+    const volRow = document.getElementById('xfer-volume-row');
+    const volInput = document.getElementById('jet-volume');
     if (type === 'build') {
-        stdRow.style.display = 'none';
         buildRow.style.display = 'block';
-        populateBuildDest();
+        if (volRow) volRow.querySelector('span').textContent = 'BBL/batch';
+        if (volInput) volInput.value = '35';
+        updateBuildTotal();
     } else {
-        stdRow.style.display = 'flex';
         buildRow.style.display = 'none';
-        btn.className = 'jet-btn '+type;
-        btn.textContent = type==='out' ? 'Jet Out' : 'Jet In';
+        if (volRow) volRow.querySelector('span').textContent = 'BBL';
+        if (volInput) volInput.value = '120';
     }
 }
 let buildCount = 1;
 function adjustBuildCount(delta) {
     buildCount = Math.max(1, buildCount + delta);
     document.getElementById('build-count').textContent = buildCount;
-    const perBatch = parseFloat(document.getElementById('build-volume').value) || 35;
-    document.getElementById('build-total-display').textContent = (buildCount * perBatch) + ' BBL';
+    updateBuildTotal();
 }
 function populateBuildDest() {
-    const sel = document.getElementById('build-dest');
-    sel.innerHTML = '<option value="">Send to tank...</option>';
-    // Mud tanks (aphron type on pump side)
-    data.pumpTanks.filter(t => t.type === 'aphron').forEach(t => {
-        sel.innerHTML += '<option value="' + t.id + '">' + t.name + ' (' + t.bbls + ')</option>';
-    });
-    // Also return tanks with mud contents
-    data.returnTanks.filter(t => t.contents === 'mud').forEach(t => {
-        sel.innerHTML += '<option value="' + t.id + '">' + t.name + ' (' + t.bbls + ')</option>';
-    });
+    // No longer needed - tank selection via modal now
 }
 function updateBuildTotal() {
-    const perBatch = parseFloat(document.getElementById('build-volume').value) || 35;
+    const perBatch = parseFloat(document.getElementById('jet-volume').value) || 35;
     document.getElementById('build-total-display').textContent = (buildCount * perBatch) + ' BBL';
 }
 function executeBuild() {
-    const destId = parseInt(document.getElementById('build-dest').value);
-    const perBatch = parseFloat(document.getElementById('build-volume').value) || 35;
-    const totalVol = buildCount * perBatch;
-    if (!destId) { alert('Select a destination tank'); return; }
-    const result = findTank(destId);
-    if (!result) { alert('Tank not found'); return; }
-    const { tank, side } = result;
-    // Equalize logic - find other mud tanks on same side
-    const eqTanks = getEqualizableTanks(tank, side);
-    if (eqTanks.length > 0) {
-        pendingJet = { tank, side, volume: totalVol, equalizableTanks: eqTanks, isBuild: true };
-        showBuildEqualizeModal(tank, eqTanks, totalVol);
-    } else {
-        finalizeBuild([tank], totalVol);
-    }
+    // Called from old flow — no longer used directly, 
+    // now routed through startTransferCapture → modal → confirmXferTankSelection
 }
 function showBuildEqualizeModal(dest, eqTanks, vol) {
     const all = [dest, ...eqTanks], per = Math.round(vol / all.length);
@@ -1144,6 +1137,169 @@ function finalizeBuild(tanks, totalVol) {
     else alert('Built ' + totalVol + ' BBL across ' + tanks.length + ' tanks');
 }
 function resetShiftJetted() { if(confirm('Reset shift jetted total?')) { data.jetsShift=0; saveData(); render(); } }
+
+// === Transfer Tab Fluid Filter ===
+let xferFluidFilter = null;
+
+function setXferFluidFilter(type) {
+    xferFluidFilter = xferFluidFilter === type ? null : type;
+    ['brine','packer','mud','recirc','freshwater','other'].forEach(t => {
+        const btn = document.getElementById('xfer-filter-' + t);
+        if (btn) btn.classList.toggle('filter-active', xferFluidFilter === t);
+    });
+    const label = document.getElementById('xfer-filter-label');
+    const fluidNames = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Freshwater',other:'Other'};
+    const fluidLabelColors = {brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};
+    if (label) {
+        if (xferFluidFilter) {
+            const fName = fluidNames[xferFluidFilter] || xferFluidFilter;
+            const fClr = fluidLabelColors[xferFluidFilter] || '#e0e0e0';
+            label.innerHTML = 'Capture <span style="color:' + fClr + '">' + fName + '</span> Only';
+        } else {
+            label.innerHTML = 'Capture <span style="color:#e0e0e0">System</span>';
+        }
+    }
+}
+
+function renderXferTotals() {
+    const totals = calculateTotals();
+    const el = (id) => document.getElementById(id);
+    if(el('xfer-total-brine')) el('xfer-total-brine').textContent = totals.brine;
+    if(el('xfer-total-packer')) el('xfer-total-packer').textContent = totals.packer;
+    if(el('xfer-total-mud')) el('xfer-total-mud').textContent = totals.mud;
+    if(el('xfer-total-recirc')) el('xfer-total-recirc').textContent = totals.recirc;
+    if(el('xfer-total-freshwater')) el('xfer-total-freshwater').textContent = totals.freshwater;
+    if(el('xfer-total-other')) el('xfer-total-other').textContent = totals.other;
+}
+
+// === Transfer Capture Flow ===
+let xferSelectedTanks = [];
+
+function getTanksForFluidType(fluidType) {
+    const tanks = [];
+    data.pumpTanks.forEach(t => {
+        if (getTankFluidType(t, 'pump') === fluidType) tanks.push({ tank: t, side: 'pump' });
+    });
+    data.returnTanks.forEach(t => {
+        if (getTankFluidType(t, 'return') === fluidType) tanks.push({ tank: t, side: 'return' });
+    });
+    return tanks;
+}
+
+function startTransferCapture() {
+    const vol = parseFloat(document.getElementById('jet-volume').value) || 120;
+    const totalVol = jetType === 'build' ? buildCount * vol : vol;
+    
+    // Get filtered tanks
+    const filter = xferFluidFilter;
+    let tankList;
+    if (filter) {
+        tankList = getTanksForFluidType(filter);
+    } else {
+        // System — show all tanks
+        tankList = [];
+        data.pumpTanks.forEach(t => tankList.push({ tank: t, side: 'pump' }));
+        data.returnTanks.forEach(t => tankList.push({ tank: t, side: 'return' }));
+    }
+    
+    if (tankList.length === 0) {
+        alert('No tanks available' + (filter ? ' for this fluid type' : ''));
+        return;
+    }
+    
+    // Set modal title based on jet type
+    const titleEl = document.getElementById('xfer-modal-title');
+    const fluidNames = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Freshwater',other:'Other'};
+    const typeLabel = filter ? (fluidNames[filter] || filter) + ' — ' : '';
+    if (jetType === 'out') {
+        titleEl.textContent = typeLabel + 'Remove from which tank(s)?';
+        titleEl.style.color = '#ef5350';
+    } else if (jetType === 'in') {
+        titleEl.textContent = typeLabel + 'Added into what tank(s)?';
+        titleEl.style.color = '#4caf50';
+    } else {
+        titleEl.textContent = typeLabel + 'Added to what tank(s)?';
+        titleEl.style.color = '#a1887f';
+    }
+    
+    // Populate tank list with checkboxes
+    xferSelectedTanks = [];
+    const listEl = document.getElementById('xfer-tank-list');
+    const fluidColors = {brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};
+    listEl.innerHTML = tankList.map((item, idx) => {
+        const t = item.tank;
+        const ft = getTankFluidType(t, item.side);
+        const borderClr = fluidColors[ft] || '#2d4a6f';
+        return '<div onclick="toggleXferTank(' + idx + ')" id="xfer-pick-' + idx + '" data-tank-id="' + t.id + '" ' +
+            'style="display:flex;justify-content:space-between;align-items:center;padding:12px;margin-bottom:6px;' +
+            'background:#1b2838;border:2px solid #2d4a6f;border-left:4px solid ' + borderClr + ';border-radius:6px;cursor:pointer">' +
+            '<div><div style="font-weight:600;color:#e0e0e0;font-size:14px">' + t.name + '</div>' +
+            '<div style="font-size:11px;color:#888">' + t.inches + '" — ' + t.bbls + ' BBL</div></div>' +
+            '<div style="width:24px;height:24px;border:2px solid #2d4a6f;border-radius:4px;display:flex;align-items:center;justify-content:center" ' +
+            'id="xfer-chk-' + idx + '"></div></div>';
+    }).join('');
+    
+    // Store tank list reference for confirm
+    window._xferTankList = tankList;
+    window._xferTotalVol = totalVol;
+    
+    document.getElementById('xfer-tank-modal').classList.add('show');
+}
+
+function toggleXferTank(idx) {
+    const pos = xferSelectedTanks.indexOf(idx);
+    if (pos >= 0) {
+        xferSelectedTanks.splice(pos, 1);
+        document.getElementById('xfer-pick-' + idx).style.borderColor = '#2d4a6f';
+        document.getElementById('xfer-chk-' + idx).innerHTML = '';
+    } else {
+        xferSelectedTanks.push(idx);
+        document.getElementById('xfer-pick-' + idx).style.borderColor = '#4fc3f7';
+        document.getElementById('xfer-chk-' + idx).innerHTML = '<span style="color:#4fc3f7;font-weight:700">✓</span>';
+    }
+}
+
+function hideXferTankModal() {
+    document.getElementById('xfer-tank-modal').classList.remove('show');
+    xferSelectedTanks = [];
+}
+
+function confirmXferTankSelection() {
+    if (xferSelectedTanks.length === 0) { alert('Select at least one tank'); return; }
+    
+    const tankList = window._xferTankList;
+    const totalVol = window._xferTotalVol;
+    const selectedTanks = xferSelectedTanks.map(idx => tankList[idx].tank);
+    
+    hideXferTankModal();
+    
+    // Check equalization for first selected tank
+    if (selectedTanks.length === 1) {
+        const result = findTank(selectedTanks[0].id);
+        if (result) {
+            const eqTanks = getEqualizableTanks(result.tank, result.side);
+            if (eqTanks.length > 0) {
+                if (jetType === 'build') {
+                    pendingJet = { tank: result.tank, side: result.side, volume: totalVol, equalizableTanks: eqTanks, isBuild: true };
+                    showBuildEqualizeModal(result.tank, eqTanks, totalVol);
+                } else if (jetType === 'out') {
+                    pendingJet = { tank: result.tank, side: result.side, volume: totalVol, equalizableTanks: eqTanks };
+                    showEqualizeModal(result.tank, eqTanks, totalVol);
+                } else {
+                    executeJet(selectedTanks, totalVol);
+                }
+                return;
+            }
+        }
+    }
+    
+    // No equalization needed — execute directly
+    if (jetType === 'build') {
+        finalizeBuild(selectedTanks, totalVol);
+    } else {
+        executeJet(selectedTanks, totalVol);
+    }
+}
 
 function updatePF() { const ph = parseFloat(document.getElementById('tit-ph').value)||0; if(ph<=7) document.getElementById('tit-pf').value='0'; }
 function calcChlorides() {
@@ -1420,11 +1576,6 @@ function render() {
     }
     
     // Also render both containers for non-filtered data (jet source dropdown, etc.)
-    const jetSel=document.getElementById('jet-source'); 
-    if(jetSel) {
-        jetSel.innerHTML='<option value="">Select tank...</option>'; 
-        [...data.pumpTanks,...data.returnTanks].forEach(t=>{jetSel.innerHTML+='<option value="'+t.id+'">'+t.name+' ('+t.bbls+')</option>';});
-    }
     const totals=calculateTotals(); 
     const el = (id) => document.getElementById(id);
     if(el('total-brine')) el('total-brine').textContent=totals.brine; 
@@ -1442,9 +1593,12 @@ function render() {
     ['brine','packer','mud','recirc','freshwater','other'].forEach(type => {
         const btn = el('filter-' + type);
         if (btn) btn.classList.toggle('filter-active', activeFluidFilter === type);
+        const xBtn = el('xfer-filter-' + type);
+        if (xBtn) xBtn.classList.toggle('filter-active', xferFluidFilter === type);
     });
     
     renderGLTotals();
+    renderXferTotals();
     // Monitor display — populate two-row stat boxes from last history entry
     const fluidNames = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Fresh',other:'Other'};
     const fluidBoxColors = {brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};
@@ -2861,12 +3015,11 @@ function setGLFluidFilter(type) {
     const fluidLabelColors = {brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};
     if (label) {
         if (glFluidFilter) {
-            label.style.display = 'block';
             const fName = fluidNames[glFluidFilter] || glFluidFilter;
             const fClr = fluidLabelColors[glFluidFilter] || '#e0e0e0';
             label.innerHTML = 'Capture <span style="color:' + fClr + '">' + fName + '</span> Only';
         } else {
-            label.style.display = 'none';
+            label.innerHTML = 'Capture <span style="color:#e0e0e0">System</span>';
         }
     }
     // Re-render the GL display from last check with filter applied
