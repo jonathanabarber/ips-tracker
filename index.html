@@ -1950,10 +1950,10 @@ function finalizeBuild(tanks, totalVol) {
     const per = Math.round(totalVol / tanks.length);
     tanks.forEach(t => { t.bbls += per; t.inches = bblToInches(t.bbls); t.estimated = true; });
     if (!data.transferLog) data.transferLog = [];
-    data.transferLog.unshift({ time: new Date().toISOString(), initials: profileData.initials || '', type: 'build', volume: totalVol, batches: buildCount, perBatch: parseFloat(document.getElementById('build-volume').value) || 35, tanks: tanks.map(t => t.name) });
+    data.transferLog.unshift({ time: new Date().toISOString(), initials: profileData.initials || '', type: 'build', volume: totalVol, batches: buildCount, perBatch: parseFloat(document.getElementById('jet-volume').value) || 35, tanks: tanks.map(t => t.name) });
     buildCount = 1;
     document.getElementById('build-count').textContent = '1';
-    const perBatch = parseFloat(document.getElementById('build-volume').value) || 35;
+    const perBatch = parseFloat(document.getElementById('jet-volume').value) || 35;
     document.getElementById('build-total-display').textContent = perBatch + ' BBL';
     saveData(); render(); renderTransferLog(); populateBuildDest();
     if (tanks.length === 1) alert('Built ' + totalVol + ' BBL\n' + tanks[0].name + ': ' + tanks[0].bbls + ' BBL (est ' + tanks[0].inches + '")');
