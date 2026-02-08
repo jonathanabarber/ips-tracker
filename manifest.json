@@ -1,9 +1,10 @@
 {
   "name": "IPS Fluid Tracker",
   "short_name": "IPS Tracker",
-  "description": "Intelligent Petroleum Solutions Fluid Tracking System",
-  "start_url": "index.html",
-  "display": "standalone",
+  "description": "Intelligent Petroleum Solutions - Fluid Tracking System",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
   "background_color": "#0d1b2a",
   "theme_color": "#0d1b2a",
   "icons": [
