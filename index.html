@@ -4885,6 +4885,11 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', safeInit);
 }
 window.addEventListener('load', safeInit);
+
+// Register service worker for PWA fullscreen
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 </script>
 
     <!-- ========== UNIVERSAL LOG EDIT MODAL ========== -->
