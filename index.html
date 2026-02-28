@@ -734,6 +734,16 @@
                 <div class="profile-initials-value" id="profile-initials-preview">--</div>
             </div>
             <hr class="profile-divider">
+            <!-- Room / Sync Info -->
+            <div class="profile-section-label">Room Status</div>
+            <div id="profile-room-info" style="padding:8px 12px;background:#1b2838;border-radius:6px;margin-bottom:8px;border:1px solid #2d4a6f">
+                <div style="font-size:12px;color:#888">Not connected to a room</div>
+            </div>
+            <div class="profile-section-label">Users Active</div>
+            <div id="profile-users-list" style="padding:8px 12px;background:#1b2838;border-radius:6px;margin-bottom:8px;border:1px solid #2d4a6f">
+                <div style="font-size:12px;color:#888">No users online</div>
+            </div>
+            <hr class="profile-divider">
             <div class="profile-section-label">Packer Fluid</div>
             <div id="packer-treated-controls" style="margin-bottom:8px"></div>
             <hr class="profile-divider">
@@ -1760,8 +1770,6 @@ function updateAdminUI() {
             addTankBtn.style.display = '';
         }
     }
-    // Re-render to show/hide delete buttons on tanks
-    try { render(); } catch(e) {}
     // Update sync strip label
     if (fbRoom) {
         const wellName = profileData.wellName || '';
@@ -1827,6 +1835,37 @@ function updateRoomUsersUI(users) {
         badge._users = users;
     } else {
         badge.style.display = 'none';
+        badge._users = [];
+    }
+    // Update profile modal users list
+    const listEl = document.getElementById('profile-users-list');
+    if (listEl) {
+        if (users.length === 0) {
+            listEl.innerHTML = '<div style="font-size:12px;color:#888">No users online</div>';
+        } else {
+            listEl.innerHTML = users.map(u => {
+                const isAdmin = u.initials === fbAdminInitials;
+                const isYou = u.initials === (profileData.initials || '');
+                const roleBadge = isAdmin ? '<span style="background:rgba(255,167,38,0.2);color:#ffa726;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;margin-left:6px">ADMIN</span>' : '';
+                const youBadge = isYou ? '<span style="color:#66bb6a;font-size:10px;margin-left:4px">(you)</span>' : '';
+                return '<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #2d4a6f">' +
+                    '<div style="width:28px;height:28px;border-radius:50%;background:' + (isAdmin ? 'rgba(255,167,38,0.2)' : 'rgba(79,195,247,0.15)') + ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:' + (isAdmin ? '#ffa726' : '#4fc3f7') + ';margin-right:8px">' + (u.initials || '??') + '</div>' +
+                    '<div style="flex:1"><div style="font-size:12px;color:#e0e0e0;font-weight:600">' + (u.name || u.initials) + youBadge + roleBadge + '</div></div></div>';
+            }).join('');
+        }
+    }
+    // Update room info
+    const roomEl = document.getElementById('profile-room-info');
+    if (roomEl) {
+        if (fbRoom) {
+            const role = fbIsAdmin ? '<span style="color:#ffa726;font-weight:700">Admin</span>' : '<span style="color:#4fc3f7">Member</span>';
+            roomEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center">' +
+                '<div><div style="font-size:13px;color:#e0e0e0;font-weight:600">' + (profileData.wellName || fbRoom) + '</div>' +
+                '<div style="font-size:10px;color:#888;margin-top:2px">Role: ' + role + '</div></div>' +
+                '<div style="width:8px;height:8px;border-radius:50%;background:#66bb6a;box-shadow:0 0 4px rgba(102,187,106,0.6)"></div></div>';
+        } else {
+            roomEl.innerHTML = '<div style="font-size:12px;color:#888">Not connected — set a well name to sync</div>';
+        }
     }
 }
 
@@ -1845,9 +1884,9 @@ function showRoomUsersInfo() {
 function firebaseSaveTanks() {
     if (!fbDb || !fbRoom) return;
     _suppressRemoteRender = true;
-    // Safety: never suppress for more than 3 seconds
+    // Safety: never suppress for more than 2 seconds
     clearTimeout(window._suppressTimeout);
-    window._suppressTimeout = setTimeout(() => { _suppressRemoteRender = false; }, 3000);
+    window._suppressTimeout = setTimeout(() => { _suppressRemoteRender = false; }, 2000);
     fbDb.ref('rooms/' + fbRoom + '/tanks').set({
         pumpTanks: data.pumpTanks || [],
         returnTanks: data.returnTanks || [],
@@ -1859,8 +1898,13 @@ function firebaseSaveTanks() {
         transferLog: (data.transferLog || []).slice(0, 100),
         _updatedAt: firebase.database.ServerValue.TIMESTAMP,
         _updatedBy: profileData.initials || ''
-    }).then(() => { _suppressRemoteRender = false; clearTimeout(window._suppressTimeout); })
-      .catch(e => { console.error('Firebase save error:', e); _suppressRemoteRender = false; clearTimeout(window._suppressTimeout); });
+    }).then(() => { 
+        setTimeout(() => { _suppressRemoteRender = false; clearTimeout(window._suppressTimeout); }, 200);
+    }).catch(e => { 
+        console.error('Firebase save error:', e); 
+        _suppressRemoteRender = false; 
+        clearTimeout(window._suppressTimeout); 
+    });
 }
 
 function firebaseSaveTitData() {
@@ -1919,8 +1963,16 @@ function fbToArray(val) {
 function onRemoteTanks(snap) {
     if (_suppressRemoteRender || !snap.exists()) return;
     const d = snap.val();
-    if (d.pumpTanks) data.pumpTanks = fbToArray(d.pumpTanks);
-    if (d.returnTanks) data.returnTanks = fbToArray(d.returnTanks);
+    const newPump = d.pumpTanks ? fbToArray(d.pumpTanks) : data.pumpTanks;
+    const newReturn = d.returnTanks ? fbToArray(d.returnTanks) : data.returnTanks;
+    
+    // Quick check: skip render if tank data hasn't changed (prevents BLE/voice disruption)
+    const localHash = JSON.stringify({p:data.pumpTanks,r:data.returnTanks});
+    const remoteHash = JSON.stringify({p:newPump,r:newReturn});
+    if (localHash === remoteHash) return;
+    
+    data.pumpTanks = newPump;
+    data.returnTanks = newReturn;
     if (d.jetsHour !== undefined) data.jetsHour = d.jetsHour;
     if (d.jetsShift !== undefined) data.jetsShift = d.jetsShift;
     if (d.lastSystemTotal !== undefined) data.lastSystemTotal = d.lastSystemTotal;
@@ -3125,9 +3177,8 @@ function getTankFillColor(color) {
     return colors[color] || colors.other;
 }
 function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); const maxBbl=tank.type==='sandcat'?185:500; const fillPct=Math.min(100,Math.round((tank.bbls/maxBbl)*100)); const fc=getTankFillColor(color); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; 
-/* Build top row: strap time first, then tank name, then update badge */
+/* Build top row: tank name only (update badge is positioned top-right) */
 let topRow=''; 
-if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';topRow+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} 
 topRow+='<span class="tank-name '+nameClass+'">'+tank.name+'</span>'; 
 /* Update badge — positioned top-right, left of delete X */
 let updateBadgeHtml='';
@@ -4521,13 +4572,18 @@ function handleBleMeasurement(event) {
             tank.estimated = false;
             tank.lastStrapTime = new Date().toISOString();
             tank.lastStrapBy = profileData.initials || '';
+            tank._updatedAt = new Date().toISOString();
+            tank._updatedBy = profileData.initials || '';
             bleDoneTankSide = bleActiveTankSide;
             bleDoneTankId = bleActiveTankId;
             
             updateBleStatus('✓ ' + tank.name + ': ' + adjustedInches + '" = ' + tank.bbls + ' BBL', 'Advancing...');
             
             autoAdvanceBle();
-            saveData(); render();
+            // Save locally first, render immediately, then sync to Firebase
+            localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
+            render();
+            firebaseSaveTanks();
             scrollToActiveBle();
             setTimeout(() => { bleDoneTankSide = null; bleDoneTankId = null; render(); }, 2000);
         }
