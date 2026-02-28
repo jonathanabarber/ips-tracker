@@ -700,7 +700,7 @@
     <div class="profile-modal-overlay" id="profile-modal">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#1b2838;border-bottom:1px solid #2d4a6f;flex-shrink:0">
             <span style="font-size:16px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px">⚙️ Settings</span>
-            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.1.3</span>
+            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.1.4</span>
             <button onclick="closeProfileModal()" style="background:none;border:1px solid #2d4a6f;color:#e0e0e0;width:36px;height:36px;border-radius:6px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
         <div class="profile-modal">
@@ -2012,40 +2012,50 @@ function fbToArray(val) {
 // === Firebase READ handlers (remote changes) ===
 function onRemoteTanks(snap) {
     if (!snap.exists()) return;
-    const d = snap.val();
-    const newPump = d.pumpTanks ? fbToArray(d.pumpTanks) : [];
-    const newReturn = d.returnTanks ? fbToArray(d.returnTanks) : [];
-    
-    // Check if this is our own echo (we wrote within last 3s and data matches)
-    const timeSince = Date.now() - _lastLocalWriteTime;
-    const isOwnEcho = (timeSince < 3000) && d._updatedBy === _lastLocalWriteBy;
-    
-    console.log('[SYNC] Remote tanks received: by=' + d._updatedBy + ' myInitials=' + _lastLocalWriteBy + ' timeSince=' + timeSince + 'ms echo=' + isOwnEcho + ' pump=' + newPump.length + ' return=' + newReturn.length);
-    
-    if (isOwnEcho) {
-        console.log('[SYNC] Skipping own echo');
-        return;
+    try {
+        const d = snap.val();
+        const newPump = d.pumpTanks ? fbToArray(d.pumpTanks) : [];
+        const newReturn = d.returnTanks ? fbToArray(d.returnTanks) : [];
+        
+        // Check if this is our own echo (we wrote within last 3s and initials match)
+        const timeSince = Date.now() - _lastLocalWriteTime;
+        const myInitials = profileData.initials || '';
+        const writerInitials = d._updatedBy || '';
+        const isOwnEcho = (timeSince < 3000) && writerInitials !== '' && writerInitials === myInitials;
+        
+        console.log('[SYNC] Remote tanks: by=' + writerInitials + ' me=' + myInitials + ' timeSince=' + timeSince + 'ms echo=' + isOwnEcho);
+        
+        if (isOwnEcho) {
+            console.log('[SYNC] Skipping own echo');
+            return;
+        }
+        
+        // Flash sync strip to show we received data
+        setSyncStatus('syncing', 'Receiving from ' + (writerInitials || 'unknown') + '...');
+        setTimeout(() => { setSyncStatus('online', 'Synced: ' + (profileData.wellName || '')); }, 1500);
+        
+        // Recalculate BBLs from inches to ensure consistency
+        newPump.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
+        newReturn.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
+        
+        data.pumpTanks = newPump;
+        data.returnTanks = newReturn;
+        if (d.jetsHour !== undefined) data.jetsHour = d.jetsHour;
+        if (d.jetsShift !== undefined) data.jetsShift = d.jetsShift;
+        if (d.lastSystemTotal !== undefined) data.lastSystemTotal = d.lastSystemTotal;
+        if (d.lastCheckTime !== undefined) data.lastCheckTime = d.lastCheckTime;
+        if (d.history) data.history = fbToArray(d.history);
+        if (d.transferLog) data.transferLog = fbToArray(d.transferLog);
+        // Save to localStorage as offline cache
+        localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
+        render();
+        renderTransferLog();
+        renderVolumeLog();
+        console.log('[SYNC] Render complete');
+    } catch(err) {
+        console.error('[SYNC] Error processing remote tanks:', err);
+        setSyncStatus('offline', 'Sync Error: ' + err.message);
     }
-    
-    console.log('[SYNC] Applying remote data from ' + d._updatedBy);
-    
-    // Recalculate BBLs from inches to ensure consistency
-    newPump.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
-    newReturn.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
-    
-    data.pumpTanks = newPump;
-    data.returnTanks = newReturn;
-    if (d.jetsHour !== undefined) data.jetsHour = d.jetsHour;
-    if (d.jetsShift !== undefined) data.jetsShift = d.jetsShift;
-    if (d.lastSystemTotal !== undefined) data.lastSystemTotal = d.lastSystemTotal;
-    if (d.lastCheckTime !== undefined) data.lastCheckTime = d.lastCheckTime;
-    if (d.history) data.history = fbToArray(d.history);
-    if (d.transferLog) data.transferLog = fbToArray(d.transferLog);
-    // Save to localStorage as offline cache
-    localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
-    render();
-    renderTransferLog();
-    renderVolumeLog();
 }
 
 function onRemoteTitData(snap) {
