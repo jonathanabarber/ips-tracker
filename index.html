@@ -700,7 +700,7 @@
     <div class="profile-modal-overlay" id="profile-modal">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#1b2838;border-bottom:1px solid #2d4a6f;flex-shrink:0">
             <span style="font-size:16px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px">⚙️ Settings</span>
-            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.2.0</span>
+            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.1.1</span>
             <button onclick="closeProfileModal()" style="background:none;border:1px solid #2d4a6f;color:#e0e0e0;width:36px;height:36px;border-radius:6px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
         <div class="profile-modal">
@@ -752,6 +752,7 @@
             <div class="profile-section-label">Tank Management</div>
             <button class="profile-action-btn" id="admin-add-tank-btn" onclick="closeProfileModal();showAddTankModal()"><span class="action-icon">➕</span> Add Tank</button>
             <button class="profile-action-btn" onclick="closeProfileModal();openVoiceKeywordsManager()"><span class="action-icon">🎤</span> Set Voice Keywords</button>
+            <button class="profile-action-btn" id="invite-user-btn" onclick="inviteUserToRoom()" style="border-color:#1565c0;color:#4fc3f7"><span class="action-icon">📨</span> Invite User to Room</button>
             <hr class="profile-divider">
             <div class="profile-section-label">Laser / BLE</div>
             <div class="profile-input-group">
@@ -1099,18 +1100,6 @@ RIH Wt: 50K
             <div class="tit-card">
                 <div class="tit-title">Surface Volume</div>
                 <div class="tit-row"><span class="tit-label">Surface Vol</span><input type="number" step="0.1" class="tit-input" id="tit-surface-vol" onchange="saveTitrationData()"><span class="tit-unit">bbl</span></div>
-            </div>
-            <div class="tit-card">
-                <div class="tit-title">Rheology (Fann 35 / Baroid 280)</div>
-                <div class="tit-note">Enter dial readings at each RPM. Results auto-calculate.</div>
-                <div class="tit-row"><span class="tit-label">600 RPM Reading</span><input type="number" step="0.1" class="tit-input" id="tit-r600" oninput="calcRheology(); saveTitrationData()"><span class="tit-unit"></span></div>
-                <div class="tit-row"><span class="tit-label">300 RPM Reading</span><input type="number" step="0.1" class="tit-input" id="tit-r300" oninput="calcRheology(); saveTitrationData()"><span class="tit-unit"></span></div>
-                <div class="tit-row" style="border-top:1px dashed #2d4a6f;margin-top:8px;padding-top:12px"><span class="tit-label">Plastic Viscosity (PV)</span><span class="tit-result calculated" id="tit-pv">--</span><span class="tit-unit">cP</span></div>
-                <div class="tit-row"><span class="tit-label">Yield Point (YP)</span><span class="tit-result calculated" id="tit-yp">--</span><span class="tit-unit">lb/100ft²</span></div>
-                <div class="tit-row"><span class="tit-label">Apparent Viscosity (AV)</span><span class="tit-result calculated" id="tit-av">--</span><span class="tit-unit">cP</span></div>
-                <div class="tit-row" style="border-top:1px dashed #2d4a6f;margin-top:8px;padding-top:12px"><span class="tit-label">3 RPM (Initial Gel)</span><input type="number" step="0.1" class="tit-input" id="tit-gel0" oninput="saveTitrationData()"><span class="tit-unit">lb/100ft²</span></div>
-                <div class="tit-row"><span class="tit-label">10-Min Gel</span><input type="number" step="0.1" class="tit-input" id="tit-gel10" oninput="saveTitrationData()"><span class="tit-unit">lb/100ft²</span></div>
-                <div class="tit-note" style="margin-top:8px;color:#4fc3f7">PV = 600 − 300 &nbsp;|&nbsp; YP = 300 − PV &nbsp;|&nbsp; AV = 600 ÷ 2</div>
             </div>
             <button class="report-btn" onclick="logTitration()" style="background:#2e7d32">📝 Log Titration</button>
             <div style="background:#1b2838;border-radius:6px;padding:10px;margin-top:12px;max-height:200px;overflow-y:auto">
@@ -1800,6 +1789,9 @@ function updateAdminUI() {
             addTankBtn.style.display = '';
         }
     }
+    // Show/hide invite button based on room
+    const inviteBtn = document.getElementById('invite-user-btn');
+    if (inviteBtn) inviteBtn.style.display = fbRoom ? '' : 'none';
     // Update sync strip label
     if (fbRoom) {
         const wellName = profileData.wellName || '';
@@ -2104,10 +2096,6 @@ function saveTitrationData() {
     titData.hardPipette = document.getElementById('tit-hard-pipette').value;
     titData.caPipette = document.getElementById('tit-ca-pipette').value;
     titData.surfaceVol = document.getElementById('tit-surface-vol').value;
-    titData.r600 = document.getElementById('tit-r600').value;
-    titData.r300 = document.getElementById('tit-r300').value;
-    titData.gel0 = document.getElementById('tit-gel0').value;
-    titData.gel10 = document.getElementById('tit-gel10').value;
     localStorage.setItem('ipsTitrationV3', JSON.stringify(titData));
     firebaseSaveTitData();
 }
@@ -2123,11 +2111,7 @@ function loadTitrationUI() {
     document.getElementById('tit-hard-pipette').value = titData.hardPipette || '';
     document.getElementById('tit-ca-pipette').value = titData.caPipette || '';
     document.getElementById('tit-surface-vol').value = titData.surfaceVol || '';
-    document.getElementById('tit-r600').value = titData.r600 || '';
-    document.getElementById('tit-r300').value = titData.r300 || '';
-    document.getElementById('tit-gel0').value = titData.gel0 || '';
-    document.getElementById('tit-gel10').value = titData.gel10 || '';
-    calcChlorides(); calcHardness(); calcCalcium(); calcRheology();
+    calcChlorides(); calcHardness(); calcCalcium();
 }
 
 function switchMasterTab(tab) {
@@ -3019,22 +3003,6 @@ function calcMagnesium() {
     if(h>0 && c>0) { const m=(h-c)*243; document.getElementById('tit-magnesium').textContent = m>=0 ? Math.round(m).toLocaleString() : '--'; }
     else document.getElementById('tit-magnesium').textContent = '--';
 }
-function calcRheology() {
-    const r600 = parseFloat(document.getElementById('tit-r600').value)||0;
-    const r300 = parseFloat(document.getElementById('tit-r300').value)||0;
-    if(r600>0 && r300>0) {
-        const pv = r600 - r300;
-        const yp = r300 - pv;
-        const av = r600 / 2;
-        document.getElementById('tit-pv').textContent = Math.round(pv*10)/10;
-        document.getElementById('tit-yp').textContent = Math.round(yp*10)/10;
-        document.getElementById('tit-av').textContent = Math.round(av*10)/10;
-    } else {
-        document.getElementById('tit-pv').textContent = '--';
-        document.getElementById('tit-yp').textContent = '--';
-        document.getElementById('tit-av').textContent = '--';
-    }
-}
 
 function selectModalSide(side) {
     modalSide = side;
@@ -3494,7 +3462,7 @@ function renderGLTotals() {
 
 function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
 function hideTankReport() { document.getElementById('tank-report').classList.remove('show'); }
-function showTitrationReport() { const names={aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Freshwater'}; const locText = sampleLocation === 'out' ? 'Discharge (Out)' : 'Pump Side (In)'; const locColor = sampleLocation === 'out' ? '#ff7043' : '#42a5f5'; document.getElementById('tit-report-fluid').textContent=names[titData.fluidType]||titData.fluidType; const cl=document.getElementById('tit-chlorides').textContent,ha=document.getElementById('tit-hardness').textContent,ca=document.getElementById('tit-calcium').textContent,mg=document.getElementById('tit-magnesium').textContent; const surfaceVol=getSurfaceVolumeForFluid(titData.fluidType); let html='<div class="report-section"><div class="report-section-title">Sample Info</div><div class="report-row"><span class="report-row-label">Sample Location</span><span class="report-row-value" style="color:'+locColor+'">'+locText+'</span></div><div class="report-row"><span class="report-row-label">Fluid Type</span><span class="report-row-value">'+(names[titData.fluidType]||titData.fluidType)+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Basic Properties</div><div class="report-row"><span class="report-row-label">Viscosity</span><span class="report-row-value">'+(titData.viscosity||'--')+' sec</span></div><div class="report-row"><span class="report-row-label">Density</span><span class="report-row-value">'+(titData.density||'--')+' ppg</span></div><div class="report-row"><span class="report-row-label">pH</span><span class="report-row-value">'+(titData.ph||'--')+'</span></div><div class="report-row"><span class="report-row-label">PF</span><span class="report-row-value">'+(titData.pf||'--')+'</span></div><div class="report-row"><span class="report-row-label">MF</span><span class="report-row-value">'+(titData.mf||'--')+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Chemical Analysis</div><div class="report-row"><span class="report-row-label">Chlorides</span><span class="report-row-value">'+cl+' ppm</span></div><div class="report-row"><span class="report-row-label">Calcium</span><span class="report-row-value">'+ca+' ppm</span></div><div class="report-row"><span class="report-row-label">Total Hardness</span><span class="report-row-value">'+ha+' ppm</span></div><div class="report-row"><span class="report-row-label">Magnesium</span><span class="report-row-value">'+mg+' ppm</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Volume</div><div class="report-row"><span class="report-row-label">Surface Volume ('+names[titData.fluidType]+')</span><span class="report-row-value">'+surfaceVol+' bbl</span></div></div>'; const rpv=document.getElementById('tit-pv').textContent,ryp=document.getElementById('tit-yp').textContent,rav=document.getElementById('tit-av').textContent,rg0=document.getElementById('tit-gel0').value||'--',rg10=document.getElementById('tit-gel10').value||'--',rr600=document.getElementById('tit-r600').value||'--',rr300=document.getElementById('tit-r300').value||'--'; if(rpv!=='--'||rg0!=='--') { html+='<div class="report-section"><div class="report-section-title">Rheology</div><div class="report-row"><span class="report-row-label">600 RPM Reading</span><span class="report-row-value">'+rr600+'</span></div><div class="report-row"><span class="report-row-label">300 RPM Reading</span><span class="report-row-value">'+rr300+'</span></div><div class="report-row"><span class="report-row-label">Plastic Viscosity (PV)</span><span class="report-row-value" style="color:#ff8a65">'+rpv+' cP</span></div><div class="report-row"><span class="report-row-label">Yield Point (YP)</span><span class="report-row-value" style="color:#ffcc80">'+ryp+' lb/100ft²</span></div><div class="report-row"><span class="report-row-label">Apparent Viscosity (AV)</span><span class="report-row-value" style="color:#ce93d8">'+rav+' cP</span></div><div class="report-row"><span class="report-row-label">Initial Gel (3 RPM)</span><span class="report-row-value" style="color:#80cbc4">'+rg0+' lb/100ft²</span></div><div class="report-row"><span class="report-row-label">10-Min Gel</span><span class="report-row-value" style="color:#80cbc4">'+rg10+' lb/100ft²</span></div></div>'; } html+='<div class="report-timestamp">'+new Date().toLocaleString()+'</div>'; document.getElementById('tit-report-content').innerHTML=html; document.getElementById('titration-report').classList.add('show'); }
+function showTitrationReport() { const names={aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Freshwater'}; const locText = sampleLocation === 'out' ? 'Discharge (Out)' : 'Pump Side (In)'; const locColor = sampleLocation === 'out' ? '#ff7043' : '#42a5f5'; document.getElementById('tit-report-fluid').textContent=names[titData.fluidType]||titData.fluidType; const cl=document.getElementById('tit-chlorides').textContent,ha=document.getElementById('tit-hardness').textContent,ca=document.getElementById('tit-calcium').textContent,mg=document.getElementById('tit-magnesium').textContent; const surfaceVol=getSurfaceVolumeForFluid(titData.fluidType); let html='<div class="report-section"><div class="report-section-title">Sample Info</div><div class="report-row"><span class="report-row-label">Sample Location</span><span class="report-row-value" style="color:'+locColor+'">'+locText+'</span></div><div class="report-row"><span class="report-row-label">Fluid Type</span><span class="report-row-value">'+(names[titData.fluidType]||titData.fluidType)+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Basic Properties</div><div class="report-row"><span class="report-row-label">Viscosity</span><span class="report-row-value">'+(titData.viscosity||'--')+' sec</span></div><div class="report-row"><span class="report-row-label">Density</span><span class="report-row-value">'+(titData.density||'--')+' ppg</span></div><div class="report-row"><span class="report-row-label">pH</span><span class="report-row-value">'+(titData.ph||'--')+'</span></div><div class="report-row"><span class="report-row-label">PF</span><span class="report-row-value">'+(titData.pf||'--')+'</span></div><div class="report-row"><span class="report-row-label">MF</span><span class="report-row-value">'+(titData.mf||'--')+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Chemical Analysis</div><div class="report-row"><span class="report-row-label">Chlorides</span><span class="report-row-value">'+cl+' ppm</span></div><div class="report-row"><span class="report-row-label">Calcium</span><span class="report-row-value">'+ca+' ppm</span></div><div class="report-row"><span class="report-row-label">Total Hardness</span><span class="report-row-value">'+ha+' ppm</span></div><div class="report-row"><span class="report-row-label">Magnesium</span><span class="report-row-value">'+mg+' ppm</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Volume</div><div class="report-row"><span class="report-row-label">Surface Volume ('+names[titData.fluidType]+')</span><span class="report-row-value">'+surfaceVol+' bbl</span></div></div>'; html+='<div class="report-timestamp">'+new Date().toLocaleString()+'</div>'; document.getElementById('tit-report-content').innerHTML=html; document.getElementById('titration-report').classList.add('show'); }
 function hideTitrationReport() { document.getElementById('titration-report').classList.remove('show'); }
 
 // Titration log
@@ -3534,14 +3502,7 @@ function logTitration() {
         hardness: hardness,
         magnesium: magnesium,
         fullTitration: hasFullTitration,
-        surfaceVol: getSurfaceVolumeForFluid(titData.fluidType),
-        r600: titData.r600 || '',
-        r300: titData.r300 || '',
-        pv: document.getElementById('tit-pv').textContent,
-        yp: document.getElementById('tit-yp').textContent,
-        av: document.getElementById('tit-av').textContent,
-        gel0: titData.gel0 || '',
-        gel10: titData.gel10 || ''
+        surfaceVol: getSurfaceVolumeForFluid(titData.fluidType)
     };
     titrationLog.unshift(entry);
     saveTitrationLog();
@@ -3573,18 +3534,9 @@ function renderTitrationLog() {
             parts.push('<span style="color:#66bb6a">Mg:' + (log.magnesium || '--') + '</span>');
         }
         let line2 = parts.length ? parts.join(' &nbsp; ') : '<span style="color:#666">--</span>';
-        // Line 3: Rheology (only if data exists)
-        let rheParts = [];
-        if (log.pv && log.pv !== '--') rheParts.push('<span style="color:#ff8a65">PV:' + log.pv + '</span>');
-        if (log.yp && log.yp !== '--') rheParts.push('<span style="color:#ffcc80">YP:' + log.yp + '</span>');
-        if (log.av && log.av !== '--') rheParts.push('<span style="color:#ce93d8">AV:' + log.av + '</span>');
-        if (log.gel0) rheParts.push('<span style="color:#80cbc4">G0:' + log.gel0 + '</span>');
-        if (log.gel10) rheParts.push('<span style="color:#80cbc4">G10:' + log.gel10 + '</span>');
-        let line3 = rheParts.length ? '<div style="font-size:10px;padding-left:2px;margin-top:2px">' + rheParts.join(' &nbsp; ') + '</div>' : '';
         return '<div style="padding:6px 0;border-bottom:1px solid #2d4a6f">' +
             '<div style="font-size:11px">' + line1 + '</div>' +
             '<div style="font-size:10px;padding-left:2px;margin-top:3px">' + line2 + '</div>' +
-            line3 +
             '</div>';
     }).join('');
 }
@@ -5600,6 +5552,29 @@ function updateChatFeedBadge() {
 // Init badge on load
 setTimeout(updateChatFeedBadge, 100);
 
+function inviteUserToRoom() {
+    if (!profileData.wellName) {
+        alert('Set a well name first to create a room.');
+        return;
+    }
+    const baseUrl = window.location.origin + window.location.pathname;
+    const inviteUrl = baseUrl + '?well=' + encodeURIComponent(profileData.wellName);
+    const shareText = '📋 Join my IPS Tracker room for ' + profileData.wellName + '\n\nTap the link to auto-connect:\n' + inviteUrl;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'IPS Tracker - Join Room',
+            text: shareText,
+            url: inviteUrl
+        }).catch(() => {
+            // Share cancelled, copy to clipboard
+            navigator.clipboard.writeText(inviteUrl).then(() => alert('Invite link copied to clipboard!')).catch(() => alert('Invite link:\n' + inviteUrl));
+        });
+    } else {
+        navigator.clipboard.writeText(inviteUrl).then(() => alert('Invite link copied to clipboard!')).catch(() => alert('Invite link:\n' + inviteUrl));
+    }
+}
+
 function initApp() {
     console.log('initApp called, data:', data.pumpTanks.length, 'pump tanks,', data.returnTanks.length, 'return tanks');
     loadProfile();
@@ -5627,6 +5602,17 @@ function initApp() {
     render();
     
     // Initialize Firebase and auto-join room if well name is set
+    // Check URL for invite room parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteRoom = urlParams.get('room');
+    const inviteWell = urlParams.get('well');
+    if (inviteWell && inviteWell !== profileData.wellName) {
+        profileData.wellName = inviteWell;
+        localStorage.setItem('ipsProfile', JSON.stringify(profileData));
+        document.getElementById('profile-well-input').value = inviteWell;
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+    }
     if (firebaseInit() && profileData.wellName) {
         firebaseJoinRoom(profileData.wellName);
     }
