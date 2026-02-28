@@ -325,8 +325,8 @@
         .tank-mic-btn:hover, .tank-ble-btn:hover { background: #2d4a6f; }
         .tank-ble-btn.active { border-color: #66bb6a; color: #66bb6a; background: rgba(46,125,50,0.2); box-shadow: 0 0 8px rgba(102,187,106,0.4); }
         .tank-ble-btn.ble-waiting { border-color: #ff9800; color: #ff9800; background: rgba(255,152,0,0.15); animation: blePulse 1s ease-in-out infinite; }
-        .tank-ble-btn.ble-done { border-color: #66bb6a; color: #66bb6a; background: rgba(46,125,50,0.25); box-shadow: 0 0 12px rgba(102,187,106,0.6); animation: bleDoneFade 2.5s ease-out forwards; }
-        @keyframes bleDoneFade { 0%,60%{border-color:#66bb6a;color:#66bb6a;background:rgba(46,125,50,0.25);box-shadow:0 0 12px rgba(102,187,106,0.6)} 100%{border-color:#455a64;color:#455a64;background:transparent;box-shadow:none} }
+        .tank-ble-btn.ble-done { border-color: #66bb6a; color: #66bb6a; background: rgba(46,125,50,0.25); box-shadow: 0 0 12px rgba(102,187,106,0.6); animation: bleDoneFade 1.5s ease-out forwards; }
+        @keyframes bleDoneFade { 0%,40%{border-color:#66bb6a;color:#66bb6a;background:rgba(46,125,50,0.25);box-shadow:0 0 12px rgba(102,187,106,0.6)} 100%{border-color:#455a64;color:#455a64;background:transparent;box-shadow:none} }
         @keyframes blePulse { 0%,100% { opacity: 1; box-shadow: 0 0 4px rgba(255,152,0,0.3); } 50% { opacity: 0.4; box-shadow: 0 0 12px rgba(255,152,0,0.7); } }
 
         /* Tank Group Bar */
@@ -700,7 +700,7 @@
     <div class="profile-modal-overlay" id="profile-modal">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#1b2838;border-bottom:1px solid #2d4a6f;flex-shrink:0">
             <span style="font-size:16px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px">⚙️ Settings</span>
-            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.0.9</span>
+            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.1.0</span>
             <button onclick="closeProfileModal()" style="background:none;border:1px solid #2d4a6f;color:#e0e0e0;width:36px;height:36px;border-radius:6px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
         <div class="profile-modal">
@@ -912,7 +912,8 @@ RIH Wt: 50K
                 <div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Volume Log <button style="background:#2d4a6f;border:none;color:#e0e0e0;padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="openLogEdit('volume')">Edit</button></div>
                 <div id="volume-log-content"><em style="color:#666">No volume checks logged</em></div>
             </div>
-            <button class="report-btn" onclick="showTurnoverReport()">📋 Generate Turnover Report</button>
+            <button class="report-btn" onclick="showMonitorReport()">Generate Monitor Report</button>
+            <button class="report-btn" onclick="showTurnoverReport()" style="background:transparent;border:1px solid #2d4a6f;color:#4fc3f7;margin-top:8px">📋 Generate Turnover Report</button>
         </div>
     </div>
 
@@ -1354,9 +1355,23 @@ RIH Wt: 50K
     <div class="report-screen" id="turnover-report">
         <div class="report-header"><button class="report-close" onclick="hideTurnoverReport()">×</button><h1>Shift Turnover Preview</h1><p id="turnover-report-time"></p></div>
         <div class="report-body" id="turnover-report-content"></div>
-        <div style="padding:15px;display:flex;gap:10px">
+        <div style="padding:10px 15px">
+            <div style="font-size:10px;color:#4fc3f7;text-transform:uppercase;font-weight:600;margin-bottom:6px">Turnover Notes</div>
+            <textarea id="turnover-notes" placeholder="Add turnover notes here..." style="width:100%;min-height:80px;background:#0d1b2a;border:1px solid #2d4a6f;border-radius:6px;color:#e0e0e0;padding:8px;font-size:12px;resize:vertical;box-sizing:border-box"></textarea>
+        </div>
+        <div style="padding:10px 15px 15px;display:flex;gap:10px">
             <button onclick="hideTurnoverReport()" style="flex:1;padding:14px;background:#455a64;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600">Cancel</button>
             <button onclick="sendTurnoverReport()" style="flex:1;padding:14px;background:#1565c0;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600">📤 Send Report</button>
+        </div>
+    </div>
+
+    <!-- MONITOR REPORT SCREEN -->
+    <div class="report-screen" id="monitor-report">
+        <div class="report-header"><button class="report-close" onclick="hideMonitorReport()">×</button><h1>Volume Monitor Report</h1><p id="monitor-report-time"></p></div>
+        <div class="report-body" id="monitor-report-content"></div>
+        <div style="padding:15px;display:flex;gap:10px">
+            <button onclick="hideMonitorReport()" style="flex:1;padding:14px;background:#455a64;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600">Cancel</button>
+            <button onclick="sendMonitorReport()" style="flex:1;padding:14px;background:#1565c0;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600">📤 Send Report</button>
         </div>
     </div>
 
@@ -3164,6 +3179,21 @@ function logGainLossCheck() {
     }
     
     // === Store history entry with full transfer data ===
+    // === Per-fluid breakdown: apparent & actual for each fluid type ===
+    const prevEntry = data.history.length ? data.history[0] : null;
+    const prevTotals = prevEntry ? prevEntry.totals : null;
+    const fluidBreakdown = {};
+    fluidTypes.forEach(ft => {
+        const currVal = totals[ft] || 0;
+        const prevVal = prevTotals ? (prevTotals[ft] || 0) : null;
+        const apparent = prevVal !== null ? currVal - prevVal : null;
+        const xf = xferByType[ft];
+        const actual = apparent !== null ? apparent + xf.out - xf.in - xf.build : null;
+        let rate = null;
+        if (elapsedMin && elapsedMin > 0 && actual !== null) rate = ((actual / elapsedMin) * 60).toFixed(1);
+        fluidBreakdown[ft] = { current: currVal, previous: prevVal, apparent: apparent, actual: actual, ratePerHour: rate, transfers: xf };
+    });
+    
     data.history.unshift({
         time: now.toISOString(),
         initials: profileData.initials || '',
@@ -3177,7 +3207,8 @@ function logGainLossCheck() {
         tankChanges: tankChanges,
         filterType: glFluidFilter || null,
         transfersByType: xferByType,
-        transfersTotal: { out: xferTotalOut, in: xferTotalIn, build: xferTotalBuild }
+        transfersTotal: { out: xferTotalOut, in: xferTotalIn, build: xferTotalBuild },
+        fluidBreakdown: fluidBreakdown
     });
     
     data.lastSystemTotal = curr;
@@ -3211,6 +3242,19 @@ function logGainLossCheck() {
         if (sysApp !== null) msg += '\nApparent: ' + (sysApp >= 0 ? '+' : '') + sysApp + ' bbl';
         if (sysActual !== null) msg += '\nActual G/L: ' + (sysActual >= 0 ? '+' : '') + sysActual + ' bbl';
         if (sysRate !== null) msg += '\nRate: ' + (parseFloat(sysRate) >= 0 ? '+' : '') + sysRate + ' bbl/hr';
+        // Per-fluid breakdown
+        if (prevTotals) {
+            const changedFluids = fluidTypes.filter(ft => fluidBreakdown[ft].apparent !== null && fluidBreakdown[ft].apparent !== 0);
+            if (changedFluids.length) {
+                msg += '\n\n--- Per Fluid ---';
+                changedFluids.forEach(ft => {
+                    const fb = fluidBreakdown[ft];
+                    const name = fluidNames[ft] || ft;
+                    msg += '\n' + name + ': ' + (fb.apparent >= 0 ? '+' : '') + fb.apparent;
+                    if (fb.actual !== null && fb.actual !== fb.apparent) msg += ' (actual ' + (fb.actual >= 0 ? '+' : '') + fb.actual + ')';
+                });
+            }
+        }
         alert(msg);
     }
 }
@@ -3633,6 +3677,17 @@ function renderVolumeLog() {
             '<td style="padding:0 2px 3px;text-align:right">' + fmtGL(actual) + '</td>' +
             '<td style="padding:0 2px 3px;text-align:right;font-size:9px">' + transferStr + '</td>' +
             '<td style="padding:0 2px 3px;text-align:right">' + hourly + '</td></tr>';
+        // ROW 3 (optional): Per-fluid breakdown for system captures
+        if (!ft && h.fluidBreakdown) {
+            const changed = Object.keys(h.fluidBreakdown).filter(f => h.fluidBreakdown[f].apparent !== null && h.fluidBreakdown[f].apparent !== 0);
+            if (changed.length) {
+                html += '<tr><td colspan="5" style="padding:1px 2px 4px;font-size:9px">' + changed.map(f => {
+                    const fb = h.fluidBreakdown[f];
+                    const c = fb.apparent > 0 ? '#4caf50' : fb.apparent < 0 ? '#ef5350' : '#888';
+                    return '<span style="color:' + fluidColors[f] + '">' + (fluidLabels[f]||f) + '</span> <span style="color:' + c + '">' + (fb.apparent >= 0 ? '+' : '') + fb.apparent + '</span>';
+                }).join(' &nbsp; ') + '</td></tr>';
+            }
+        }
     });
     html += '</table>';
     el.innerHTML = html;
@@ -3797,9 +3852,17 @@ function showTurnoverReport() {
     
     html += '<div class="report-timestamp">Generated: ' + now.toLocaleString() + '</div>';
     document.getElementById('turnover-report-content').innerHTML = html;
+    // Restore any previously entered notes
+    const notesEl = document.getElementById('turnover-notes');
+    if (notesEl && notesEl._savedValue) notesEl.value = notesEl._savedValue;
     document.getElementById('turnover-report').classList.add('show');
 }
-function hideTurnoverReport() { document.getElementById('turnover-report').classList.remove('show'); }
+function hideTurnoverReport() { 
+    // Save notes value so it persists if reopened
+    const notesEl = document.getElementById('turnover-notes');
+    if (notesEl) notesEl._savedValue = notesEl.value;
+    document.getElementById('turnover-report').classList.remove('show'); 
+}
 function sendTurnoverReport() {
     const content = document.getElementById('turnover-report-content');
     const btn = document.querySelector('#turnover-report [onclick="sendTurnoverReport()"]');
@@ -3818,6 +3881,14 @@ function sendTurnoverReport() {
     // Clone content
     const clone = content.cloneNode(true);
     wrapper.appendChild(clone);
+    // Add turnover notes if entered
+    const notesVal = (document.getElementById('turnover-notes') || {}).value || '';
+    if (notesVal.trim()) {
+        const notesDiv = document.createElement('div');
+        notesDiv.style.cssText = 'margin-top:10px;padding:10px;background:#0d1b2a;border:1px solid #2d4a6f;border-radius:6px';
+        notesDiv.innerHTML = '<div style="font-size:10px;color:#4fc3f7;text-transform:uppercase;font-weight:600;margin-bottom:6px">Turnover Notes</div><div style="font-size:12px;color:#e0e0e0;white-space:pre-wrap">' + notesVal.replace(/</g,'&lt;') + '</div>';
+        wrapper.appendChild(notesDiv);
+    }
     // Add footer
     const footer = document.createElement('div');
     footer.style.cssText = 'text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #2d4a6f;font-size:9px;color:#666';
@@ -3912,6 +3983,118 @@ function sendTurnoverReportText() {
     }
     hideTurnoverReport();
 }
+
+// Start New Shift
+function showMonitorReport() {
+    const now = new Date();
+    const totals = calculateTotals();
+    const fluidLabels = {brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Fresh',other:'Other'};
+    const fluidColors = {brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};
+    document.getElementById('monitor-report-time').textContent = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+    
+    let html = '<div class="report-company">VOLUME MONITOR LOG</div>';
+    
+    // Current totals summary
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;justify-content:space-around">';
+    ['brine','packer','mud','recirc','freshwater','other'].forEach(ft => {
+        if (totals[ft] > 0) html += '<div style="text-align:center;padding:6px 8px;border-radius:6px;min-width:48px;background:#0d1b2a"><div style="font-size:8px;color:#888;text-transform:uppercase;font-weight:600">' + fluidLabels[ft] + '</div><div style="font-size:15px;font-weight:700;color:' + fluidColors[ft] + '">' + totals[ft] + '</div></div>';
+    });
+    html += '</div>';
+    html += '<div style="display:flex;gap:10px;margin-bottom:12px">';
+    html += '<div style="flex:1;background:#0d1b2a;padding:8px;border-radius:6px;text-align:center"><div style="font-size:9px;color:#888">SYSTEM TOTAL</div><div style="font-size:16px;font-weight:700">' + totals.system + ' BBL</div></div>';
+    html += '<div style="flex:1;background:#e65100;padding:8px;border-radius:6px;text-align:center"><div style="font-size:9px;color:rgba(255,255,255,0.8)">JETTED (SHIFT)</div><div style="font-size:16px;font-weight:700;color:white">' + data.jetsShift + ' BBL</div></div>';
+    html += '</div>';
+    
+    // Volume log table — mirrors exactly what's on the monitor tab
+    html += '<div class="report-section"><div class="report-section-title">Volume Log</div>';
+    if (data.history && data.history.length) {
+        html += '<table style="width:100%;border-collapse:collapse;font-size:10px">';
+        html += '<tr style="color:#555;font-size:8px;text-transform:uppercase"><td style="padding:2px" rowspan="2">User<br>Time</td><td style="padding:2px">Fluid</td><td style="padding:2px;text-align:right">Surface</td><td style="padding:2px;text-align:right">Wellbore</td><td style="padding:2px;text-align:right">Total</td></tr>';
+        html += '<tr style="color:#555;font-size:8px;text-transform:uppercase;border-bottom:1px solid #2d4a6f"><td style="padding:0 2px 3px">Apparent</td><td style="padding:0 2px 3px;text-align:right">Actual</td><td style="padding:0 2px 3px;text-align:right">Transfers</td><td style="padding:0 2px 3px;text-align:right">Hourly</td></tr>';
+        
+        const fmtGL = (v) => { if(v===null) return '<span style="color:#888">--</span>'; const c=v>0?'#4caf50':v<0?'#ef5350':'#888'; return '<span style="color:'+c+'">'+(v>=0?'+':'')+v+'</span>'; };
+        
+        data.history.forEach((h, idx) => {
+            const t = new Date(h.time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+            const ft = h.filterType || null;
+            const fluidName = ft ? (fluidLabels[ft]||ft) : 'System';
+            const fluidClr = ft ? (fluidColors[ft]||'#e0e0e0') : '#e0e0e0';
+            let surface = h.systemTotal;
+            if (ft && h.totals && h.totals[ft] !== undefined) surface = h.totals[ft];
+            
+            const prevEntry = (idx < data.history.length - 1) ? data.history[idx + 1] : null;
+            let apparent = null, actual = null;
+            if (ft) {
+                const prevT = prevEntry && prevEntry.totals ? (prevEntry.totals[ft]||0) : null;
+                if (prevT !== null) { apparent = surface - prevT; const xf = h.transfersByType && h.transfersByType[ft] ? h.transfersByType[ft] : {out:0,in:0,build:0}; actual = apparent + xf.out - xf.in - xf.build; }
+            } else { apparent = h.apparentChange; actual = h.trueChange; }
+            
+            let transferStr = '<span style="color:#888">--</span>';
+            if (h.transfersByType || h.transfersTotal) {
+                const xf = ft ? (h.transfersByType && h.transfersByType[ft] ? h.transfersByType[ft] : null) : h.transfersTotal;
+                if (xf) { const p=[]; if(xf.out>0)p.push('<span style="color:#ef5350">OUT '+xf.out+'</span>'); if(xf.in>0)p.push('<span style="color:#4caf50">IN '+xf.in+'</span>'); if(xf.build>0)p.push('<span style="color:#a1887f">BLD '+xf.build+'</span>'); if(p.length)transferStr=p.join('<br>'); }
+            }
+            let hourly = '<span style="color:#888">--</span>';
+            if (actual !== null && h.elapsedMin && h.elapsedMin > 0) { const r=((actual/h.elapsedMin)*60).toFixed(1); const rc=parseFloat(r)>0?'#4caf50':parseFloat(r)<0?'#ef5350':'#888'; hourly='<span style="color:'+rc+'">'+(parseFloat(r)>=0?'+':'')+r+'</span>'; }
+            
+            // Per-fluid breakdown row (if system capture and fluidBreakdown exists)
+            let breakdownRow = '';
+            if (!ft && h.fluidBreakdown) {
+                const changed = Object.keys(h.fluidBreakdown).filter(f => h.fluidBreakdown[f].apparent !== null && h.fluidBreakdown[f].apparent !== 0);
+                if (changed.length) {
+                    breakdownRow = '<tr><td colspan="5" style="padding:2px 2px 4px;font-size:9px">' + changed.map(f => {
+                        const fb = h.fluidBreakdown[f];
+                        const c = fb.apparent > 0 ? '#4caf50' : fb.apparent < 0 ? '#ef5350' : '#888';
+                        return '<span style="color:' + (fluidColors[f]||'#888') + '">' + (fluidLabels[f]||f) + '</span> <span style="color:' + c + '">' + (fb.apparent >= 0 ? '+' : '') + fb.apparent + '</span>';
+                    }).join(' &nbsp; ') + '</td></tr>';
+                }
+            }
+            
+            html += '<tr style="border-top:1px solid #2d4a6f"><td rowspan="2" style="padding:4px 2px;white-space:nowrap;vertical-align:middle">' + (h.initials?'<div style="color:#66bb6a;font-weight:600;font-size:11px">'+h.initials+'</div>':'') + '<div style="color:#4fc3f7;font-size:10px">'+t+'</div></td><td style="padding:3px 2px;color:'+fluidClr+';font-weight:600">'+fluidName+'</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0">'+surface+'</td><td style="padding:3px 2px;text-align:right;color:#555">--</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0;font-weight:600">'+surface+'</td></tr>';
+            html += '<tr><td style="padding:0 2px 3px">'+fmtGL(apparent)+'</td><td style="padding:0 2px 3px;text-align:right">'+fmtGL(actual)+'</td><td style="padding:0 2px 3px;text-align:right;font-size:9px">'+transferStr+'</td><td style="padding:0 2px 3px;text-align:right">'+hourly+'</td></tr>';
+            html += breakdownRow;
+        });
+        html += '</table>';
+    } else {
+        html += '<div style="color:#666;font-size:12px;text-align:center;padding:10px">No volume checks logged</div>';
+    }
+    html += '</div>';
+    
+    html += '<div class="report-timestamp">Generated: ' + now.toLocaleString() + '</div>';
+    document.getElementById('monitor-report-content').innerHTML = html;
+    document.getElementById('monitor-report').classList.add('show');
+}
+function hideMonitorReport() { document.getElementById('monitor-report').classList.remove('show'); }
+function sendMonitorReport() {
+    const content = document.getElementById('monitor-report-content');
+    const btn = document.querySelector('#monitor-report [onclick="sendMonitorReport()"]');
+    const origText = btn.textContent;
+    btn.textContent = '⏳ Generating...';
+    btn.disabled = true;
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:absolute;left:-9999px;top:0;width:400px;background:#1b2838;padding:16px;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,sans-serif';
+    const header = document.createElement('div');
+    header.style.cssText = 'text-align:center;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #2d4a6f';
+    header.innerHTML = '<div style="font-size:16px;font-weight:700;color:#4fc3f7">VOLUME MONITOR REPORT</div><div style="font-size:11px;color:#888;margin-top:4px">' + (profileData.wellName||'') + ' — ' + new Date().toLocaleString() + '</div>';
+    wrapper.appendChild(header);
+    wrapper.appendChild(content.cloneNode(true));
+    const footer = document.createElement('div');
+    footer.style.cssText = 'text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #2d4a6f;font-size:9px;color:#666';
+    footer.textContent = 'IPS Fluid Tracker — ' + (profileData.name || 'Report');
+    wrapper.appendChild(footer);
+    document.body.appendChild(wrapper);
+    html2canvas(wrapper, { backgroundColor:'#1b2838', scale:2, useCORS:true, logging:false }).then(canvas => {
+        document.body.removeChild(wrapper);
+        canvas.toBlob(blob => {
+            const file = new File([blob], 'volume-monitor-' + Date.now() + '.png', {type:'image/png'});
+            if (navigator.canShare && navigator.canShare({files:[file]})) {
+                navigator.share({title:'Volume Monitor Report',files:[file]}).then(()=>hideMonitorReport()).catch(()=>{downloadMonitorImage(canvas);hideMonitorReport();});
+            } else { downloadMonitorImage(canvas); hideMonitorReport(); }
+            btn.textContent = origText; btn.disabled = false;
+        }, 'image/png');
+    }).catch(err => { console.error('Screenshot failed:',err); document.body.removeChild(wrapper); btn.textContent=origText; btn.disabled=false; alert('Could not generate report image'); });
+}
+function downloadMonitorImage(canvas) { const a=document.createElement('a'); a.download='volume-monitor-'+Date.now()+'.png'; a.href=canvas.toDataURL('image/png'); a.click(); alert('Report image saved!'); }
 
 // Start New Shift
 function startNewShift() {
@@ -4640,7 +4823,7 @@ function handleBleMeasurement(event) {
             firebaseSaveTanks();
             scrollToActiveBle();
             // Clear done state after animation completes so future renders don't re-apply
-            setTimeout(() => { bleDoneTankSide = null; bleDoneTankId = null; }, 3000);
+            setTimeout(() => { bleDoneTankSide = null; bleDoneTankId = null; }, 2000);
         }
     }
 }
