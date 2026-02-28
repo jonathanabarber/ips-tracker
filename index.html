@@ -699,7 +699,7 @@
     <div class="profile-modal-overlay" id="profile-modal">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#1b2838;border-bottom:1px solid #2d4a6f;flex-shrink:0">
             <span style="font-size:16px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px">⚙️ Settings</span>
-            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.0.5</span>
+            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.0.6</span>
             <button onclick="closeProfileModal()" style="background:none;border:1px solid #2d4a6f;color:#e0e0e0;width:36px;height:36px;border-radius:6px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
         <div class="profile-modal">
@@ -4572,12 +4572,25 @@ async function connectBle() {
         
         let device = null;
         try {
+            // Try to filter for Bosch laser devices first
             device = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
+                filters: [{ namePrefix: 'M3' }, { namePrefix: 'GLM' }, { namePrefix: 'PLR' }, { namePrefix: 'Bosch' }],
                 optionalServices: [BOSCH_SERVICE_UUID]
             });
         } catch(filterErr) {
-            throw filterErr;
+            // If no Bosch device found or user cancelled, try with all devices
+            if (filterErr.name === 'NotFoundError') {
+                try {
+                    device = await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: [BOSCH_SERVICE_UUID]
+                    });
+                } catch(allErr) {
+                    throw allErr;
+                }
+            } else {
+                throw filterErr;
+            }
         }
         bleDevice = device;
         bleDevice.addEventListener('gattserverdisconnected', onBleDisconnect);
@@ -4642,7 +4655,19 @@ function handleBleMeasurement(event) {
             render();
             firebaseSaveTanks();
             scrollToActiveBle();
-            setTimeout(() => { bleDoneTankSide = null; bleDoneTankId = null; render(); }, 2000);
+            // Clear done state after 2s — use targeted update to clear green icon
+            const doneSide = bleDoneTankSide;
+            const doneId = bleDoneTankId;
+            setTimeout(() => { 
+                bleDoneTankSide = null; 
+                bleDoneTankId = null; 
+                // Targeted: find the specific BLE button and remove done class
+                const card = document.querySelector('.tank-card[data-side="'+doneSide+'"][data-id="'+doneId+'"]');
+                if(card) {
+                    const bleBtn = card.querySelector('.tank-ble-btn');
+                    if(bleBtn) { bleBtn.className = 'tank-ble-btn inactive'; }
+                }
+            }, 2000);
         }
     }
 }
