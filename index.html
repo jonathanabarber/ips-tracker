@@ -700,7 +700,7 @@
     <div class="profile-modal-overlay" id="profile-modal">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#1b2838;border-bottom:1px solid #2d4a6f;flex-shrink:0">
             <span style="font-size:16px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px">⚙️ Settings</span>
-            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.1.1</span>
+            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.1.2</span>
             <button onclick="closeProfileModal()" style="background:none;border:1px solid #2d4a6f;color:#e0e0e0;width:36px;height:36px;border-radius:6px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
         <div class="profile-modal">
@@ -1578,6 +1578,9 @@ function openProfileModal() {
     renderPackerTreatedControls();
     const oi = document.getElementById('ble-offset-input');
     if (oi) { oi.value = bleOffsetInches; updateOffsetDisplay(); }
+    // Refresh room status display
+    updateAdminUI();
+    updateRoomUsersUI(document.getElementById('room-users-badge')._users || []);
     document.getElementById('profile-modal').classList.add('show');
     document.body.style.overflow = 'hidden';
 }
@@ -1678,18 +1681,27 @@ let fbAdminInitials = ''; // The admin's initials for display
 
 function firebaseInit() {
     try {
+        if (typeof firebase === 'undefined') {
+            console.error('Firebase SDK not loaded — check network/content blockers');
+            setSyncStatus('offline', 'Firebase SDK failed to load');
+            return false;
+        }
         if (FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') {
             console.warn('Firebase not configured — running in local-only mode');
             setSyncStatus('no-room', 'Local Only');
             return false;
         }
-        fbApp = firebase.initializeApp(FIREBASE_CONFIG);
+        if (firebase.apps && firebase.apps.length) {
+            fbApp = firebase.apps[0];
+        } else {
+            fbApp = firebase.initializeApp(FIREBASE_CONFIG);
+        }
         fbDb = firebase.database();
-        console.log('Firebase initialized');
+        console.log('Firebase initialized successfully');
         return true;
     } catch(e) {
         console.error('Firebase init failed:', e);
-        setSyncStatus('offline', 'Error');
+        setSyncStatus('offline', 'Firebase Error: ' + e.message);
         return false;
     }
 }
