@@ -10,6 +10,9 @@
     <meta name="application-name" content="IPS Tracker">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Firebase SDK (Compat mode — works without build tools) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
     <title>IPS Fluid Tracker</title>
     
     <!-- App Icons -->
@@ -591,9 +594,37 @@
         .log-edit-field-select { flex:1;padding:8px 10px;background:#0d1b2a;border:1px solid #2d4a6f;border-radius:6px;color:#e0e0e0;font-size:13px; }
         .log-edit-save-btn { width:100%;padding:14px;background:#1565c0;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;letter-spacing:0.5px; }
         .log-edit-save-btn:active { background:#0d47a1; }
+
+        /* Sync Status Indicator */
+        .sync-status { position:fixed;top:0;right:0;z-index:999;padding:3px 10px;font-size:10px;font-weight:600;letter-spacing:0.5px;border-radius:0 0 0 8px;transition:all 0.3s;display:flex;align-items:center;gap:5px; }
+        .sync-status .sync-dot { width:7px;height:7px;border-radius:50%;display:inline-block; }
+        .sync-status.online { background:rgba(46,125,50,0.85);color:#a5d6a7; }
+        .sync-status.online .sync-dot { background:#66bb6a;box-shadow:0 0 6px #66bb6a; }
+        .sync-status.offline { background:rgba(198,40,40,0.85);color:#ef9a9a; }
+        .sync-status.offline .sync-dot { background:#ef5350; }
+        .sync-status.syncing { background:rgba(21,101,192,0.85);color:#90caf9; }
+        .sync-status.syncing .sync-dot { background:#42a5f5;animation:syncPulse 1s ease-in-out infinite; }
+        .sync-status.no-room { background:rgba(85,85,85,0.7);color:#aaa; }
+        .sync-status.no-room .sync-dot { background:#888; }
+        @keyframes syncPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        /* Tank Update Badge — shows who updated + when */
+        .tank-update-badge { display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:600;background:rgba(102,187,106,0.15);color:#66bb6a;border:1px solid rgba(102,187,106,0.25);white-space:nowrap;line-height:1.3; }
+        .tank-update-badge .update-initials { color:#81c784;font-weight:700; }
+        .tank-update-badge .update-time { color:#a5d6a7;font-weight:500; }
+        .tank-update-badge.remote { background:rgba(79,195,247,0.15);color:#4fc3f7;border-color:rgba(79,195,247,0.25); }
+        .tank-update-badge.remote .update-initials { color:#4fc3f7; }
+        .tank-update-badge.remote .update-time { color:#81d4fa; }
+        
+        /* Room Users Badge */
+        .room-users-badge { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;background:rgba(79,195,247,0.15);color:#4fc3f7;border:1px solid rgba(79,195,247,0.25);cursor:pointer; }
+        .room-users-badge .user-count { background:#4fc3f7;color:#0d1b2a;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800; }
     </style>
 </head>
 <body>
+    <!-- Sync Status -->
+    <div class="sync-status no-room" id="sync-status"><span class="sync-dot"></span><span id="sync-label">No Room</span></div>
+    
     <div class="well-name-banner" onclick="openProfileModal()">
         <span class="well-name-banner-text empty" id="header-well-name">Tap to set well name</span>
     </div>
@@ -604,6 +635,10 @@
             <p>Fluid Tracking System</p>
         </div>
         <div class="header-actions">
+            <div class="room-users-badge" id="room-users-badge" onclick="showRoomUsersInfo()" style="display:none">
+                <span class="user-count" id="room-user-count">0</span>
+                <span>Online</span>
+            </div>
             <button class="chat-feed-btn" id="chat-feed-btn" onclick="openChatFeed()">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.82 14.01c-.25.7-1.23 1.43-1.97 1.62-.5.13-1.15.24-3.34-.72-2.8-1.22-4.6-4.06-4.74-4.25-.14-.19-1.13-1.51-1.13-2.88s.71-2.04.97-2.32c.26-.28.56-.35.75-.35h.54c.17 0 .41-.07.64.49.25.56.84 2.04.91 2.19.07.14.12.31.02.5-.1.19-.15.31-.29.47l-.43.5c-.14.14-.3.3-.13.58.17.29.75 1.23 1.61 2 1.1.98 2.03 1.28 2.32 1.43.28.14.45.12.62-.07.17-.19.71-.83.9-1.12.19-.28.38-.24.64-.14.26.1 1.65.78 1.93.92.28.14.47.21.54.33.07.12.07.68-.18 1.38z"/>
@@ -1375,7 +1410,7 @@ const TREAT_LABELS = { 0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.62
 
 let injData = { pumpRate: null, frTreat: null, lubeTreat: null, history: [] };
 function loadInjData() { const s = localStorage.getItem('ipsInjV5'); if (s) injData = JSON.parse(s); }
-function saveInjData() { localStorage.setItem('ipsInjV5', JSON.stringify(injData)); }
+function saveInjData() { localStorage.setItem('ipsInjV5', JSON.stringify(injData)); firebaseSaveInjData(); }
 function updatePumpRate() {
     const rate = document.getElementById('pump-rate-select').value;
     if (rate) {
@@ -1572,11 +1607,314 @@ function saveProfile() {
     const name = document.getElementById('profile-name-input').value.trim();
     profileData.name = name;
     profileData.initials = getInitials(name);
-    profileData.wellName = (document.getElementById('profile-well-input').value || '').trim();
+    const newWellName = (document.getElementById('profile-well-input').value || '').trim();
+    const oldWellName = profileData.wellName;
+    profileData.wellName = newWellName;
     saveProfileData();
     closeProfileModal();
     voicePlayDing();
+    // If well name changed, rejoin Firebase room
+    if (newWellName !== oldWellName) {
+        firebaseLeaveRoom();
+        if (newWellName) firebaseJoinRoom(newWellName);
+    }
+    // Update presence
+    if (fbRoom && fbDb) firebaseUpdatePresence();
 }
+
+// ========== FIREBASE REALTIME SYNC ==========
+/*
+ * Firebase Config — REPLACE with your own Firebase project credentials.
+ * 1. Go to https://console.firebase.google.com
+ * 2. Create a new project (free Spark plan is fine)
+ * 3. Enable "Realtime Database" (NOT Firestore) 
+ * 4. Set database rules to: { "rules": { ".read": true, ".write": true } }
+ *    (For production, add proper auth rules later)
+ * 5. Copy your config object below
+ */
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDpzbIpt0apWPScGDKMEzw1MhanGqz0lXg",
+    authDomain: "ips-tracker-72f0b.firebaseapp.com",
+    databaseURL: "https://ips-tracker-72f0b-default-rtdb.firebaseio.com",
+    projectId: "ips-tracker-72f0b",
+    storageBucket: "ips-tracker-72f0b.firebasestorage.app",
+    messagingSenderId: "1014353405467",
+    appId: "1:1014353405467:web:221e4d41e328235b687abe",
+    measurementId: "G-8CFN1WZTFK"
+};
+
+let fbApp = null, fbDb = null, fbRoom = null, fbListeners = [], fbPresenceRef = null;
+let _suppressRemoteRender = false; // Prevent render loops during local writes
+
+function firebaseInit() {
+    try {
+        if (FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') {
+            console.warn('Firebase not configured — running in local-only mode');
+            setSyncStatus('no-room', 'Local Only');
+            return false;
+        }
+        fbApp = firebase.initializeApp(FIREBASE_CONFIG);
+        fbDb = firebase.database();
+        console.log('Firebase initialized');
+        return true;
+    } catch(e) {
+        console.error('Firebase init failed:', e);
+        setSyncStatus('offline', 'Error');
+        return false;
+    }
+}
+
+function setSyncStatus(state, label) {
+    const el = document.getElementById('sync-status');
+    const lbl = document.getElementById('sync-label');
+    if (!el) return;
+    el.className = 'sync-status ' + state;
+    lbl.textContent = label || '';
+}
+
+function wellNameToRoomKey(wellName) {
+    // Sanitize for Firebase path: no . $ # [ ] / 
+    return wellName.replace(/[.$#\[\]\/]/g, '_').toLowerCase().replace(/\s+/g, '-');
+}
+
+function firebaseJoinRoom(wellName) {
+    if (!fbDb || !wellName) return;
+    fbRoom = wellNameToRoomKey(wellName);
+    console.log('Joining Firebase room:', fbRoom);
+    setSyncStatus('syncing', 'Connecting...');
+    
+    // Listen for all data paths
+    const paths = [
+        { path: 'tanks', handler: onRemoteTanks },
+        { path: 'titData', handler: onRemoteTitData },
+        { path: 'injData', handler: onRemoteInjData },
+        { path: 'plugData', handler: onRemotePlugData },
+        { path: 'plugLog', handler: onRemotePlugLog },
+        { path: 'titrationLog', handler: onRemoteTitrationLog },
+        { path: 'volData', handler: onRemoteVolData }
+    ];
+    
+    paths.forEach(p => {
+        const ref = fbDb.ref('rooms/' + fbRoom + '/' + p.path);
+        ref.on('value', p.handler);
+        fbListeners.push({ ref, event: 'value', handler: p.handler });
+    });
+    
+    // Presence system
+    firebaseUpdatePresence();
+    listenPresence();
+    
+    // Monitor connection state
+    fbDb.ref('.info/connected').on('value', snap => {
+        if (snap.val() === true) {
+            setSyncStatus('online', 'Synced: ' + wellName);
+            if (fbPresenceRef) fbPresenceRef.onDisconnect().remove();
+        } else {
+            setSyncStatus('offline', 'Offline');
+        }
+    });
+    
+    // Do initial push of local data to Firebase (if room is empty)
+    setTimeout(() => {
+        fbDb.ref('rooms/' + fbRoom + '/tanks').once('value', snap => {
+            if (!snap.exists()) {
+                console.log('Room empty — pushing local data');
+                firebasePushAll();
+            }
+        });
+    }, 1000);
+}
+
+function firebaseLeaveRoom() {
+    // Remove all listeners
+    fbListeners.forEach(l => l.ref.off(l.event, l.handler));
+    fbListeners = [];
+    // Remove presence
+    if (fbPresenceRef) { fbPresenceRef.remove(); fbPresenceRef = null; }
+    fbRoom = null;
+    setSyncStatus('no-room', 'No Room');
+    updateRoomUsersUI([]);
+}
+
+function firebaseUpdatePresence() {
+    if (!fbDb || !fbRoom) return;
+    const uid = profileData.initials || 'ANON';
+    fbPresenceRef = fbDb.ref('rooms/' + fbRoom + '/presence/' + uid + '_' + Date.now());
+    fbPresenceRef.set({
+        name: profileData.name || 'Unknown',
+        initials: uid,
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+    fbPresenceRef.onDisconnect().remove();
+    // Heartbeat every 60s
+    if (window._fbHeartbeat) clearInterval(window._fbHeartbeat);
+    window._fbHeartbeat = setInterval(() => {
+        if (fbPresenceRef) fbPresenceRef.update({ lastSeen: firebase.database.ServerValue.TIMESTAMP });
+    }, 60000);
+}
+
+function listenPresence() {
+    if (!fbDb || !fbRoom) return;
+    const ref = fbDb.ref('rooms/' + fbRoom + '/presence');
+    ref.on('value', snap => {
+        const users = [];
+        const now = Date.now();
+        snap.forEach(child => {
+            const u = child.val();
+            // Only show users active in last 2 minutes
+            if (u.lastSeen && (now - u.lastSeen) < 120000) {
+                users.push(u);
+            }
+        });
+        updateRoomUsersUI(users);
+    });
+    fbListeners.push({ ref, event: 'value', handler: () => {} });
+}
+
+function updateRoomUsersUI(users) {
+    const badge = document.getElementById('room-users-badge');
+    const countEl = document.getElementById('room-user-count');
+    if (users.length > 0) {
+        badge.style.display = '';
+        countEl.textContent = users.length;
+        badge._users = users;
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function showRoomUsersInfo() {
+    const badge = document.getElementById('room-users-badge');
+    const users = badge._users || [];
+    if (users.length === 0) return;
+    const names = users.map(u => u.name || u.initials).join('\n• ');
+    alert('Users in room (' + users.length + '):\n• ' + names);
+}
+
+// === Firebase WRITE helpers ===
+function firebaseSaveTanks() {
+    if (!fbDb || !fbRoom) return;
+    _suppressRemoteRender = true;
+    fbDb.ref('rooms/' + fbRoom + '/tanks').set({
+        pumpTanks: data.pumpTanks,
+        returnTanks: data.returnTanks,
+        jetsHour: data.jetsHour,
+        jetsShift: data.jetsShift,
+        lastSystemTotal: data.lastSystemTotal || null,
+        lastCheckTime: data.lastCheckTime || null,
+        history: (data.history || []).slice(0, 50), // limit history size
+        transferLog: (data.transferLog || []).slice(0, 100),
+        _updatedAt: firebase.database.ServerValue.TIMESTAMP,
+        _updatedBy: profileData.initials || ''
+    }).then(() => { _suppressRemoteRender = false; })
+      .catch(e => { console.error('Firebase save error:', e); _suppressRemoteRender = false; });
+}
+
+function firebaseSaveTitData() {
+    if (!fbDb || !fbRoom) return;
+    fbDb.ref('rooms/' + fbRoom + '/titData').set(titData).catch(e => console.error(e));
+}
+
+function firebaseSaveInjData() {
+    if (!fbDb || !fbRoom) return;
+    fbDb.ref('rooms/' + fbRoom + '/injData').set(injData).catch(e => console.error(e));
+}
+
+function firebaseSavePlugData() {
+    if (!fbDb || !fbRoom) return;
+    const pd = {};
+    PLUG_FIELDS.forEach(id => { const el = document.getElementById(id); if (el) pd[id] = el.value; });
+    fbDb.ref('rooms/' + fbRoom + '/plugData').set(pd).catch(e => console.error(e));
+}
+
+function firebaseSavePlugLog() {
+    if (!fbDb || !fbRoom) return;
+    const logs = JSON.parse(localStorage.getItem('ips_plug_log') || '[]');
+    fbDb.ref('rooms/' + fbRoom + '/plugLog').set(logs).catch(e => console.error(e));
+}
+
+function firebaseSaveTitrationLog() {
+    if (!fbDb || !fbRoom) return;
+    fbDb.ref('rooms/' + fbRoom + '/titrationLog').set(titrationLog).catch(e => console.error(e));
+}
+
+function firebaseSaveVolData() {
+    if (!fbDb || !fbRoom) return;
+    const d = {};
+    VOL_FIELDS.forEach(id => { const el = document.getElementById(id); if (el) d[id] = el.value; });
+    fbDb.ref('rooms/' + fbRoom + '/volData').set(d).catch(e => console.error(e));
+}
+
+function firebasePushAll() {
+    firebaseSaveTanks();
+    firebaseSaveTitData();
+    firebaseSaveInjData();
+    firebaseSavePlugData();
+    firebaseSavePlugLog();
+    firebaseSaveTitrationLog();
+    firebaseSaveVolData();
+}
+
+// === Firebase READ handlers (remote changes) ===
+function onRemoteTanks(snap) {
+    if (_suppressRemoteRender || !snap.exists()) return;
+    const d = snap.val();
+    if (d.pumpTanks) data.pumpTanks = d.pumpTanks;
+    if (d.returnTanks) data.returnTanks = d.returnTanks;
+    if (d.jetsHour !== undefined) data.jetsHour = d.jetsHour;
+    if (d.jetsShift !== undefined) data.jetsShift = d.jetsShift;
+    if (d.lastSystemTotal !== undefined) data.lastSystemTotal = d.lastSystemTotal;
+    if (d.lastCheckTime !== undefined) data.lastCheckTime = d.lastCheckTime;
+    if (d.history) data.history = d.history;
+    if (d.transferLog) data.transferLog = d.transferLog;
+    // Save to localStorage as offline cache
+    localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
+    render();
+    renderTransferLog();
+    renderVolumeLog();
+}
+
+function onRemoteTitData(snap) {
+    if (!snap.exists()) return;
+    titData = snap.val();
+    localStorage.setItem('ipsTitrationV3', JSON.stringify(titData));
+    try { loadTitrationUI(); } catch(e) {}
+}
+
+function onRemoteInjData(snap) {
+    if (!snap.exists()) return;
+    injData = snap.val();
+    localStorage.setItem('ipsInjV5', JSON.stringify(injData));
+    try { loadInjUI(); renderInjHist(); } catch(e) {}
+}
+
+function onRemotePlugData(snap) {
+    if (!snap.exists()) return;
+    const d = snap.val();
+    localStorage.setItem('ips_plug_data', JSON.stringify(d));
+    PLUG_FIELDS.forEach(id => { const el = document.getElementById(id); if (el && d[id] !== undefined) el.value = d[id]; });
+    try { updatePlugHeader(); } catch(e) {}
+}
+
+function onRemotePlugLog(snap) {
+    const logs = snap.exists() ? snap.val() : [];
+    localStorage.setItem('ips_plug_log', JSON.stringify(Array.isArray(logs) ? logs : []));
+    renderPlugLog();
+}
+
+function onRemoteTitrationLog(snap) {
+    titrationLog = snap.exists() ? (Array.isArray(snap.val()) ? snap.val() : []) : [];
+    localStorage.setItem('ipsTitrationLog', JSON.stringify(titrationLog));
+    renderTitrationLog();
+}
+
+function onRemoteVolData(snap) {
+    if (!snap.exists()) return;
+    const d = snap.val();
+    localStorage.setItem('ips_vol_data', JSON.stringify(d));
+    try { loadVolData(); } catch(e) {}
+}
+// ========== END FIREBASE SYNC ==========
 
 function loadData() {
     const s = localStorage.getItem('ipsTrackerV3'); 
@@ -1601,7 +1939,7 @@ function loadData() {
         console.error('Failed to loadTitrationUI:', e);
     }
 }
-function saveData() { localStorage.setItem('ipsTrackerV3', JSON.stringify(data)); }
+function saveData() { localStorage.setItem('ipsTrackerV3', JSON.stringify(data)); firebaseSaveTanks(); }
 function saveTitrationData() {
     titData.fluidType = document.getElementById('fluid-type').value;
     titData.viscosity = document.getElementById('tit-viscosity').value;
@@ -1615,6 +1953,7 @@ function saveTitrationData() {
     titData.caPipette = document.getElementById('tit-ca-pipette').value;
     titData.surfaceVol = document.getElementById('tit-surface-vol').value;
     localStorage.setItem('ipsTitrationV3', JSON.stringify(titData));
+    firebaseSaveTitData();
 }
 function loadTitrationUI() {
     document.getElementById('fluid-type').value = titData.fluidType || 'aphron';
@@ -1670,6 +2009,7 @@ function savePlugData() {
         if (el) data[id] = el.value;
     });
     localStorage.setItem('ips_plug_data', JSON.stringify(data));
+    firebaseSavePlugData();
 }
 
 function loadPlugData() {
@@ -1694,13 +2034,18 @@ function getPlugFormData() {
     return d;
 }
 
+function _savePlugLog(logs) {
+    localStorage.setItem('ips_plug_log', JSON.stringify(logs));
+    firebaseSavePlugLog();
+}
+
 function logPlug() {
     const d = getPlugFormData();
     if (!d['plug-num']) { alert('Enter a plug number first'); return; }
     const logs = JSON.parse(localStorage.getItem('ips_plug_log') || '[]');
     d._timestamp = new Date().toISOString();
     logs.push(d);
-    localStorage.setItem('ips_plug_log', JSON.stringify(logs));
+    _savePlugLog(logs);
     renderPlugLog();
 
     // Auto-increment plug number and clear per-plug fields
@@ -1752,13 +2097,14 @@ function renderPlugLog() {
 function deletePlugLog(idx) {
     const logs = JSON.parse(localStorage.getItem('ips_plug_log') || '[]');
     logs.splice(idx, 1);
-    localStorage.setItem('ips_plug_log', JSON.stringify(logs));
+    _savePlugLog(logs);
     renderPlugLog();
 }
 
 function resetPlugLog() {
     if (!confirm('Clear all logged plugs?')) return;
     localStorage.removeItem('ips_plug_log');
+    firebaseSavePlugLog();
     renderPlugLog();
 }
 
@@ -1790,7 +2136,7 @@ function logEditClearAll() {
     else if (_logEditType === 'transfer') { data.transferLog = []; saveData(); renderTransferLog(); }
     else if (_logEditType === 'injection') { injData.history = []; saveInjData(); renderInjHist(); }
     else if (_logEditType === 'titration') { titrationLog = []; saveTitrationLog(); renderTitrationLog(); }
-    else if (_logEditType === 'plug') { localStorage.removeItem('ips_plug_log'); renderPlugLog(); }
+    else if (_logEditType === 'plug') { localStorage.removeItem('ips_plug_log'); firebaseSavePlugLog(); renderPlugLog(); }
     hideLogEditModal();
 }
 
@@ -1808,7 +2154,7 @@ function saveLogEntries(type, entries) {
     else if (type === 'transfer') { data.transferLog = entries; saveData(); renderTransferLog(); }
     else if (type === 'injection') { injData.history = entries; saveInjData(); renderInjHist(); }
     else if (type === 'titration') { titrationLog = entries; saveTitrationLog(); renderTitrationLog(); }
-    else if (type === 'plug') { localStorage.setItem('ips_plug_log', JSON.stringify(entries)); renderPlugLog(); }
+    else if (type === 'plug') { _savePlugLog(entries); renderPlugLog(); }
 }
 
 function getEntryTitle(type, entry, idx) {
@@ -2225,6 +2571,7 @@ function saveVolData() {
         if (el) d[id] = el.value;
     });
     localStorage.setItem('ips_vol_data', JSON.stringify(d));
+    firebaseSaveVolData();
 }
 
 function loadVolData() {
@@ -2546,8 +2893,8 @@ function addTanks() {
 }
 function renumberTanksOfType(side,type) { const tanks=(side==='pump'?data.pumpTanks:data.returnTanks).filter(t=>t.type===type); tanks.forEach((tank,i)=>{ tank.name=generateTankName(side,type,i+1); if(tanks.length===1){const t=(side==='pump'?pumpTypes:returnTypes).find(x=>x.value===type);tank.name=t?t.label:type;} }); }
 function deleteTank(side,id) { if(!confirm('Delete?')) return; let dt=''; if(side==='pump'){const t=data.pumpTanks.find(x=>x.id===id);if(t)dt=t.type;data.pumpTanks=data.pumpTanks.filter(x=>x.id!==id);}else{const t=data.returnTanks.find(x=>x.id===id);if(t)dt=t.type;data.returnTanks=data.returnTanks.filter(x=>x.id!==id);} if(dt)renumberTanksOfType(side,dt); saveData(); render(); }
-function updateTank(side,id,field,val) { const tank=(side==='pump'?data.pumpTanks:data.returnTanks).find(t=>t.id===id); if(!tank)return; if(field==='inches'){tank.inches=parseFloat(val)||0;tank.bbls=inchesToBbl(tank.inches);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';}else if(field==='contents')tank.contents=val; saveData(); render(); }
-function setSandcatFull(id) { const tank=data.returnTanks.find(t=>t.id===id); if(tank){tank.bbls=185;tank.inches=bblToInches(185);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';saveData();render();} }
+function updateTank(side,id,field,val) { const tank=(side==='pump'?data.pumpTanks:data.returnTanks).find(t=>t.id===id); if(!tank)return; if(field==='inches'){tank.inches=parseFloat(val)||0;tank.bbls=inchesToBbl(tank.inches);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';tank._updatedAt=new Date().toISOString();tank._updatedBy=profileData.initials||'';}else if(field==='contents'){tank.contents=val;tank._updatedAt=new Date().toISOString();tank._updatedBy=profileData.initials||'';} saveData(); render(); }
+function setSandcatFull(id) { const tank=data.returnTanks.find(t=>t.id===id); if(tank){tank.bbls=185;tank.inches=bblToInches(185);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';tank._updatedAt=new Date().toISOString();tank._updatedBy=profileData.initials||'';saveData();render();} }
 
 function calculateTotals() { let totals={brine:0,packer:0,mud:0,recirc:0,freshwater:0,other:0,system:0}; data.pumpTanks.forEach(t=>{totals.system+=t.bbls;if(t.type==='brine10'||t.type==='brine119')totals.brine+=t.bbls;else if(t.type==='packer')totals.packer+=t.bbls;else if(t.type==='aphron')totals.mud+=t.bbls;else if(t.type==='recirc')totals.recirc+=t.bbls;else if(t.type==='freshwater')totals.freshwater+=t.bbls;else totals.other+=t.bbls;}); data.returnTanks.forEach(t=>{totals.system+=t.bbls;const f=t.contents||'';if(f==='brine')totals.brine+=t.bbls;else if(f==='mud')totals.mud+=t.bbls;else if(f==='recirc')totals.recirc+=t.bbls;else if(f==='freshwater')totals.freshwater+=t.bbls;else totals.other+=t.bbls;}); return totals; }
 
@@ -2716,10 +3063,12 @@ function getTankFillColor(color) {
     return colors[color] || colors.other;
 }
 function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeText(tank); const maxBbl=tank.type==='sandcat'?185:500; const fillPct=Math.min(100,Math.round((tank.bbls/maxBbl)*100)); const fc=getTankFillColor(color); let dd=''; if(side==='return'&&hasContentsDropdown(tank)){dd='<div class="input-group contains-group"><label>Contains</label><select onchange="updateTank(\''+side+'\','+tank.id+',\'contents\',this.value)">'+contentsOptions.map(o=>'<option value="'+o.value+'"'+(tank.contents===o.value?' selected':'')+'>'+o.label+'</option>').join('')+'</select></div>';} let fullBtn=tank.type==='sandcat'?'<button class="full-btn" onclick="setSandcatFull('+tank.id+')">Full</button>':''; let nameClass='color-'+color; if(tank.type==='return'&&!tank.contents)nameClass='color-return'; 
-/* Build top row: strap time first, then tank name */
+/* Build top row: strap time first, then tank name, then update badge */
 let topRow=''; 
 if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';topRow+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} 
 topRow+='<span class="tank-name '+nameClass+'">'+tank.name+'</span>'; 
+/* Update badge — shows who last updated and when */
+if(tank._updatedAt){const ut=new Date(tank._updatedAt);const ub=tank._updatedBy||'??';const uTime=ut.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const isRemote=ub!==(profileData.initials||'');topRow+='<span class="tank-update-badge'+(isRemote?' remote':'')+'"><span class="update-initials">'+ub+'</span><span class="update-time">'+uTime+'</span></span>';} 
 /* Build badge row: type badge + treated/untreated */
 let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; 
 if(tank.type==='packer'){const tr=tank.treated;badges+='<span class="tank-badge '+(tr?'badge-treated':'badge-untreated')+'">'+(tr?'TREATED':'UNTREATED')+'</span>';} 
@@ -2912,7 +3261,7 @@ function setSampleLocation(loc) {
     }
 }
 function loadTitrationLog() { const s = localStorage.getItem('ipsTitrationLog'); if(s) titrationLog = JSON.parse(s); }
-function saveTitrationLog() { localStorage.setItem('ipsTitrationLog', JSON.stringify(titrationLog)); }
+function saveTitrationLog() { localStorage.setItem('ipsTitrationLog', JSON.stringify(titrationLog)); firebaseSaveTitrationLog(); }
 function logTitration() {
     const names = {aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Fresh'};
     const hardness = document.getElementById('tit-hardness').textContent;
@@ -4867,6 +5216,11 @@ function initApp() {
     loadVolData();
     console.log('About to render, pump-tanks element:', document.getElementById('pump-tanks'));
     render();
+    
+    // Initialize Firebase and auto-join room if well name is set
+    if (firebaseInit() && profileData.wellName) {
+        firebaseJoinRoom(profileData.wellName);
+    }
 }
 
 // Multiple fallbacks to ensure init runs
