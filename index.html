@@ -608,8 +608,8 @@
         .sync-strip.no-room .sync-dot { background:#555; }
         @keyframes syncDotPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-        /* Tank Update Badge — shows who updated + when */
-        .tank-update-badge { display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:600;background:rgba(102,187,106,0.15);color:#66bb6a;border:1px solid rgba(102,187,106,0.25);white-space:nowrap;line-height:1.3; }
+        /* Tank Update Badge — positioned top-right, left of delete X */
+        .tank-update-badge { position:absolute;top:10px;right:34px;display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:600;background:rgba(102,187,106,0.15);color:#66bb6a;border:1px solid rgba(102,187,106,0.25);white-space:nowrap;line-height:1.3; }
         .tank-update-badge .update-initials { color:#81c784;font-weight:700; }
         .tank-update-badge .update-time { color:#a5d6a7;font-weight:500; }
         .tank-update-badge.remote { background:rgba(79,195,247,0.15);color:#4fc3f7;border-color:rgba(79,195,247,0.25); }
@@ -738,7 +738,7 @@
             <div id="packer-treated-controls" style="margin-bottom:8px"></div>
             <hr class="profile-divider">
             <div class="profile-section-label">Tank Management</div>
-            <button class="profile-action-btn" onclick="closeProfileModal();showAddTankModal()"><span class="action-icon">➕</span> Add Tank</button>
+            <button class="profile-action-btn" id="admin-add-tank-btn" onclick="closeProfileModal();showAddTankModal()"><span class="action-icon">➕</span> Add Tank</button>
             <button class="profile-action-btn" onclick="closeProfileModal();openVoiceKeywordsManager()"><span class="action-icon">🎤</span> Set Voice Keywords</button>
             <hr class="profile-divider">
             <div class="profile-section-label">Laser / BLE</div>
@@ -1644,6 +1644,8 @@ const FIREBASE_CONFIG = {
 
 let fbApp = null, fbDb = null, fbRoom = null, fbListeners = [], fbPresenceRef = null;
 let _suppressRemoteRender = false; // Prevent render loops during local writes
+let fbIsAdmin = false; // Whether current user is the room admin
+let fbAdminInitials = ''; // The admin's initials for display
 
 function firebaseInit() {
     try {
@@ -1699,6 +1701,18 @@ function firebaseJoinRoom(wellName) {
         fbListeners.push({ ref, event: 'value', handler: p.handler });
     });
     
+    // Listen for admin info
+    const adminRef = fbDb.ref('rooms/' + fbRoom + '/admin');
+    adminRef.on('value', snap => {
+        if (snap.exists()) {
+            const adminData = snap.val();
+            fbAdminInitials = adminData.initials || '';
+            fbIsAdmin = (profileData.initials && profileData.initials === fbAdminInitials);
+        }
+        updateAdminUI();
+    });
+    fbListeners.push({ ref: adminRef, event: 'value', handler: () => {} });
+    
     // Presence system
     firebaseUpdatePresence();
     listenPresence();
@@ -1706,22 +1720,54 @@ function firebaseJoinRoom(wellName) {
     // Monitor connection state
     fbDb.ref('.info/connected').on('value', snap => {
         if (snap.val() === true) {
-            setSyncStatus('online', 'Synced: ' + wellName);
+            const adminLabel = fbIsAdmin ? ' (Admin)' : '';
+            setSyncStatus('online', 'Synced: ' + wellName + adminLabel);
             if (fbPresenceRef) fbPresenceRef.onDisconnect().remove();
         } else {
             setSyncStatus('offline', 'Offline');
         }
     });
     
-    // Do initial push of local data to Firebase (if room is empty)
+    // Check if room exists — if not, this user becomes admin and pushes data
     setTimeout(() => {
-        fbDb.ref('rooms/' + fbRoom + '/tanks').once('value', snap => {
+        fbDb.ref('rooms/' + fbRoom + '/admin').once('value', snap => {
             if (!snap.exists()) {
-                console.log('Room empty — pushing local data');
+                // This user is the room creator — set as admin
+                console.log('Room empty — setting as admin and pushing local data');
+                fbDb.ref('rooms/' + fbRoom + '/admin').set({
+                    initials: profileData.initials || '',
+                    name: profileData.name || '',
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                });
+                fbIsAdmin = true;
+                fbAdminInitials = profileData.initials || '';
                 firebasePushAll();
+                updateAdminUI();
             }
+            const adminLabel = fbIsAdmin ? ' (Admin)' : '';
+            setSyncStatus('online', 'Synced: ' + wellName + adminLabel);
         });
     }, 1000);
+}
+
+function updateAdminUI() {
+    // Show/hide add tank button in profile modal
+    const addTankBtn = document.getElementById('admin-add-tank-btn');
+    if (addTankBtn) {
+        if (fbRoom && !fbIsAdmin) {
+            addTankBtn.style.display = 'none';
+        } else {
+            addTankBtn.style.display = '';
+        }
+    }
+    // Re-render to show/hide delete buttons on tanks
+    try { render(); } catch(e) {}
+    // Update sync strip label
+    if (fbRoom) {
+        const wellName = profileData.wellName || '';
+        const adminLabel = fbIsAdmin ? ' (Admin)' : '';
+        setSyncStatus('online', 'Synced: ' + wellName + adminLabel);
+    }
 }
 
 function firebaseLeaveRoom() {
@@ -1731,6 +1777,8 @@ function firebaseLeaveRoom() {
     // Remove presence
     if (fbPresenceRef) { fbPresenceRef.remove(); fbPresenceRef = null; }
     fbRoom = null;
+    fbIsAdmin = false;
+    fbAdminInitials = '';
     setSyncStatus('no-room', 'No Room');
     updateRoomUsersUI([]);
 }
@@ -1786,7 +1834,10 @@ function showRoomUsersInfo() {
     const badge = document.getElementById('room-users-badge');
     const users = badge._users || [];
     if (users.length === 0) return;
-    const names = users.map(u => u.name || u.initials).join('\n• ');
+    const names = users.map(u => {
+        const isAdmin = u.initials === fbAdminInitials;
+        return (u.name || u.initials) + (isAdmin ? ' ⭐ Admin' : '');
+    }).join('\n• ');
     alert('Users in room (' + users.length + '):\n• ' + names);
 }
 
@@ -1794,19 +1845,22 @@ function showRoomUsersInfo() {
 function firebaseSaveTanks() {
     if (!fbDb || !fbRoom) return;
     _suppressRemoteRender = true;
+    // Safety: never suppress for more than 3 seconds
+    clearTimeout(window._suppressTimeout);
+    window._suppressTimeout = setTimeout(() => { _suppressRemoteRender = false; }, 3000);
     fbDb.ref('rooms/' + fbRoom + '/tanks').set({
-        pumpTanks: data.pumpTanks,
-        returnTanks: data.returnTanks,
-        jetsHour: data.jetsHour,
-        jetsShift: data.jetsShift,
+        pumpTanks: data.pumpTanks || [],
+        returnTanks: data.returnTanks || [],
+        jetsHour: data.jetsHour || 0,
+        jetsShift: data.jetsShift || 0,
         lastSystemTotal: data.lastSystemTotal || null,
         lastCheckTime: data.lastCheckTime || null,
-        history: (data.history || []).slice(0, 50), // limit history size
+        history: (data.history || []).slice(0, 50),
         transferLog: (data.transferLog || []).slice(0, 100),
         _updatedAt: firebase.database.ServerValue.TIMESTAMP,
         _updatedBy: profileData.initials || ''
-    }).then(() => { _suppressRemoteRender = false; })
-      .catch(e => { console.error('Firebase save error:', e); _suppressRemoteRender = false; });
+    }).then(() => { _suppressRemoteRender = false; clearTimeout(window._suppressTimeout); })
+      .catch(e => { console.error('Firebase save error:', e); _suppressRemoteRender = false; clearTimeout(window._suppressTimeout); });
 }
 
 function firebaseSaveTitData() {
@@ -1854,18 +1908,25 @@ function firebasePushAll() {
     firebaseSaveVolData();
 }
 
+// Helper: Firebase sometimes converts arrays to objects — normalize them
+function fbToArray(val) {
+    if (Array.isArray(val)) return val;
+    if (val && typeof val === 'object') return Object.values(val);
+    return [];
+}
+
 // === Firebase READ handlers (remote changes) ===
 function onRemoteTanks(snap) {
     if (_suppressRemoteRender || !snap.exists()) return;
     const d = snap.val();
-    if (d.pumpTanks) data.pumpTanks = d.pumpTanks;
-    if (d.returnTanks) data.returnTanks = d.returnTanks;
+    if (d.pumpTanks) data.pumpTanks = fbToArray(d.pumpTanks);
+    if (d.returnTanks) data.returnTanks = fbToArray(d.returnTanks);
     if (d.jetsHour !== undefined) data.jetsHour = d.jetsHour;
     if (d.jetsShift !== undefined) data.jetsShift = d.jetsShift;
     if (d.lastSystemTotal !== undefined) data.lastSystemTotal = d.lastSystemTotal;
     if (d.lastCheckTime !== undefined) data.lastCheckTime = d.lastCheckTime;
-    if (d.history) data.history = d.history;
-    if (d.transferLog) data.transferLog = d.transferLog;
+    if (d.history) data.history = fbToArray(d.history);
+    if (d.transferLog) data.transferLog = fbToArray(d.transferLog);
     // Save to localStorage as offline cache
     localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
     render();
@@ -1883,6 +1944,7 @@ function onRemoteTitData(snap) {
 function onRemoteInjData(snap) {
     if (!snap.exists()) return;
     injData = snap.val();
+    if (injData.history) injData.history = fbToArray(injData.history);
     localStorage.setItem('ipsInjV5', JSON.stringify(injData));
     try { loadInjUI(); renderInjHist(); } catch(e) {}
 }
@@ -1896,13 +1958,13 @@ function onRemotePlugData(snap) {
 }
 
 function onRemotePlugLog(snap) {
-    const logs = snap.exists() ? snap.val() : [];
-    localStorage.setItem('ips_plug_log', JSON.stringify(Array.isArray(logs) ? logs : []));
+    const logs = snap.exists() ? fbToArray(snap.val()) : [];
+    localStorage.setItem('ips_plug_log', JSON.stringify(logs));
     renderPlugLog();
 }
 
 function onRemoteTitrationLog(snap) {
-    titrationLog = snap.exists() ? (Array.isArray(snap.val()) ? snap.val() : []) : [];
+    titrationLog = snap.exists() ? fbToArray(snap.val()) : [];
     localStorage.setItem('ipsTitrationLog', JSON.stringify(titrationLog));
     renderTitrationLog();
 }
@@ -2881,17 +2943,18 @@ function updateTankTypeOptions() {
 function getColor(tank) { if(tank.contents) { const o=contentsOptions.find(x=>x.value===tank.contents); return o?o.color:'other'; } const t=[...pumpTypes,...returnTypes].find(x=>x.value===tank.type); return t?t.color:'other'; }
 function getBadgeText(tank) { if(tank.contents) { const o=contentsOptions.find(x=>x.value===tank.contents); return o&&o.value?o.label.toUpperCase():''; } const t=[...pumpTypes,...returnTypes].find(x=>x.value===tank.type); return t?t.badgeText:''; }
 function countTanksOfType(side,type) { return (side==='pump'?data.pumpTanks:data.returnTanks).filter(t=>t.type===type).length; }
-function generateTankName(side,type,idx) { const t=(side==='pump'?pumpTypes:returnTypes).find(x=>x.value===type); const b=t?t.label:type; return idx>1?b+' '+idx:b; }
+function generateTankName(side,type,idx) { const t=(side==='pump'?pumpTypes:returnTypes).find(x=>x.value===type); const b=t?t.label:type; if(type==='sandcat') return b; return b+' '+idx; }
 
 function addTanks() {
+    if (fbRoom && !fbIsAdmin) { alert('Only the room admin (' + (fbAdminInitials||'creator') + ') can add tanks'); return; }
     const type=document.getElementById('new-tank-type').value, qty=parseInt(document.getElementById('new-tank-qty').value)||1;
     if(!type) { alert('Select a tank type'); return; }
     const existing = countTanksOfType(modalSide,type);
     for(let i=0;i<qty;i++) { const tank={id:Date.now()+i,type,name:generateTankName(modalSide,type,existing+i+1),inches:0,bbls:0,contents:'',side:modalSide,estimated:false}; (modalSide==='pump'?data.pumpTanks:data.returnTanks).push(tank); }
     renumberTanksOfType(modalSide,type); saveData(); render(); hideAddTankModal(); switchSide(modalSide);
 }
-function renumberTanksOfType(side,type) { const tanks=(side==='pump'?data.pumpTanks:data.returnTanks).filter(t=>t.type===type); tanks.forEach((tank,i)=>{ tank.name=generateTankName(side,type,i+1); if(tanks.length===1){const t=(side==='pump'?pumpTypes:returnTypes).find(x=>x.value===type);tank.name=t?t.label:type;} }); }
-function deleteTank(side,id) { if(!confirm('Delete?')) return; let dt=''; if(side==='pump'){const t=data.pumpTanks.find(x=>x.id===id);if(t)dt=t.type;data.pumpTanks=data.pumpTanks.filter(x=>x.id!==id);}else{const t=data.returnTanks.find(x=>x.id===id);if(t)dt=t.type;data.returnTanks=data.returnTanks.filter(x=>x.id!==id);} if(dt)renumberTanksOfType(side,dt); saveData(); render(); }
+function renumberTanksOfType(side,type) { const tanks=(side==='pump'?data.pumpTanks:data.returnTanks).filter(t=>t.type===type); tanks.forEach((tank,i)=>{ tank.name=generateTankName(side,type,i+1); }); }
+function deleteTank(side,id) { if(fbRoom && !fbIsAdmin){alert('Only the room admin (' + (fbAdminInitials||'creator') + ') can delete tanks');return;} if(!confirm('Delete?')) return; let dt=''; if(side==='pump'){const t=data.pumpTanks.find(x=>x.id===id);if(t)dt=t.type;data.pumpTanks=data.pumpTanks.filter(x=>x.id!==id);}else{const t=data.returnTanks.find(x=>x.id===id);if(t)dt=t.type;data.returnTanks=data.returnTanks.filter(x=>x.id!==id);} if(dt)renumberTanksOfType(side,dt); saveData(); render(); }
 function updateTank(side,id,field,val) { const tank=(side==='pump'?data.pumpTanks:data.returnTanks).find(t=>t.id===id); if(!tank)return; if(field==='inches'){tank.inches=parseFloat(val)||0;tank.bbls=inchesToBbl(tank.inches);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';tank._updatedAt=new Date().toISOString();tank._updatedBy=profileData.initials||'';}else if(field==='contents'){tank.contents=val;tank._updatedAt=new Date().toISOString();tank._updatedBy=profileData.initials||'';} saveData(); render(); }
 function setSandcatFull(id) { const tank=data.returnTanks.find(t=>t.id===id); if(tank){tank.bbls=185;tank.inches=bblToInches(185);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';tank._updatedAt=new Date().toISOString();tank._updatedBy=profileData.initials||'';saveData();render();} }
 
@@ -3066,15 +3129,16 @@ function renderTankCard(tank,side) { const color=getColor(tank),badge=getBadgeTe
 let topRow=''; 
 if(tank.lastStrapTime){const st=new Date(tank.lastStrapTime).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const by=tank.lastStrapBy||'';topRow+='<span class="tank-badge badge-strap">'+(by?by+' ':'')+st+'</span>';} 
 topRow+='<span class="tank-name '+nameClass+'">'+tank.name+'</span>'; 
-/* Update badge — shows who last updated and when */
-if(tank._updatedAt){const ut=new Date(tank._updatedAt);const ub=tank._updatedBy||'??';const uTime=ut.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const isRemote=ub!==(profileData.initials||'');topRow+='<span class="tank-update-badge'+(isRemote?' remote':'')+'"><span class="update-initials">'+ub+'</span><span class="update-time">'+uTime+'</span></span>';} 
+/* Update badge — positioned top-right, left of delete X */
+let updateBadgeHtml='';
+if(tank._updatedAt){const ut=new Date(tank._updatedAt);const ub=tank._updatedBy||'??';const uTime=ut.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});const isRemote=ub!==(profileData.initials||'');updateBadgeHtml='<span class="tank-update-badge'+(isRemote?' remote':'')+'"><span class="update-initials">'+ub+'</span><span class="update-time">'+uTime+'</span></span>';}
 /* Build badge row: type badge + treated/untreated */
 let badges=badge?'<span class="tank-badge badge-'+color+'">'+badge+'</span>':''; 
 if(tank.type==='packer'){const tr=tank.treated;badges+='<span class="tank-badge '+(tr?'badge-treated':'badge-untreated')+'">'+(tr?'TREATED':'UNTREATED')+'</span>';} 
 /* EST badge moves to inches input area */
 let estOnInput=tank.estimated?'<span class="inches-est-badge">EST</span>':''; 
 let inchesLabel='<div class="inches-label-row"><label>Inches</label>'+estOnInput+'</div>';
-const keywords=tank.voiceKeywords||[]; const isVoiceWaiting=voiceIsListening&&voiceCurrentTank&&voiceCurrentTank.id===tank.id&&voiceCurrentSide===side&&voiceState==='WAITING_NUMBER'; const isVoiceDone=voiceDoneTankSide===side&&voiceDoneTankId===tank.id; const micClass=isVoiceWaiting?'voice-waiting':isVoiceDone?'voice-done':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const bleClass=bleConnected&&bleActiveTankSide===side&&bleActiveTankId===tank.id?'ble-waiting':bleDoneTankSide===side&&bleDoneTankId===tank.id?'ble-done':'inactive'; const bleBtn='<div class="tank-ble-btn '+bleClass+'" onclick="toggleBleTank(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button><div class="tank-header"><div class="tank-header-top">'+topRow+'</div>'+(badges?'<div class="tank-header-row">'+badges+'</div>':'')+'</div><div class="tank-inputs"><div class="input-group inches-group">'+inchesLabel+'<input type="number" step="0.25" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+bleBtn+'</div></div></div>'; }
+const keywords=tank.voiceKeywords||[]; const isVoiceWaiting=voiceIsListening&&voiceCurrentTank&&voiceCurrentTank.id===tank.id&&voiceCurrentSide===side&&voiceState==='WAITING_NUMBER'; const isVoiceDone=voiceDoneTankSide===side&&voiceDoneTankId===tank.id; const micClass=isVoiceWaiting?'voice-waiting':isVoiceDone?'voice-done':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const bleClass=bleConnected&&bleActiveTankSide===side&&bleActiveTankId===tank.id?'ble-waiting':bleDoneTankSide===side&&bleDoneTankId===tank.id?'ble-done':'inactive'; const bleBtn='<div class="tank-ble-btn '+bleClass+'" onclick="toggleBleTank(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; const showDelete=(!fbRoom||fbIsAdmin); return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+updateBadgeHtml+(showDelete?'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button>':'')+'<div class="tank-header"><div class="tank-header-top">'+topRow+'</div>'+(badges?'<div class="tank-header-row">'+badges+'</div>':'')+'</div><div class="tank-inputs"><div class="input-group inches-group">'+inchesLabel+'<input type="number" step="0.25" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" onchange="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+bleBtn+'</div></div></div>'; }
 function render() { 
     const pumpEl = document.getElementById('pump-tanks');
     const returnEl = document.getElementById('return-tanks');
