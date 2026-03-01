@@ -2857,12 +2857,10 @@ async function tcGenerateXLSX() {
     await wb.xlsx.load(buf);
     const ws = wb.getWorksheet('Job Sheet');
     if (!ws) { alert('Template missing "Job Sheet" tab.'); return null; }
-    // Helper: convert date string to Excel serial number
-    function dateToExcelSerial(dateStr) {
-        var d = new Date(dateStr + 'T12:00:00');
-        // Excel epoch is Jan 1 1900, but has the Lotus 1-2-3 bug (treats 1900 as leap year)
-        var epoch = new Date(1899, 11, 30, 0, 0, 0);
-        return Math.round((d - epoch) / 86400000);
+    // Helper: create a UTC date from a YYYY-MM-DD string (avoids timezone shift)
+    function makeDateUTC(dateStr) {
+        var parts = dateStr.split('-');
+        return new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
     }
     // Fill contractor info
     ws.getCell('C4').value = profileData.name || '';
@@ -2871,9 +2869,9 @@ async function tcGenerateXLSX() {
     ws.getCell('C7').value = profileData.cityStateZip || '';
     ws.getCell('C8').value = profileData.phone || '';
     // Pay period dates
-    ws.getCell('N6').value = dateToExcelSerial(startDate);
+    ws.getCell('N6').value = makeDateUTC(startDate);
     ws.getCell('N6').numFmt = 'mm/dd/yyyy';
-    ws.getCell('N7').value = dateToExcelSerial(endDate);
+    ws.getCell('N7').value = makeDateUTC(endDate);
     ws.getCell('N7').numFmt = 'mm/dd/yyyy';
     // Week data row mapping: week# -> [startRow, endRow] (7 rows each)
     var weekRows = { 1: [22,28], 2: [36,42], 3: [50,56], 4: [64,70] };
@@ -2909,7 +2907,7 @@ async function tcGenerateXLSX() {
             var e = wEntries[i];
             var row = rowStart + i;
             var dateCell = ws.getCell('B' + row);
-            dateCell.value = dateToExcelSerial(e.date);
+            dateCell.value = makeDateUTC(e.date);
             dateCell.numFmt = 'mm/dd/yyyy';
             ws.getCell('D' + row).value = e.operator || tcConfig.operator || '';
             ws.getCell('E' + row).value = e.well || '';
