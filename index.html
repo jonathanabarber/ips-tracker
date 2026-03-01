@@ -814,24 +814,22 @@
             <!-- Timecard Config -->
             <div class="settings-accordion" id="settings-timecard-section">
                 <div class="settings-acc-header" onclick="this.parentElement.classList.toggle('open')">
-                    <span class="settings-acc-title">Timecard Rates</span>
+                    <span class="settings-acc-title">Timecard</span>
                     <span class="settings-acc-chevron">▼</span>
                 </div>
                 <div class="settings-acc-body">
-                    <div class="profile-input-group"><label>Operating Company</label><input type="text" id="tc-operator" placeholder="e.g. Exxon" oninput="saveTimecardConfig()"></div>
-                    <div class="profile-input-group"><label>Rig Name</label><input type="text" id="tc-rig" placeholder="e.g. Cardinal" oninput="saveTimecardConfig()"></div>
+                    <div style="font-size:11px;color:#888;margin-bottom:10px">Upload the blank AES timesheet with your rates already filled in. The app will use it as a template when generating timecards.</div>
+                    <div id="tc-template-status" style="padding:10px 12px;background:#1b2838;border-radius:6px;margin-bottom:10px;border:1px solid #2d4a6f;font-size:12px;color:#888">No template uploaded</div>
+                    <input type="file" id="tc-template-upload" accept=".xlsx" style="display:none" onchange="tcHandleTemplateUpload(this)">
+                    <button class="profile-action-btn" onclick="document.getElementById('tc-template-upload').click()"><span class="action-icon">📄</span> Upload Timesheet Template</button>
+                    <button class="profile-action-btn" onclick="tcClearTemplate()" style="border-color:#c62828;color:#ef5350;display:none" id="tc-template-clear-btn"><span class="action-icon">🗑️</span> Remove Template</button>
+                    <hr style="border:none;border-top:1px solid #2d4a6f;margin:12px 0">
+                    <div style="font-size:11px;color:#888;margin-bottom:8px">These fields auto-fill when logging days. Edit per entry if needed.</div>
+                    <div class="profile-input-group"><label>Default Operator</label><input type="text" id="tc-operator" placeholder="e.g. ExxonMobil" oninput="saveTimecardConfig()"></div>
                     <div style="display:flex;gap:8px">
-                        <div class="profile-input-group" style="flex:1"><label>Reg Rate ($/hr)</label><input type="number" step="0.01" id="tc-reg-rate" placeholder="10.56" oninput="saveTimecardConfig()"></div>
-                        <div class="profile-input-group" style="flex:1"><label>OT Rate ($/hr)</label><input type="number" step="0.01" id="tc-ot-rate" placeholder="15.84" oninput="saveTimecardConfig()"></div>
+                        <div class="profile-input-group" style="flex:1"><label>Default Rig</label><input type="text" id="tc-rig" placeholder="e.g. Cardinal" oninput="saveTimecardConfig()"></div>
+                        <div class="profile-input-group" style="flex:1"><label>Default County</label><input type="text" id="tc-county" placeholder="e.g. upton, TX" oninput="saveTimecardConfig()"></div>
                     </div>
-                    <div style="display:flex;gap:8px">
-                        <div class="profile-input-group" style="flex:1"><label>Day Rate ($)</label><input type="number" step="1" id="tc-day-rate" placeholder="350" oninput="saveTimecardConfig()"></div>
-                        <div class="profile-input-group" style="flex:1"><label>Per Diem ($)</label><input type="number" step="1" id="tc-per-diem" placeholder="75" oninput="saveTimecardConfig()"></div>
-                    </div>
-                    <div class="profile-input-group"><label>Supervisor Name</label><input type="text" id="tc-super-name" placeholder="e.g. Mike Robinett" oninput="saveTimecardConfig()"></div>
-                    <div class="profile-input-group"><label>Supervisor Email</label><input type="text" id="tc-super-email" placeholder="e.g. mrobinett@company.com" oninput="saveTimecardConfig()"></div>
-                    <div class="profile-input-group"><label>Supervisor Phone</label><input type="text" id="tc-super-phone" placeholder="e.g. 432-425-0684" oninput="saveTimecardConfig()"></div>
-                    <div class="profile-input-group"><label>Submit To Email</label><input type="text" id="tc-submit-email" placeholder="e.g. mgmt@upstintl.com" oninput="saveTimecardConfig()"></div>
                 </div>
             </div>
             <!-- Shift Actions -->
@@ -1410,21 +1408,35 @@ RIH Wt: 50K
     <!-- ====== TIMECARD SECTION ====== -->
     <div id="timecard-section" class="master-section">
         <div style="padding:12px">
+            <!-- Job Defaults (collapsed) -->
+            <div class="settings-accordion" id="tc-defaults-acc">
+                <div class="settings-acc-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="settings-acc-title">Job Defaults <span class="settings-acc-status" id="tc-defaults-badge"></span></span>
+                    <span class="settings-acc-chevron">▼</span>
+                </div>
+                <div class="settings-acc-body">
+                    <div class="profile-input-group"><label>Operator</label><input type="text" id="tc-operator" placeholder="e.g. ExxonMobil" oninput="saveTimecardConfig()"></div>
+                    <div style="display:flex;gap:8px">
+                        <div class="profile-input-group" style="flex:1"><label>Rig</label><input type="text" id="tc-rig" placeholder="e.g. Ranger 1412" oninput="saveTimecardConfig()"></div>
+                        <div class="profile-input-group" style="flex:1"><label>County</label><input type="text" id="tc-county" placeholder="e.g. upton, TX" oninput="saveTimecardConfig()"></div>
+                    </div>
+                </div>
+            </div>
             <!-- Today's Log -->
-            <div id="tc-today-status" style="text-align:center;padding:10px;background:#1b2838;border-radius:8px;border:1px solid #2d4a6f;margin-bottom:12px">
+            <div id="tc-today-status" style="text-align:center;padding:10px;background:#1b2838;border-radius:8px;border:1px solid #2d4a6f;margin:12px 0">
                 <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">Today</div>
                 <div id="tc-today-label" style="font-size:13px;color:#66bb6a;font-weight:600">Not logged yet</div>
             </div>
             <button class="tc-log-btn tc-log-full" onclick="tcLogDay('full')">✅ Log Full Day (12/12)</button>
-            <div style="display:flex;gap:8px;margin-bottom:16px">
-                <button class="tc-log-btn tc-log-shutdown" style="flex:1" onclick="tcLogDay('shutdown')">⏸️ Shutdown</button>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+                <button class="tc-log-btn tc-log-shutdown" style="flex:1" onclick="tcLogDay('shutdown')">⏸️ Half Day (0/12)</button>
                 <button class="tc-log-btn tc-log-custom" style="flex:1" onclick="tcLogDayCustom()">✏️ Custom</button>
             </div>
             <button class="tc-log-btn" style="background:#1b2838;color:#4fc3f7;border:1px solid #2d4a6f;margin-bottom:16px" onclick="tcAddPastDay()">📅 Add Past Day</button>
             <!-- Work Log -->
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                 <div style="font-size:13px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px">Work Log</div>
-                <button style="background:none;border:1px solid #2d4a6f;color:#888;padding:4px 10px;border-radius:4px;font-size:10px;cursor:pointer" onclick="tcClearLog()">Clear All</button>
+                <button style="background:none;border:1px solid #2d4a6f;color:#888;padding:4px 10px;border-radius:4px;font-size:10px;cursor:pointer" id="tc-edit-toggle-btn" onclick="tcToggleEditMode()">Edit</button>
             </div>
             <div id="tc-work-log" style="margin-bottom:16px">
                 <div style="font-size:12px;color:#666;text-align:center;padding:20px">No days logged yet</div>
@@ -2322,7 +2334,13 @@ function switchMasterTab(tab) {
     document.querySelectorAll('.master-section').forEach(s => s.classList.remove('active'));
     document.getElementById(tab + '-section').classList.add('active');
     if (tab === 'wellbore') syncVolumesHeader();
-    if (tab === 'timecard') tcRenderLog();
+    if (tab === 'timecard') { tcRenderLog(); tcInitDateListeners(); }
+}
+function tcInitDateListeners() {
+    const sd = document.getElementById('tc-start-date');
+    const ed = document.getElementById('tc-end-date');
+    if (sd && !sd._tcListener) { sd.addEventListener('change', tcCalcEarnings); sd._tcListener = true; }
+    if (ed && !ed._tcListener) { ed.addEventListener('change', tcCalcEarnings); ed._tcListener = true; }
 }
 
 // ========== TIMECARD SYSTEM ==========
@@ -2332,21 +2350,74 @@ let tcLog = JSON.parse(localStorage.getItem('ipsTcLog') || '[]');
 function saveTimecardConfig() {
     tcConfig.operator = (document.getElementById('tc-operator')||{}).value || '';
     tcConfig.rig = (document.getElementById('tc-rig')||{}).value || '';
-    tcConfig.regRate = parseFloat((document.getElementById('tc-reg-rate')||{}).value) || 0;
-    tcConfig.otRate = parseFloat((document.getElementById('tc-ot-rate')||{}).value) || 0;
-    tcConfig.dayRate = parseFloat((document.getElementById('tc-day-rate')||{}).value) || 0;
-    tcConfig.perDiem = parseFloat((document.getElementById('tc-per-diem')||{}).value) || 0;
-    tcConfig.superName = (document.getElementById('tc-super-name')||{}).value || '';
-    tcConfig.superEmail = (document.getElementById('tc-super-email')||{}).value || '';
-    tcConfig.superPhone = (document.getElementById('tc-super-phone')||{}).value || '';
-    tcConfig.submitEmail = (document.getElementById('tc-submit-email')||{}).value || '';
+    tcConfig.county = (document.getElementById('tc-county')||{}).value || '';
     localStorage.setItem('ipsTcConfig', JSON.stringify(tcConfig));
 }
 function loadTimecardConfigUI() {
     const f = (id, key) => { const el = document.getElementById(id); if (el && tcConfig[key]) el.value = tcConfig[key]; };
-    f('tc-operator','operator'); f('tc-rig','rig'); f('tc-reg-rate','regRate'); f('tc-ot-rate','otRate');
-    f('tc-day-rate','dayRate'); f('tc-per-diem','perDiem'); f('tc-super-name','superName');
-    f('tc-super-email','superEmail'); f('tc-super-phone','superPhone'); f('tc-submit-email','submitEmail');
+    f('tc-operator','operator'); f('tc-rig','rig'); f('tc-county','county');
+    tcUpdateTemplateStatus();
+}
+function tcHandleTemplateUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const b64 = btoa(String.fromCharCode.apply(null, data));
+        try {
+            localStorage.setItem('ipsTcTemplate', b64);
+            tcConfig.templateName = file.name;
+            // Extract rates from Rate Sheet using SheetJS
+            try {
+                if (typeof XLSX !== 'undefined') {
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const rs = wb.Sheets['Rate Sheet'];
+                    if (rs) {
+                        if (rs['C5']) tcConfig.extractedRegRate = parseFloat(rs['C5'].v) || 0;
+                        if (rs['C6']) tcConfig.extractedOtRate = parseFloat(rs['C6'].v) || 0;
+                        if (rs['C7']) tcConfig.extractedDayRate = parseFloat(rs['C7'].v) || 0;
+                        if (rs['C9']) tcConfig.extractedPerDiem = parseFloat(rs['C9'].v) || 0;
+                    }
+                }
+            } catch(ex) { console.log('Rate extraction skipped:', ex); }
+            localStorage.setItem('ipsTcConfig', JSON.stringify(tcConfig));
+            tcUpdateTemplateStatus();
+            const toast = document.createElement('div');
+            toast.textContent = '\u2705 Template uploaded: ' + file.name;
+            toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2e7d32;color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:999';
+            document.body.appendChild(toast);
+            setTimeout(function(){ toast.remove(); }, 2500);
+        } catch(err) {
+            alert('Template too large for storage. Try a smaller file.');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    input.value = '';
+}
+function tcClearTemplate() {
+    if (!confirm('Remove uploaded template?')) return;
+    localStorage.removeItem('ipsTcTemplate');
+    delete tcConfig.templateName;
+    localStorage.setItem('ipsTcConfig', JSON.stringify(tcConfig));
+    tcUpdateTemplateStatus();
+}
+function tcUpdateTemplateStatus() {
+    const el = document.getElementById('tc-template-status');
+    const clearBtn = document.getElementById('tc-template-clear-btn');
+    const hasTemplate = !!localStorage.getItem('ipsTcTemplate');
+    if (el) {
+        if (hasTemplate) {
+            let rateInfo = '';
+            if (tcConfig.extractedRegRate) {
+                rateInfo = '<div style="font-size:11px;color:#888;margin-top:4px">$' + tcConfig.extractedRegRate + '/hr reg · $' + (tcConfig.extractedOtRate||0) + '/hr OT · $' + (tcConfig.extractedDayRate||0) + ' day · $' + (tcConfig.extractedPerDiem||0) + ' per diem</div>';
+            }
+            el.innerHTML = '<span style="color:#66bb6a;font-weight:600">\u2705 ' + (tcConfig.templateName || 'Template loaded') + '</span>' + rateInfo;
+        } else {
+            el.innerHTML = '<span style="color:#888">No template uploaded</span>';
+        }
+    }
+    if (clearBtn) clearBtn.style.display = hasTemplate ? 'flex' : 'none';
 }
 function tcLogDay(type) {
     const today = new Date().toISOString().split('T')[0];
@@ -2358,7 +2429,7 @@ function tcLogDay(type) {
         well: well,
         operator: tcConfig.operator || '',
         rig: tcConfig.rig || '',
-        county: county,
+        county: tcConfig.county || '',
         worked: type === 'full' ? 12 : 0,
         standby: 12,
         notWorking: 0
@@ -2384,7 +2455,7 @@ function tcLogDayCustom() {
     if (s === null) return;
     const entry = {
         date: today, well: profileData.wellName || '', operator: tcConfig.operator || '',
-        rig: tcConfig.rig || '', county: '', worked: parseFloat(w) || 0, standby: parseFloat(s) || 0, notWorking: 0
+        rig: tcConfig.rig || '', county: tcConfig.county || '', worked: parseFloat(w) || 0, standby: parseFloat(s) || 0, notWorking: 0
     };
     const idx = tcLog.findIndex(e => e.date === today);
     if (idx >= 0) tcLog[idx] = entry; else tcLog.push(entry);
@@ -2403,6 +2474,10 @@ function tcAddPastDay() {
         '<label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Well Name</label>' +
         '<input type="text" id="tc-past-well" value="' + (profileData.wellName || '').replace(/"/g,'&quot;') + '" style="width:100%;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#0d1b2a;color:#e0e0e0;font-size:14px;margin-bottom:10px;box-sizing:border-box">' +
         '<div style="display:flex;gap:8px;margin-bottom:10px">' +
+        '<div style="flex:1"><label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Operator</label><input type="text" id="tc-past-oper" value="' + (tcConfig.operator || '').replace(/"/g,'&quot;') + '" style="width:100%;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#0d1b2a;color:#e0e0e0;font-size:14px;box-sizing:border-box"></div>' +
+        '<div style="flex:1"><label style="font-size:12px;color:#888;display:block;margin-bottom:4px">County</label><input type="text" id="tc-past-county" value="' + (tcConfig.county || '').replace(/"/g,'&quot;') + '" style="width:100%;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#0d1b2a;color:#e0e0e0;font-size:14px;box-sizing:border-box"></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:10px">' +
         '<div style="flex:1"><label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Hours Worked</label><input type="number" id="tc-past-worked" value="12" style="width:100%;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#0d1b2a;color:#e0e0e0;font-size:16px;box-sizing:border-box"></div>' +
         '<div style="flex:1"><label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Hours Standby</label><input type="number" id="tc-past-standby" value="12" style="width:100%;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#0d1b2a;color:#e0e0e0;font-size:16px;box-sizing:border-box"></div>' +
         '</div>' +
@@ -2420,7 +2495,7 @@ function tcAddPastDay() {
         const well = document.getElementById('tc-past-well').value.trim();
         const worked = parseFloat(document.getElementById('tc-past-worked').value) || 0;
         const standby = parseFloat(document.getElementById('tc-past-standby').value) || 0;
-        const entry = { date: date, well: well, operator: tcConfig.operator || '', rig: tcConfig.rig || '', county: '', worked: worked, standby: standby, notWorking: 0 };
+        const entry = { date: date, well: well, operator: document.getElementById('tc-past-oper').value.trim() || tcConfig.operator || '', rig: tcConfig.rig || '', county: document.getElementById('tc-past-county').value.trim() || tcConfig.county || '', worked: worked, standby: standby, notWorking: 0 };
         const idx = tcLog.findIndex(e => e.date === date);
         if (idx >= 0) { if (!confirm('Entry for ' + date + ' already exists. Overwrite?')) return; tcLog[idx] = entry; }
         else tcLog.push(entry);
@@ -2448,25 +2523,109 @@ function tcUpdateTodayStatus() {
         label.style.color = '#888';
     }
 }
+let tcEditMode = false;
+function tcToggleEditMode() {
+    tcEditMode = !tcEditMode;
+    const btn = document.getElementById('tc-edit-toggle-btn');
+    if (btn) {
+        btn.textContent = tcEditMode ? 'Done' : 'Edit';
+        btn.style.color = tcEditMode ? '#ef5350' : '#888';
+    }
+    tcRenderLog();
+}
 function tcRenderLog() {
     const el = document.getElementById('tc-work-log');
     if (!el) return;
     tcUpdateTodayStatus();
-    if (!tcLog.length) { el.innerHTML = '<div style="font-size:12px;color:#666;text-align:center;padding:20px">No days logged yet</div>'; return; }
+    tcUpdateDefaultsBadge();
+    if (!tcLog.length) { el.innerHTML = '<div style="font-size:12px;color:#666;text-align:center;padding:20px">No days logged yet</div>'; tcCalcEarnings(); return; }
     const sorted = [...tcLog].sort((a,b) => b.date.localeCompare(a.date));
     el.innerHTML = sorted.slice(0, 30).map((e, i) => {
         const d = new Date(e.date + 'T12:00:00');
         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
         const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const rigStr = e.rig || tcConfig.rig || '';
+        let actions = '';
+        if (tcEditMode) {
+            actions = '<div class="tc-actions">' +
+                '<button class="tc-action-btn" onclick="tcEditDay(\'' + e.date + '\')">✏️</button>' +
+                '<button class="tc-action-btn" style="border-color:#c62828" onclick="tcDeleteDay(\'' + e.date + '\')">🗑️</button>' +
+                '</div>';
+        }
         return '<div class="tc-day-card">' +
             '<div class="tc-date">' + dayName + ' ' + dateStr + '</div>' +
-            '<div class="tc-well">' + (e.well || '--') + '</div>' +
+            '<div class="tc-well" style="display:flex;flex-direction:column;gap:1px">' +
+                '<span>' + (e.well || '--') + '</span>' +
+                (rigStr ? '<span style="font-size:9px;color:#78909c">' + rigStr + '</span>' : '') +
+            '</div>' +
             '<div class="tc-hours">' + e.worked + 'W/' + e.standby + 'S</div>' +
-            '<div class="tc-actions">' +
-            '<button class="tc-action-btn" onclick="tcEditDay(\'' + e.date + '\')">✏️</button>' +
-            '<button class="tc-action-btn" onclick="tcDeleteDay(\'' + e.date + '\')">🗑️</button>' +
-            '</div></div>';
+            actions + '</div>';
     }).join('');
+    if (tcEditMode) {
+        el.innerHTML += '<button style="width:100%;padding:10px;border:1px solid #c62828;border-radius:6px;background:transparent;color:#ef5350;font-size:12px;font-weight:600;cursor:pointer;margin-top:8px" onclick="tcClearLog()">Clear All Entries</button>';
+    }
+    tcCalcEarnings();
+}
+function tcUpdateDefaultsBadge() {
+    const badge = document.getElementById('tc-defaults-badge');
+    if (!badge) return;
+    const parts = [tcConfig.operator, tcConfig.rig, tcConfig.county].filter(Boolean);
+    badge.textContent = parts.length ? '— ' + parts.join(' · ') : '';
+}
+function tcCalcEarnings() {
+    let container = document.getElementById('tc-earnings-display');
+    if (!container) {
+        // Insert earnings display before the preview button
+        const previewBtn = document.querySelector('#timecard-section .tc-log-btn[style*="1565c0"]');
+        if (previewBtn) {
+            container = document.createElement('div');
+            container.id = 'tc-earnings-display';
+            previewBtn.parentNode.insertBefore(container, previewBtn);
+        } else return;
+    }
+    const startVal = document.getElementById('tc-start-date').value;
+    const endVal = document.getElementById('tc-end-date').value;
+    if (!startVal || !endVal || !tcConfig.extractedRegRate) { container.innerHTML = ''; return; }
+    const entries = tcLog.filter(e => e.date >= startVal && e.date <= endVal);
+    if (!entries.length) { container.innerHTML = ''; return; }
+    const regRate = tcConfig.extractedRegRate || 0;
+    const otRate = tcConfig.extractedOtRate || 0;
+    const dayRate = tcConfig.extractedDayRate || 0;
+    const perDiem = tcConfig.extractedPerDiem || 0;
+    // Group by week
+    const weeks = {};
+    entries.forEach(e => {
+        const wk = tcGetWeekNum(e.date, startVal);
+        if (wk >= 1 && wk <= 4) { if (!weeks[wk]) weeks[wk] = []; weeks[wk].push(e); }
+    });
+    let grandTotal = 0;
+    let html = '';
+    Object.keys(weeks).sort().forEach(wk => {
+        const wEntries = weeks[wk];
+        let weekHrs = 0;
+        let weekPerDiem = 0;
+        wEntries.forEach(e => {
+            weekHrs += (e.worked || 0) + (e.standby || 0);
+            if ((e.worked || 0) + (e.standby || 0) > 0) weekPerDiem += perDiem;
+        });
+        const regHrs = Math.min(weekHrs, 40);
+        const otHrs = Math.max(weekHrs - 40, 0);
+        const regPay = regRate * regHrs;
+        const otPay = otRate * otHrs;
+        const billableDays = wEntries.reduce((s, e) => { const t = (e.worked||0) + (e.standby||0); return s + (t >= 24 ? 1 : t >= 12 ? 0.5 : 0); }, 0);
+        const maxBonus = dayRate * billableDays;
+        const perfBonus = Math.max(maxBonus - regPay - otPay, 0);
+        const weekTotal = regPay + otPay + perfBonus + weekPerDiem;
+        grandTotal += weekTotal;
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px">' +
+            '<span style="color:#888">Wk' + wk + ': ' + wEntries.length + 'd · ' + weekHrs + 'h</span>' +
+            '<span style="color:#66bb6a;font-weight:600">$' + weekTotal.toFixed(2) + '</span></div>';
+    });
+    container.innerHTML = '<div style="padding:12px;background:#0a2a4a;border-radius:8px;margin-bottom:12px;border:1px solid #2d4a6f">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<span style="font-size:11px;color:#888;text-transform:uppercase">Estimated Earnings</span>' +
+        '<span style="font-size:18px;font-weight:700;color:#66bb6a">$' + grandTotal.toFixed(2) + '</span></div>' +
+        html + '</div>';
 }
 function tcEditDay(date) {
     const entry = tcLog.find(e => e.date === date);
