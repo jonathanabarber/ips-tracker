@@ -36,16 +36,15 @@
         .header-btn { background: #2d4a6f; border: none; color: #4fc3f7; padding: 6px 10px; border-radius: 6px; font-size: 14px; cursor: pointer; }
         
         /* Master Tabs */
-        .master-tabs { display: flex; background: #060e18; border-bottom: 1px solid #1a3050; }
-        .master-tab { flex: 1; padding: 14px 4px; border: none; background: transparent; font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.3); cursor: pointer; text-transform: uppercase; letter-spacing: 1.5px; transition: all 0.2s; position: relative; }
-        .master-tab.active { color: #4fc3f7; background: #0d1b2a; }
-        .master-tab.active::after { content: ''; position: absolute; bottom: 0; left: 15%; right: 15%; height: 3px; background: #4fc3f7; border-radius: 3px 3px 0 0; }
+        .master-tabs { display: flex; background: #0d1b2a; border-radius: 8px; padding: 4px; margin: 6px 10px 0; }
+        .master-tab { flex: 1; padding: 12px 4px; border: none; background: transparent; font-size: 13px; font-weight: 700; color: #888; cursor: pointer; text-transform: uppercase; letter-spacing: 1.5px; transition: all 0.2s; position: relative; border-radius: 6px; }
+        .master-tab.active { color: #4fc3f7; background: #2d4a6f; }
         .master-section { display: none; }
         .master-section.active { display: block; }
 
         /* Sub Tabs (Fluids) */
         .main-tabs { display: flex; background: #0d1b2a; border-bottom: 2px solid #2d4a6f; position: relative; padding: 0 2px; }
-        .main-tab { flex: 1; padding: 12px 4px; border: 2px solid transparent; background: transparent; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; position: relative; margin-bottom: -2px; border-radius: 8px 8px 0 0; transition: all 0.15s; }
+        .main-tab { flex: 1; padding: 12px 4px; border: 2px solid transparent; background: transparent; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.4); cursor: pointer; position: relative; margin-bottom: -2px; border-radius: 8px 8px 0 0; transition: all 0.15s; }
         .main-tab.active { background: #1b2838; color: #4fc3f7; border-color: #2d4a6f; border-bottom-color: #1b2838; }
 
         /* Sub Tabs (Wellbore) */
@@ -168,7 +167,14 @@
         .jet-btn.build { background: #6d4c41; }
         
         /* Totals Bar */
-        .totals-bar { display: flex; justify-content: space-around; padding: 10px 8px; background: #243447; border-bottom: 1px solid #2d4a6f; flex-wrap: wrap; gap: 6px; }
+        .totals-bar { display: flex; justify-content: space-around; padding: 10px 8px; background: transparent; flex-wrap: wrap; gap: 6px; }
+        /* Wellbore Volume Banner */
+        .wb-vol-banner { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 5px 10px; background: rgba(79,195,247,0.06); border-bottom: 1px solid rgba(79,195,247,0.15); font-size: 10px; font-weight: 600; letter-spacing: 0.5px; }
+        .wb-vol-banner .wb-vol-item { color: #78909c; }
+        .wb-vol-banner .wb-vol-item span { color: #4fc3f7; margin-left: 3px; }
+        .wb-vol-banner .wb-vol-divider { color: #2d4a6f; }
+        .wb-vol-banner .wb-vol-total { color: #b0bec5; font-weight: 700; }
+        .wb-vol-banner .wb-vol-total span { color: #fff; margin-left: 3px; }
         .total-item { text-align: center; padding: 6px 8px; border-radius: 6px; min-width: 48px; background: #1b2838; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
         .total-item:active { transform: scale(0.95); }
         .total-item.filter-active { border-color: currentColor; background: rgba(255,255,255,0.08); }
@@ -360,6 +366,10 @@
         .tc-day-card .tc-action-btn { background: none; border: 1px solid #2d4a6f; color: #888; width: 28px; height: 28px; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .tc-day-card .tc-action-btn:hover { background: #2d4a6f; color: #e0e0e0; }
         .tc-log-btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .tc-log-pills { display: flex; background: #0d1b2a; border-radius: 8px; padding: 4px; margin-bottom: 8px; gap: 3px; }
+        .tc-pill { flex: 1; padding: 10px 4px; border: none; background: transparent; font-size: 11px; font-weight: 600; color: #888; cursor: pointer; border-radius: 6px; transition: all 0.2s; text-align: center; line-height: 1.3; }
+        .tc-pill.active { background: #2d4a6f; color: #4fc3f7; }
+        .tc-pill:active { transform: scale(0.97); }
         .tc-log-full { background: #2e7d32; color: white; }
         .tc-log-shutdown { background: #e65100; color: white; }
         .tc-log-custom { background: #1b2838; color: #e0e0e0; border: 1px solid #2d4a6f; }
@@ -947,6 +957,13 @@ Lat: 31.907   Long: -101.949"></textarea>
             <div class="total-item" id="filter-freshwater" onclick="setFluidFilter('freshwater')"><div class="total-label">Fresh</div><div class="total-value freshwater" id="total-freshwater">0</div></div>
             <div class="total-item" id="filter-other" onclick="setFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="total-other">0</div></div>
         </div>
+        <div class="wb-vol-banner" id="wb-vol-banner-tanks">
+            <div class="wb-vol-item">TBG<span id="wvb-tanks-tbg">--</span></div>
+            <div class="wb-vol-divider">|</div>
+            <div class="wb-vol-item">ANN<span id="wvb-tanks-ann">--</span></div>
+            <div class="wb-vol-divider">|</div>
+            <div class="wb-vol-total">HOLE<span id="wvb-tanks-total">--</span></div>
+        </div>
         <div class="side-toggle" id="side-toggle">
             <button class="side-tab active" onclick="switchSide('pump')">Pump Side</button>
             <button class="side-tab" onclick="switchSide('return')">Return Side</button>
@@ -970,6 +987,13 @@ Lat: 31.907   Long: -101.949"></textarea>
             <div class="total-item" id="gl-filter-recirc" onclick="setGLFluidFilter('recirc')"><div class="total-label">Recirc</div><div class="total-value recirc" id="gl-total-recirc">0</div></div>
             <div class="total-item" id="gl-filter-freshwater" onclick="setGLFluidFilter('freshwater')"><div class="total-label">Fresh</div><div class="total-value freshwater" id="gl-total-freshwater">0</div></div>
             <div class="total-item" id="gl-filter-other" onclick="setGLFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="gl-total-other">0</div></div>
+        </div>
+        <div class="wb-vol-banner" id="wb-vol-banner-monitor">
+            <div class="wb-vol-item">TBG<span id="wvb-monitor-tbg">--</span></div>
+            <div class="wb-vol-divider">|</div>
+            <div class="wb-vol-item">ANN<span id="wvb-monitor-ann">--</span></div>
+            <div class="wb-vol-divider">|</div>
+            <div class="wb-vol-total">HOLE<span id="wvb-monitor-total">--</span></div>
         </div>
         <div style="padding:12px;padding-bottom:80px">
             <div id="gl-filter-label" style="text-align:center;font-size:11px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px;padding:4px 0">Capture <span style="color:#e0e0e0">System</span></div>
@@ -1000,7 +1024,6 @@ Lat: 31.907   Long: -101.949"></textarea>
                 <div id="volume-log-content"><em style="color:#666">No volume checks logged</em></div>
             </div>
             <button class="report-btn" onclick="showMonitorReport()">Generate Monitor Report</button>
-            <button class="report-btn" onclick="showTurnoverReport()" style="background:transparent;border:1px solid #2d4a6f;color:#4fc3f7;margin-top:8px">📋 Generate Turnover Report</button>
         </div>
     </div>
 
@@ -1013,6 +1036,13 @@ Lat: 31.907   Long: -101.949"></textarea>
             <div class="total-item" id="xfer-filter-recirc" onclick="setXferFluidFilter('recirc')"><div class="total-label">Recirc</div><div class="total-value recirc" id="xfer-total-recirc">0</div></div>
             <div class="total-item" id="xfer-filter-freshwater" onclick="setXferFluidFilter('freshwater')"><div class="total-label">Fresh</div><div class="total-value freshwater" id="xfer-total-freshwater">0</div></div>
             <div class="total-item" id="xfer-filter-other" onclick="setXferFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="xfer-total-other">0</div></div>
+        </div>
+        <div class="wb-vol-banner" id="wb-vol-banner-xfer">
+            <div class="wb-vol-item">TBG<span id="wvb-xfer-tbg">--</span></div>
+            <div class="wb-vol-divider">|</div>
+            <div class="wb-vol-item">ANN<span id="wvb-xfer-ann">--</span></div>
+            <div class="wb-vol-divider">|</div>
+            <div class="wb-vol-total">HOLE<span id="wvb-xfer-total">--</span></div>
         </div>
         <div style="padding:12px;padding-bottom:80px">
             <div id="xfer-filter-label" style="text-align:center;font-size:11px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px;padding:4px 0 8px">Capture <span style="color:#e0e0e0">System</span></div>
@@ -1165,14 +1195,11 @@ Lat: 31.907   Long: -101.949"></textarea>
                 <div class="tit-title">Rheology</div>
                 <div class="tit-row"><span class="tit-label">600 RPM</span><input type="number" class="tit-input" id="tit-r600" onchange="calcRheology(); saveTitrationData()"><span class="tit-unit"></span></div>
                 <div class="tit-row"><span class="tit-label">300 RPM</span><input type="number" class="tit-input" id="tit-r300" onchange="calcRheology(); saveTitrationData()"><span class="tit-unit"></span></div>
-                <div class="tit-row"><span class="tit-label">200 RPM</span><input type="number" class="tit-input" id="tit-r200" onchange="saveTitrationData()"><span class="tit-unit"></span></div>
-                <div class="tit-row"><span class="tit-label">100 RPM</span><input type="number" class="tit-input" id="tit-r100" onchange="saveTitrationData()"><span class="tit-unit"></span></div>
-                <div class="tit-row"><span class="tit-label">6 RPM</span><input type="number" class="tit-input" id="tit-r6" onchange="saveTitrationData()"><span class="tit-unit"></span></div>
                 <div class="tit-row"><span class="tit-label">3 RPM</span><input type="number" class="tit-input" id="tit-r3" onchange="saveTitrationData()"><span class="tit-unit"></span></div>
                 <div class="tit-row" style="border-top:1px dashed #2d4a6f;margin-top:8px;padding-top:12px"><span class="tit-label">PV</span><span class="tit-result calculated" id="tit-pv">--</span><span class="tit-unit">cP</span></div>
                 <div class="tit-row"><span class="tit-label">YP</span><span class="tit-result calculated" id="tit-yp">--</span><span class="tit-unit">lb/100ft²</span></div>
-                <div class="tit-row" style="border-top:1px dashed #2d4a6f;margin-top:8px;padding-top:12px"><span class="tit-label">10-sec Gel</span><input type="number" class="tit-input" id="tit-gel10s" onchange="saveTitrationData()"><span class="tit-unit">lb/100ft²</span></div>
-                <div class="tit-row"><span class="tit-label">10-min Gel</span><input type="number" class="tit-input" id="tit-gel10m" onchange="saveTitrationData()"><span class="tit-unit">lb/100ft²</span></div>
+                <div class="tit-row"><span class="tit-label">AV</span><span class="tit-result calculated" id="tit-av">--</span><span class="tit-unit">cP</span></div>
+                <div class="tit-row" style="border-top:1px dashed #2d4a6f;margin-top:8px;padding-top:12px"><span class="tit-label">Gel Strength</span><input type="number" class="tit-input" id="tit-gel10s" onchange="saveTitrationData()"><span class="tit-unit">lb/100ft²</span></div>
             </div>
             <div class="tit-card">
                 <div class="tit-title">PF / MF Test</div>
@@ -1188,7 +1215,7 @@ Lat: 31.907   Long: -101.949"></textarea>
             </div>
             <div class="tit-card">
                 <div class="tit-title">Hardness / Calcium / Magnesium</div>
-                <div class="distilled-warning">⚠️ Use distilled water only. Tap water will throw off readings.</div>
+                <div class="distilled-warning">Use distilled water only. Bottled water will throw off readings.</div>
                 <div class="tit-row"><span class="tit-label">Hardness Pipette</span><input type="number" step="0.1" class="tit-input" id="tit-hard-pipette" onchange="calcHardness(); saveTitrationData()"><span class="tit-unit">ml</span></div>
                 <div class="tit-row"><span class="tit-label">Total Hardness</span><span class="tit-result calculated" id="tit-hardness">--</span><span class="tit-unit">ppm</span></div>
                 <div class="tit-row" style="border-top:1px dashed #2d4a6f;margin-top:8px;padding-top:12px"><span class="tit-label">Calcium Pipette</span><input type="number" step="0.1" class="tit-input" id="tit-ca-pipette" onchange="calcCalcium(); saveTitrationData()"><span class="tit-unit">ml</span></div>
@@ -1215,7 +1242,7 @@ Lat: 31.907   Long: -101.949"></textarea>
         <div class="wb-tabs">
             <button class="wb-tab active" onclick="switchWBTab('plugs')">Plugs</button>
             <button class="wb-tab" onclick="switchWBTab('volumes')">Volumes</button>
-            <button class="wb-tab" onclick="switchWBTab('swivel')">Swivel</button>
+            <button class="wb-tab" onclick="switchWBTab('swivel')">Records</button>
         </div>
 
         <div id="wb-plugs" class="wb-content active">
@@ -1235,6 +1262,11 @@ Lat: 31.907   Long: -101.949"></textarea>
                     <div class="plug-header-item">
                         <div class="plug-header-label">Depth</div>
                         <div class="plug-header-value" id="plug-hdr-depth">--'</div>
+                    </div>
+                    <div class="plug-header-divider"></div>
+                    <div class="plug-header-item">
+                        <div class="plug-header-label">Hole Vol</div>
+                        <div class="plug-header-value" id="plug-hdr-hole" style="color:#4fc3f7">--</div>
                     </div>
                 </div>
 
@@ -1351,9 +1383,12 @@ Lat: 31.907   Long: -101.949"></textarea>
                         <div class="plug-header-label">Depth</div>
                         <div class="plug-header-value" id="vol-hdr-depth">--'</div>
                     </div>
+                    <div class="plug-header-divider"></div>
+                    <div class="plug-header-item">
+                        <div class="plug-header-label">Hole Vol</div>
+                        <div class="plug-header-value" id="vol-hdr-hole" style="color:#4fc3f7">--</div>
+                    </div>
                 </div>
-
-                <!-- Tubing -->
                 <div class="tit-card">
                     <div class="tit-title">Tubing</div>
                     <div class="tit-row"><span class="tit-label">OD</span><select class="tit-input" id="vol-tbg-od" style="width:100px" onchange="updateVolWeights('tbg'); calcVolumes(); saveVolData()"><option value="">--</option><option value="2-3/8">2-3/8"</option><option value="2-7/8">2-7/8"</option><option value="3-1/2">3-1/2"</option><option value="4-1/2">4-1/2"</option></select><span class="tit-unit">in</span></div>
@@ -1401,16 +1436,25 @@ Lat: 31.907   Long: -101.949"></textarea>
                     <div class="tit-row"><span class="tit-label">Liner Annulus</span><span class="tit-result calculated" id="vol-calc-liner-ann">--</span><span class="tit-unit">bbl</span></div>
                     <div class="tit-row"><span class="tit-label" style="font-size:10px;color:#666">TOL to Depth</span><span class="tit-result" id="vol-calc-liner-ann-note" style="font-size:10px;color:#666">--</span><span class="tit-unit"></span></div>
                     <div class="tit-row" style="border-top:2px solid #2d4a6f;margin-top:10px;padding-top:12px"><span class="tit-label" style="font-weight:700;color:#4fc3f7">Total Annular Vol</span><span class="tit-result calculated" id="vol-calc-ann-total" style="color:#4fc3f7;font-size:16px">--</span><span class="tit-unit">bbl</span></div>
-                    <div class="tit-row" style="border-top:2px solid #4fc3f7;margin-top:10px;padding-top:12px;background:rgba(79,195,247,0.05);margin:-4px -12px -12px;padding:14px 12px;border-radius:0 0 6px 6px"><span class="tit-label" style="font-weight:700;color:#fff;font-size:14px">Total Wellbore Vol</span><span class="tit-result calculated" id="vol-calc-total" style="color:#fff;font-size:20px;font-weight:700">--</span><span class="tit-unit" style="color:#fff">bbl</span></div>
+                    <div class="tit-row" style="border-top:2px solid #4fc3f7;margin-top:10px;padding-top:12px;background:rgba(79,195,247,0.05);margin:-4px -12px -12px;padding:14px 12px;border-radius:0 0 6px 6px"><span class="tit-label" style="font-weight:700;color:#fff;font-size:14px">Total Hole Volume</span><span class="tit-result calculated" id="vol-calc-total" style="color:#fff;font-size:20px;font-weight:700">--</span><span class="tit-unit" style="color:#fff">bbl</span></div>
                 </div>
             </div>
         </div>
 
         <div id="wb-swivel" class="wb-content">
-            <div class="wb-placeholder">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v18"/><circle cx="12" cy="8" r="3"/><path d="M8 14h8"/><path d="M6 18h12"/></svg>
-                <h3>Swivel</h3>
-                <p>Swivel data and tracking. Coming soon.</p>
+            <div style="padding:20px;text-align:center">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="1.5" style="width:48px;height:48px;margin-bottom:12px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <h3 style="color:#4fc3f7;margin:0 0 6px;font-size:18px">Well Records</h3>
+                <p style="color:#888;font-size:13px;margin:0 0 20px">Upload and reference well documents to support completions operations.</p>
+                <div style="text-align:left;max-width:320px;margin:0 auto">
+                    <div style="color:#ffa726;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Coming Soon</div>
+                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:#4fc3f7;margin-right:8px">&#8226;</span>CBL / VDL Log Upload &amp; Viewer</div>
+                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:#4fc3f7;margin-right:8px">&#8226;</span>RRC Well Records Integration</div>
+                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:#4fc3f7;margin-right:8px">&#8226;</span>Casing &amp; Tubing Tally Sheets</div>
+                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:#4fc3f7;margin-right:8px">&#8226;</span>Well Deviation / Directional Survey</div>
+                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:#4fc3f7;margin-right:8px">&#8226;</span>Targeted Zone Identification</div>
+                    <div style="padding:8px 0;color:#ccc;font-size:13px"><span style="color:#4fc3f7;margin-right:8px">&#8226;</span>Auto-Calculate Volumes from Records</div>
+                </div>
             </div>
         </div>
     </div><!-- end wellbore-section -->
@@ -1437,12 +1481,12 @@ Lat: 31.907   Long: -101.949"></textarea>
                 <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">Today</div>
                 <div id="tc-today-label" style="font-size:13px;color:#66bb6a;font-weight:600">Not logged yet</div>
             </div>
-            <button class="tc-log-btn tc-log-full" onclick="tcLogDay('full')">✅ Log Full Day (12/12)</button>
-            <div style="display:flex;gap:8px;margin-bottom:8px">
-                <button class="tc-log-btn tc-log-shutdown" style="flex:1" onclick="tcLogDay('shutdown')">⏸️ Half Day (0/12)</button>
-                <button class="tc-log-btn tc-log-custom" style="flex:1" onclick="tcLogDayCustom()">✏️ Custom</button>
+            <div class="tc-log-pills">
+                <button class="tc-pill active" id="tc-pill-full" onclick="tcSelectPill(this);tcLogDay('full')">Full Day</button>
+                <button class="tc-pill" id="tc-pill-half" onclick="tcSelectPill(this);tcLogDay('shutdown')">Half Day</button>
+                <button class="tc-pill" id="tc-pill-custom" onclick="tcSelectPill(this);tcLogDayCustom()">Custom</button>
+                <button class="tc-pill" id="tc-pill-missed" onclick="tcSelectPill(this);tcAddPastDay()">Missed Day</button>
             </div>
-            <button class="tc-log-btn" style="background:#1b2838;color:#4fc3f7;border:1px solid #2d4a6f;margin-bottom:16px" onclick="tcAddPastDay()">📅 Add Past Day</button>
             <!-- Work Log -->
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                 <div style="font-size:13px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px">Work Log</div>
@@ -2318,12 +2362,8 @@ function saveTitrationData() {
     titData.surfaceVol = document.getElementById('tit-surface-vol').value;
     titData.r600 = document.getElementById('tit-r600').value;
     titData.r300 = document.getElementById('tit-r300').value;
-    titData.r200 = document.getElementById('tit-r200').value;
-    titData.r100 = document.getElementById('tit-r100').value;
-    titData.r6 = document.getElementById('tit-r6').value;
     titData.r3 = document.getElementById('tit-r3').value;
     titData.gel10s = document.getElementById('tit-gel10s').value;
-    titData.gel10m = document.getElementById('tit-gel10m').value;
     localStorage.setItem('ipsTitrationV3', JSON.stringify(titData));
     firebaseSaveTitData();
 }
@@ -2341,12 +2381,8 @@ function loadTitrationUI() {
     document.getElementById('tit-surface-vol').value = titData.surfaceVol || '';
     document.getElementById('tit-r600').value = titData.r600 || '';
     document.getElementById('tit-r300').value = titData.r300 || '';
-    document.getElementById('tit-r200').value = titData.r200 || '';
-    document.getElementById('tit-r100').value = titData.r100 || '';
-    document.getElementById('tit-r6').value = titData.r6 || '';
     document.getElementById('tit-r3').value = titData.r3 || '';
     document.getElementById('tit-gel10s').value = titData.gel10s || '';
-    document.getElementById('tit-gel10m').value = titData.gel10m || '';
     calcChlorides(); calcHardness(); calcCalcium(); calcRheology();
 }
 
@@ -2355,6 +2391,7 @@ function switchMasterTab(tab) {
     document.querySelectorAll('.master-section').forEach(s => s.classList.remove('active'));
     document.getElementById(tab + '-section').classList.add('active');
     if (tab === 'wellbore') syncVolumesHeader();
+    if (tab === 'fluids') updateWbVolBanners();
     if (tab === 'timecard') { tcRenderLog(); tcInitDateListeners(); }
 }
 function tcInitDateListeners() {
@@ -2461,6 +2498,15 @@ function tcUpdateTemplateStatus() {
         }
     }
     if (clearBtn) clearBtn.style.display = hasTemplate ? 'flex' : 'none';
+}
+function tcSelectPill(el) {
+    document.querySelectorAll('.tc-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    // Reset to Full Day after a brief delay
+    setTimeout(() => {
+        document.querySelectorAll('.tc-pill').forEach(p => p.classList.remove('active'));
+        document.getElementById('tc-pill-full').classList.add('active');
+    }, 1500);
 }
 function tcLogDay(type) {
     const today = tcLocalToday();
@@ -2831,33 +2877,39 @@ function tcApproveAndShare() {
     });
 }
 function tcEmailTimecard() {
-    // Download first, then open email
     tcGenerateXLSX().then(blob => {
         if (!blob) return;
         const startDate = document.getElementById('tc-start-date').value;
         const endDate = document.getElementById('tc-end-date').value;
         const fileName = (profileData.name || 'Timecard').replace(/\s+/g, '_') + '_' + startDate + '_to_' + endDate + '.xlsx';
-        // Download the file
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-        // Build professional email body
         var name = profileData.name || '';
         var llc = profileData.llc || '';
         var phone = profileData.phone || '';
+        var subject = 'Timecard - ' + name + ' - ' + startDate + ' to ' + endDate;
         var bodyLines = ['Hi,', '', 'I\'m submitting my timecard for the period ' + startDate + ' to ' + endDate + '. Please find the attached timesheet for review.', '', 'If any adjustments or corrections are needed, please don\'t hesitate to let me know and I\'ll get them updated right away.', '', 'Thank you,', name];
         if (llc) bodyLines.push(llc);
         if (phone) bodyLines.push(phone);
-        bodyLines.push('', '(Please attach the downloaded file: ' + fileName + ')');
-        var body = encodeURIComponent(bodyLines.join('\n'));
-        // Open mailto
-        var to = tcConfig.submitEmail || '';
-        var subject = encodeURIComponent('Timecard - ' + name + ' - ' + startDate + ' to ' + endDate);
-        window.location.href = 'mailto:' + to + '?subject=' + subject + '&body=' + body;
+        var bodyText = bodyLines.join('\n');
+        // Try Web Share API with file (attaches to Gmail on mobile)
+        var file = new File([blob], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({
+                title: subject,
+                text: bodyText,
+                files: [file]
+            }).catch(function() {});
+        } else {
+            // Fallback: download + mailto
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url; a.download = fileName;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+            bodyLines.push('', '(Please attach the downloaded file: ' + fileName + ')');
+            var body = encodeURIComponent(bodyLines.join('\n'));
+            var to = tcConfig.submitEmail || '';
+            window.location.href = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + body;
+        }
         // Close preview
         document.getElementById('tc-preview-overlay').classList.remove('show');
         document.body.style.overflow = '';
@@ -3431,14 +3483,11 @@ function getEditableFields(type, entry) {
             {key:'magnesium',label:'Magnesium',type:'text'},
             {key:'r600',label:'600 RPM',type:'text'},
             {key:'r300',label:'300 RPM',type:'text'},
-            {key:'r200',label:'200 RPM',type:'text'},
-            {key:'r100',label:'100 RPM',type:'text'},
-            {key:'r6',label:'6 RPM',type:'text'},
             {key:'r3',label:'3 RPM',type:'text'},
             {key:'pv',label:'PV',type:'text'},
             {key:'yp',label:'YP',type:'text'},
-            {key:'gel10s',label:'10-sec Gel',type:'text'},
-            {key:'gel10m',label:'10-min Gel',type:'text'},
+            {key:'av',label:'AV',type:'text'},
+            {key:'gel10s',label:'Gel Strength',type:'text'},
             {key:'surfaceVol',label:'Surface Vol',type:'text'}
         ];
     }
@@ -3670,6 +3719,19 @@ function syncVolumesHeader() {
         if (plugEl) plugEl.innerHTML = num + ' <span class="plug-total">/ ' + total + '</span>';
         if (depthEl) depthEl.textContent = depth ? Number(depth).toLocaleString() + "'" : "--'";
     } catch(e) {}
+    // Also refresh hole volume from calculated total
+    try {
+        const totalEl = document.getElementById('vol-calc-total');
+        const holeEl = document.getElementById('vol-hdr-hole');
+        const plugHoleEl = document.getElementById('plug-hdr-hole');
+        if (totalEl) {
+            const val = totalEl.textContent;
+            const display = (val && val !== '--') ? val + ' bbl' : '--';
+            if (holeEl) holeEl.textContent = display;
+            if (plugHoleEl) plugHoleEl.textContent = display;
+        }
+    } catch(e) {}
+    updateWbVolBanners();
 }
 
 function getPipeCategory(prefix) {
@@ -3768,6 +3830,15 @@ function calcVolumes() {
     document.getElementById('vol-calc-liner-ann-note').textContent = linerAnnLen > 0 ? tol.toLocaleString() + "' - " + workingDepth.toLocaleString() + "' (" + linerAnnLen.toLocaleString() + ' ft)' : '--';
     document.getElementById('vol-calc-ann-total').textContent = totalAnn > 0 ? totalAnn.toFixed(1) : '--';
     document.getElementById('vol-calc-total').textContent = totalWellbore > 0 ? totalWellbore.toFixed(1) : '--';
+
+    // Update header banner hole volume
+    const holeEl = document.getElementById('vol-hdr-hole');
+    const plugHoleEl = document.getElementById('plug-hdr-hole');
+    const holeDisplay = totalWellbore > 0 ? totalWellbore.toFixed(1) + ' bbl' : '--';
+    if (holeEl) holeEl.textContent = holeDisplay;
+    if (plugHoleEl) plugHoleEl.textContent = holeDisplay;
+
+    updateWbVolBanners();
 }
 
 function saveVolData() {
@@ -4049,11 +4120,14 @@ function calcRheology() {
     if(r600>0 && r300>0) {
         const pv = r600 - r300;
         const yp = r300 - pv;
+        const av = r600 / 2;
         document.getElementById('tit-pv').textContent = pv;
         document.getElementById('tit-yp').textContent = yp;
+        document.getElementById('tit-av').textContent = av;
     } else {
         document.getElementById('tit-pv').textContent = '--';
         document.getElementById('tit-yp').textContent = '--';
+        document.getElementById('tit-av').textContent = '--';
     }
 }
 
@@ -4114,6 +4188,34 @@ function addTanks() {
 }
 function renumberTanksOfType(side,type) { const tanks=(side==='pump'?data.pumpTanks:data.returnTanks).filter(t=>t.type===type); tanks.forEach((tank,i)=>{ tank.name=generateTankName(side,type,i+1); }); }
 function deleteTank(side,id) { if(fbRoom && !fbIsAdmin){alert('Only the room admin (' + (fbAdminInitials||'creator') + ') can delete tanks');return;} if(!confirm('Delete?')) return; let dt=''; if(side==='pump'){const t=data.pumpTanks.find(x=>x.id===id);if(t)dt=t.type;data.pumpTanks=data.pumpTanks.filter(x=>x.id!==id);}else{const t=data.returnTanks.find(x=>x.id===id);if(t)dt=t.type;data.returnTanks=data.returnTanks.filter(x=>x.id!==id);} if(dt)renumberTanksOfType(side,dt); saveData(); render(); }
+
+function updateWbVolBanners() {
+    var tbgEl = document.getElementById('vol-calc-tbg');
+    var annEl = document.getElementById('vol-calc-ann-total');
+    var totalEl = document.getElementById('vol-calc-total');
+    var tbg = (tbgEl && tbgEl.textContent !== '--') ? tbgEl.textContent : '';
+    var ann = (annEl && annEl.textContent !== '--') ? annEl.textContent : '';
+    var total = (totalEl && totalEl.textContent !== '--') ? totalEl.textContent : '';
+    ['tanks','monitor','xfer'].forEach(function(tab) {
+        var t = document.getElementById('wvb-' + tab + '-tbg');
+        var a = document.getElementById('wvb-' + tab + '-ann');
+        var tt = document.getElementById('wvb-' + tab + '-total');
+        if (t) t.textContent = tbg ? tbg + ' bbl' : '--';
+        if (a) a.textContent = ann ? ann + ' bbl' : '--';
+        if (tt) tt.textContent = total ? total + ' bbl' : '--';
+    });
+    // Also update plug/vol header holes
+    var plugHoleEl = document.getElementById('plug-hdr-hole');
+    var volHoleEl = document.getElementById('vol-hdr-hole');
+    var holeDisplay = total ? total + ' bbl' : '--';
+    if (plugHoleEl) plugHoleEl.textContent = holeDisplay;
+    if (volHoleEl) volHoleEl.textContent = holeDisplay;
+}
+function getHoleVolume() {
+    var el = document.getElementById('vol-calc-total');
+    if (el && el.textContent && el.textContent !== '--') return el.textContent;
+    return '';
+}
 function renderTotals() {
     const totals=calculateTotals(); 
     const el = (id) => document.getElementById(id);
@@ -4122,7 +4224,7 @@ function renderTotals() {
     if(el('total-mud')) el('total-mud').textContent=totals.mud; 
     if(el('total-recirc')) el('total-recirc').textContent=totals.recirc; 
     if(el('total-freshwater')) el('total-freshwater').textContent=totals.freshwater; 
-    if(el('total-other')) el('total-other').textContent=totals.other; 
+    if(el('total-other')) el('total-other').textContent=totals.other;
     if(el('system-total')) el('system-total').textContent=totals.system+' BBL'; 
     if(el('jetted-total')) el('jetted-total').textContent=data.jetsShift+' BBL';
 }
@@ -4427,7 +4529,7 @@ function render() {
     if(el('total-mud')) el('total-mud').textContent=totals.mud; 
     if(el('total-recirc')) el('total-recirc').textContent=totals.recirc; 
     if(el('total-freshwater')) el('total-freshwater').textContent=totals.freshwater; 
-    if(el('total-other')) el('total-other').textContent=totals.other; 
+    if(el('total-other')) el('total-other').textContent=totals.other;
     if(el('system-total')) el('system-total').textContent=totals.system+' BBL'; 
     if(el('jetted-total')) el('jetted-total').textContent=data.jetsShift+' BBL'; 
     if(el('jets-hour')) el('jets-hour').textContent=data.jetsHour; 
@@ -4536,9 +4638,9 @@ function renderGLTotals() {
     if(el('gl-jetted-total')) el('gl-jetted-total').textContent = data.jetsShift + ' BBL';
 }
 
-function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
+function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; var wbTbg=document.getElementById('vol-calc-tbg'),wbAnn=document.getElementById('vol-calc-ann-total'),wbTotal=document.getElementById('vol-calc-total'); var tbgV=wbTbg?wbTbg.textContent:'--',annV=wbAnn?wbAnn.textContent:'--',totalV=wbTotal?wbTotal.textContent:'--'; html+='<div class="report-section"><div class="report-section-title">Wellbore Volumes</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Tubing</div><div class="report-total-value" style="color:#4fc3f7">'+tbgV+'</div></div><div class="report-total-item"><div class="report-total-label">Annulus</div><div class="report-total-value" style="color:#4fc3f7">'+annV+'</div></div><div class="report-total-item"><div class="report-total-label">Hole Total</div><div class="report-total-value" style="color:#fff;font-weight:700">'+totalV+'</div></div></div></div>'; html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
 function hideTankReport() { document.getElementById('tank-report').classList.remove('show'); }
-function showTitrationReport() { const names={aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Freshwater'}; const locText = sampleLocation === 'out' ? 'Discharge (Out)' : 'Pump Side (In)'; const locColor = sampleLocation === 'out' ? '#ff7043' : '#42a5f5'; document.getElementById('tit-report-fluid').textContent=names[titData.fluidType]||titData.fluidType; const cl=document.getElementById('tit-chlorides').textContent,ha=document.getElementById('tit-hardness').textContent,ca=document.getElementById('tit-calcium').textContent,mg=document.getElementById('tit-magnesium').textContent; const surfaceVol=getSurfaceVolumeForFluid(titData.fluidType); let html='<div class="report-section"><div class="report-section-title">Sample Info</div><div class="report-row"><span class="report-row-label">Sample Location</span><span class="report-row-value" style="color:'+locColor+'">'+locText+'</span></div><div class="report-row"><span class="report-row-label">Fluid Type</span><span class="report-row-value">'+(names[titData.fluidType]||titData.fluidType)+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Basic Properties</div><div class="report-row"><span class="report-row-label">Viscosity</span><span class="report-row-value">'+(titData.viscosity||'--')+' sec</span></div><div class="report-row"><span class="report-row-label">Density</span><span class="report-row-value">'+(titData.density||'--')+' ppg</span></div><div class="report-row"><span class="report-row-label">pH</span><span class="report-row-value">'+(titData.ph||'--')+'</span></div><div class="report-row"><span class="report-row-label">PF</span><span class="report-row-value">'+(titData.pf||'--')+'</span></div><div class="report-row"><span class="report-row-label">MF</span><span class="report-row-value">'+(titData.mf||'--')+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Chemical Analysis</div><div class="report-row"><span class="report-row-label">Chlorides</span><span class="report-row-value">'+cl+' ppm</span></div><div class="report-row"><span class="report-row-label">Calcium</span><span class="report-row-value">'+ca+' ppm</span></div><div class="report-row"><span class="report-row-label">Total Hardness</span><span class="report-row-value">'+ha+' ppm</span></div><div class="report-row"><span class="report-row-label">Magnesium</span><span class="report-row-value">'+mg+' ppm</span></div></div>'; const pvText=document.getElementById('tit-pv').textContent; const ypText=document.getElementById('tit-yp').textContent; html+='<div class="report-section"><div class="report-section-title">Rheology</div><div class="report-row"><span class="report-row-label">600 RPM</span><span class="report-row-value">'+(titData.r600||'--')+'</span></div><div class="report-row"><span class="report-row-label">300 RPM</span><span class="report-row-value">'+(titData.r300||'--')+'</span></div><div class="report-row"><span class="report-row-label">200 RPM</span><span class="report-row-value">'+(titData.r200||'--')+'</span></div><div class="report-row"><span class="report-row-label">100 RPM</span><span class="report-row-value">'+(titData.r100||'--')+'</span></div><div class="report-row"><span class="report-row-label">6 RPM</span><span class="report-row-value">'+(titData.r6||'--')+'</span></div><div class="report-row"><span class="report-row-label">3 RPM</span><span class="report-row-value">'+(titData.r3||'--')+'</span></div><div class="report-row"><span class="report-row-label">PV</span><span class="report-row-value">'+pvText+' cP</span></div><div class="report-row"><span class="report-row-label">YP</span><span class="report-row-value">'+ypText+' lb/100ft²</span></div><div class="report-row"><span class="report-row-label">10-sec Gel</span><span class="report-row-value">'+(titData.gel10s||'--')+' lb/100ft²</span></div><div class="report-row"><span class="report-row-label">10-min Gel</span><span class="report-row-value">'+(titData.gel10m||'--')+' lb/100ft²</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Volume</div><div class="report-row"><span class="report-row-label">Surface Volume ('+names[titData.fluidType]+')</span><span class="report-row-value">'+surfaceVol+' bbl</span></div></div>'; html+='<div class="report-timestamp">'+new Date().toLocaleString()+'</div>'; document.getElementById('tit-report-content').innerHTML=html; document.getElementById('titration-report').classList.add('show'); }
+function showTitrationReport() { const names={aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Freshwater'}; const locText = sampleLocation === 'out' ? 'Discharge (Out)' : 'Pump Side (In)'; const locColor = sampleLocation === 'out' ? '#ff7043' : '#42a5f5'; document.getElementById('tit-report-fluid').textContent=names[titData.fluidType]||titData.fluidType; const cl=document.getElementById('tit-chlorides').textContent,ha=document.getElementById('tit-hardness').textContent,ca=document.getElementById('tit-calcium').textContent,mg=document.getElementById('tit-magnesium').textContent; const surfaceVol=getSurfaceVolumeForFluid(titData.fluidType); let html='<div class="report-section"><div class="report-section-title">Sample Info</div><div class="report-row"><span class="report-row-label">Sample Location</span><span class="report-row-value" style="color:'+locColor+'">'+locText+'</span></div><div class="report-row"><span class="report-row-label">Fluid Type</span><span class="report-row-value">'+(names[titData.fluidType]||titData.fluidType)+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Basic Properties</div><div class="report-row"><span class="report-row-label">Viscosity</span><span class="report-row-value">'+(titData.viscosity||'--')+' sec</span></div><div class="report-row"><span class="report-row-label">Density</span><span class="report-row-value">'+(titData.density||'--')+' ppg</span></div><div class="report-row"><span class="report-row-label">pH</span><span class="report-row-value">'+(titData.ph||'--')+'</span></div><div class="report-row"><span class="report-row-label">PF</span><span class="report-row-value">'+(titData.pf||'--')+'</span></div><div class="report-row"><span class="report-row-label">MF</span><span class="report-row-value">'+(titData.mf||'--')+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Chemical Analysis</div><div class="report-row"><span class="report-row-label">Chlorides</span><span class="report-row-value">'+cl+' ppm</span></div><div class="report-row"><span class="report-row-label">Calcium</span><span class="report-row-value">'+ca+' ppm</span></div><div class="report-row"><span class="report-row-label">Total Hardness</span><span class="report-row-value">'+ha+' ppm</span></div><div class="report-row"><span class="report-row-label">Magnesium</span><span class="report-row-value">'+mg+' ppm</span></div></div>'; const pvText=document.getElementById('tit-pv').textContent; const ypText=document.getElementById('tit-yp').textContent; const avText=document.getElementById('tit-av').textContent; html+='<div class="report-section"><div class="report-section-title">Rheology</div><div class="report-row"><span class="report-row-label">600 RPM</span><span class="report-row-value">'+(titData.r600||'--')+'</span></div><div class="report-row"><span class="report-row-label">300 RPM</span><span class="report-row-value">'+(titData.r300||'--')+'</span></div><div class="report-row"><span class="report-row-label">3 RPM</span><span class="report-row-value">'+(titData.r3||'--')+'</span></div><div class="report-row"><span class="report-row-label">PV</span><span class="report-row-value">'+pvText+' cP</span></div><div class="report-row"><span class="report-row-label">YP</span><span class="report-row-value">'+ypText+' lb/100ft²</span></div><div class="report-row"><span class="report-row-label">AV</span><span class="report-row-value">'+avText+' cP</span></div><div class="report-row"><span class="report-row-label">Gel Strength</span><span class="report-row-value">'+(titData.gel10s||'--')+' lb/100ft²</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Volume</div><div class="report-row"><span class="report-row-label">Surface Volume ('+names[titData.fluidType]+')</span><span class="report-row-value">'+surfaceVol+' bbl</span></div></div>'; html+='<div class="report-timestamp">'+new Date().toLocaleString()+'</div>'; document.getElementById('tit-report-content').innerHTML=html; document.getElementById('titration-report').classList.add('show'); }
 function hideTitrationReport() { document.getElementById('titration-report').classList.remove('show'); }
 
 // Titration log
@@ -4579,10 +4681,11 @@ function logTitration() {
         magnesium: magnesium,
         fullTitration: hasFullTitration,
         surfaceVol: getSurfaceVolumeForFluid(titData.fluidType),
-        r600: titData.r600, r300: titData.r300, r200: titData.r200, r100: titData.r100, r6: titData.r6, r3: titData.r3,
+        r600: titData.r600, r300: titData.r300, r3: titData.r3,
         pv: document.getElementById('tit-pv').textContent,
         yp: document.getElementById('tit-yp').textContent,
-        gel10s: titData.gel10s, gel10m: titData.gel10m
+        av: document.getElementById('tit-av').textContent,
+        gel10s: titData.gel10s
     };
     titrationLog.unshift(entry);
     saveTitrationLog();
@@ -4615,8 +4718,9 @@ function renderTitrationLog() {
         }
         if (log.pv && log.pv !== '--') parts.push('<span style="color:#ef5350">PV:' + log.pv + '</span>');
         if (log.yp && log.yp !== '--') parts.push('<span style="color:#ffca28">YP:' + log.yp + '</span>');
-        if (log.gel10s) parts.push('<span style="color:#78909c">G10s:' + log.gel10s + '</span>');
-        if (log.gel10m) parts.push('<span style="color:#78909c">G10m:' + log.gel10m + '</span>');
+        if (log.av && log.av !== '--') parts.push('<span style="color:#4fc3f7">AV:' + log.av + '</span>');
+        if (log.gel10s) parts.push('<span style="color:#78909c">Gel:' + log.gel10s + '</span>');
+        
         let line2 = parts.length ? parts.join(' &nbsp; ') : '<span style="color:#666">--</span>';
         return '<div style="padding:6px 0;border-bottom:1px solid #2d4a6f">' +
             '<div style="font-size:11px">' + line1 + '</div>' +
@@ -5148,6 +5252,15 @@ function showMonitorReport() {
     }
     html += '</div>';
     
+    // Wellbore Volumes section
+    var wbTbg2=document.getElementById('vol-calc-tbg'),wbAnn2=document.getElementById('vol-calc-ann-total'),wbTotal2=document.getElementById('vol-calc-total');
+    var tbgV2=wbTbg2?wbTbg2.textContent:'--',annV2=wbAnn2?wbAnn2.textContent:'--',totalV2=wbTotal2?wbTotal2.textContent:'--';
+    html += '<div style="display:flex;gap:6px;margin:10px 0;justify-content:center">';
+    html += '<div style="text-align:center;padding:6px 12px;border-radius:6px;background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.2)"><div style="font-size:8px;color:#78909c;text-transform:uppercase;font-weight:600">Tubing</div><div style="font-size:14px;font-weight:700;color:#4fc3f7">' + tbgV2 + '</div></div>';
+    html += '<div style="text-align:center;padding:6px 12px;border-radius:6px;background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.2)"><div style="font-size:8px;color:#78909c;text-transform:uppercase;font-weight:600">Annulus</div><div style="font-size:14px;font-weight:700;color:#4fc3f7">' + annV2 + '</div></div>';
+    html += '<div style="text-align:center;padding:6px 12px;border-radius:6px;background:rgba(79,195,247,0.15);border:1px solid rgba(79,195,247,0.3)"><div style="font-size:8px;color:#b0bec5;text-transform:uppercase;font-weight:600">Hole Total</div><div style="font-size:14px;font-weight:700;color:#fff">' + totalV2 + '</div></div>';
+    html += '</div>';
+
     html += '<div class="report-timestamp">Generated: ' + now.toLocaleString() + '</div>';
     document.getElementById('monitor-report-content').innerHTML = html;
     document.getElementById('monitor-report').classList.add('show');
@@ -5845,17 +5958,60 @@ async function connectBle() {
         // Force focus back to window — helps Android Chrome render BT picker devices
         window.focus();
         await new Promise(r => setTimeout(r, 300));
-        
+        // Detect iOS/Bluefy
+        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        var tipShown = sessionStorage.getItem('bleTipShown');
+        if (!tipShown) {
+            var tip = isIOS
+                ? 'TIP: Bluefy shows devices as long UUIDs.\n\n'
+                  + '1. Turn your Bosch laser OFF\n'
+                  + '2. Tap OK, then CANCEL the picker\n'
+                  + '3. Turn the laser ON\n'
+                  + '4. Tap connect again — the NEW entry is your laser\n\n'
+                  + 'Once paired, Bluefy remembers it.'
+                : 'TIP: Your Bosch laser may show as "Unknown Device".\n\n'
+                  + 'Make sure the laser is ON with Bluetooth enabled\n'
+                  + '(hold the Bluetooth button on the laser for 3 sec).\n\n'
+                  + 'Look for "GLM" in the list. If all show as Unknown,\n'
+                  + 'the laser is usually the one that just appeared.';
+            alert(tip);
+            sessionStorage.setItem('bleTipShown', '1');
+        }
         let device = null;
-        device = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: [BOSCH_SERVICE_UUID]
-        });
+        if (!isIOS) {
+            // Android: try filtered scan first (cleaner picker)
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { services: [BOSCH_SERVICE_UUID] },
+                        { namePrefix: 'GLM' },
+                        { namePrefix: 'Bosch' },
+                        { namePrefix: 'PLR' }
+                    ],
+                    optionalServices: [BOSCH_SERVICE_UUID]
+                });
+            } catch(fe) {
+                if (fe.name === 'NotFoundError') {
+                    device = await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: [BOSCH_SERVICE_UUID]
+                    });
+                } else { throw fe; }
+            }
+        } else {
+            // iOS/Bluefy: must use acceptAllDevices
+            device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: [BOSCH_SERVICE_UUID]
+            });
+        }
         bleDevice = device;
         bleDevice.addEventListener('gattserverdisconnected', onBleDisconnect);
         updateBleStatus('Pairing...', 'Connecting to ' + (device.name || 'device'));
         const server = await bleDevice.gatt.connect();
-        const service = await server.getPrimaryService(BOSCH_SERVICE_UUID);
+        const service = await server.getPrimaryService(BOSCH_SERVICE_UUID).catch(function(svcErr) {
+            throw new Error('NOT_BOSCH');
+        });
         bleCharacteristic = await service.getCharacteristic(BOSCH_CHAR_UUID);
         await bleCharacteristic.startNotifications();
         bleCharacteristic.addEventListener('characteristicvaluechanged', handleBleMeasurement);
@@ -5866,7 +6022,9 @@ async function connectBle() {
         return true;
     } catch(e) {
         console.log('BLE connect error:', e);
-        if (e.name !== 'NotFoundError') {
+        if (e.message === 'NOT_BOSCH') {
+            alert('That device is not a Bosch laser.\n\nTry a different one from the list.\n\nTIP: Turn the laser OFF, open the picker,\nnote what\'s there. Cancel, turn laser ON,\ntry again — the new entry is your laser.');
+        } else if (e.name !== 'NotFoundError') {
             if (!navigator.bluetooth) {
                 alert('Bluetooth laser not supported on this browser.\n\niPhone/Safari does not support Web Bluetooth.\n\nOptions:\n• Install "Bluefy" browser (free) from the App Store and open this app there\n• Enter inches manually');
             } else {
@@ -6783,6 +6941,7 @@ function initApp() {
     loadVolData();
     console.log('About to render, pump-tanks element:', document.getElementById('pump-tanks'));
     render();
+    updateWbVolBanners();
     
     // Initialize Firebase and auto-join room if well name is set
     // Check URL for invite room parameter
