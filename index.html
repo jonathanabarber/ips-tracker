@@ -3006,11 +3006,9 @@ async function tcGenerateXLSX() {
                 setCell('E'+r, e.well || '', 's');
                 setCell('F'+r, e.rig || tcConfig.rig || '', 's');
                 setCell('H'+r, e.county || tcConfig.county || '', 's');
-                var hw = e.worked || 0, hs = e.standby || 0, hn = e.notWorking || 0;
-                setCell('I'+r, hw, 'n');
-                setCell('J'+r, hs, 'n');
-                setCell('K'+r, hn, 'n');
-                setCell('L'+r, hw + hs + hn, 'n');
+                setCell('I'+r, e.worked || 0, 'n');
+                setCell('J'+r, e.standby || 0, 'n');
+                setCell('K'+r, e.notWorking || 0, 'n');
             } else {
                 setCell('B'+r, null, 'n');
                 setCell('C'+r, null, 's');
@@ -3021,11 +3019,12 @@ async function tcGenerateXLSX() {
                 setCell('I'+r, null, 'n');
                 setCell('J'+r, null, 'n');
                 setCell('K'+r, null, 'n');
-                setCell('L'+r, null, 'n');
             }
         }
     }
     finalizeSS();
+    // Strip stale cached values from formula cells so Excel must recalculate
+    xml = xml.replace(/<f>([^<]*)<\/f><v>[^<]*<\/v>/g, '<f>$1</f>');
     zip.file('xl/worksheets/sheet1.xml', xml);
     if (ssFile) zip.file('xl/sharedStrings.xml', ss);
     // Keep calcChain.xml intact so weekly totals and pay formulas recalculate
