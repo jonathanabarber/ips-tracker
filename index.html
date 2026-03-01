@@ -1417,9 +1417,10 @@ RIH Wt: 50K
             </div>
             <button class="tc-log-btn tc-log-full" onclick="tcLogDay('full')">✅ Log Full Day (12/12)</button>
             <div style="display:flex;gap:8px;margin-bottom:16px">
-                <button class="tc-log-btn tc-log-shutdown" style="flex:1" onclick="tcLogDay('shutdown')">⏸️ Shutdown (0/12)</button>
+                <button class="tc-log-btn tc-log-shutdown" style="flex:1" onclick="tcLogDay('shutdown')">⏸️ Shutdown</button>
                 <button class="tc-log-btn tc-log-custom" style="flex:1" onclick="tcLogDayCustom()">✏️ Custom</button>
             </div>
+            <button class="tc-log-btn" style="background:#1b2838;color:#4fc3f7;border:1px solid #2d4a6f;margin-bottom:16px" onclick="tcAddPastDay()">📅 Add Past Day</button>
             <!-- Work Log -->
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                 <div style="font-size:13px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px">Work Log</div>
@@ -2390,6 +2391,49 @@ function tcLogDayCustom() {
     tcLog.sort((a,b) => a.date.localeCompare(b.date));
     localStorage.setItem('ipsTcLog', JSON.stringify(tcLog));
     tcRenderLog(); tcUpdateTodayStatus();
+}
+function tcAddPastDay() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center';
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#1b2838;border:1px solid #2d4a6f;border-radius:12px;padding:20px;width:90%;max-width:340px';
+    card.innerHTML = '<div style="font-size:15px;font-weight:700;color:#4fc3f7;margin-bottom:14px;text-align:center">Add Past Day</div>' +
+        '<label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Date</label>' +
+        '<input type="date" id="tc-past-date" style="width:100%;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#0d1b2a;color:#e0e0e0;font-size:16px;margin-bottom:10px;box-sizing:border-box">' +
+        '<label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Well Name</label>' +
+        '<input type="text" id="tc-past-well" value="' + (profileData.wellName || '').replace(/"/g,'&quot;') + '" style="width:100%;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#0d1b2a;color:#e0e0e0;font-size:14px;margin-bottom:10px;box-sizing:border-box">' +
+        '<div style="display:flex;gap:8px;margin-bottom:10px">' +
+        '<div style="flex:1"><label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Hours Worked</label><input type="number" id="tc-past-worked" value="12" style="width:100%;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#0d1b2a;color:#e0e0e0;font-size:16px;box-sizing:border-box"></div>' +
+        '<div style="flex:1"><label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Hours Standby</label><input type="number" id="tc-past-standby" value="12" style="width:100%;padding:10px;border:1px solid #2d4a6f;border-radius:6px;background:#0d1b2a;color:#e0e0e0;font-size:16px;box-sizing:border-box"></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:14px">' +
+        '<button id="tc-past-cancel" style="flex:1;padding:12px;border:1px solid #2d4a6f;border-radius:6px;background:transparent;color:#888;font-size:14px;font-weight:600;cursor:pointer">Cancel</button>' +
+        '<button id="tc-past-save" style="flex:1;padding:12px;border:none;border-radius:6px;background:#2e7d32;color:white;font-size:14px;font-weight:600;cursor:pointer">Save</button>' +
+        '</div>';
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    card.querySelector('#tc-past-cancel').onclick = function() { overlay.remove(); };
+    card.querySelector('#tc-past-save').onclick = function() {
+        const date = document.getElementById('tc-past-date').value;
+        if (!date) { alert('Please select a date'); return; }
+        const well = document.getElementById('tc-past-well').value.trim();
+        const worked = parseFloat(document.getElementById('tc-past-worked').value) || 0;
+        const standby = parseFloat(document.getElementById('tc-past-standby').value) || 0;
+        const entry = { date: date, well: well, operator: tcConfig.operator || '', rig: tcConfig.rig || '', county: '', worked: worked, standby: standby, notWorking: 0 };
+        const idx = tcLog.findIndex(e => e.date === date);
+        if (idx >= 0) { if (!confirm('Entry for ' + date + ' already exists. Overwrite?')) return; tcLog[idx] = entry; }
+        else tcLog.push(entry);
+        tcLog.sort((a,b) => a.date.localeCompare(b.date));
+        localStorage.setItem('ipsTcLog', JSON.stringify(tcLog));
+        overlay.remove();
+        tcRenderLog(); tcUpdateTodayStatus();
+        const toast = document.createElement('div');
+        toast.textContent = '\u2705 Added ' + date + ' \u2014 ' + worked + 'W/' + standby + 'S';
+        toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2e7d32;color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:999';
+        document.body.appendChild(toast);
+        setTimeout(function(){ toast.remove(); }, 2000);
+    };
 }
 function tcUpdateTodayStatus() {
     const today = new Date().toISOString().split('T')[0];
