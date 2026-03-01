@@ -2829,98 +2829,117 @@ function tcEmailTimecard() {
     });
 }
 async function tcGenerateXLSX() {
-    // Load ExcelJS if not loaded
-    if (typeof ExcelJS === 'undefined') {
+    // Load JSZip if not loaded
+    if (typeof JSZip === 'undefined') {
         try {
             await new Promise((res, rej) => {
                 const s = document.createElement('script');
-                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
                 s.onload = res; s.onerror = rej;
                 document.head.appendChild(s);
             });
         } catch(e) { alert('Failed to load spreadsheet library'); return null; }
     }
     // Load template from localStorage
-    const templateB64 = localStorage.getItem('ipsTcTemplate');
+    var templateB64 = localStorage.getItem('ipsTcTemplate');
     if (!templateB64) { alert('No timesheet template uploaded. Go to Settings → Timecard to upload your AES template.'); return null; }
-    const startDate = document.getElementById('tc-start-date').value;
-    const endDate = document.getElementById('tc-end-date').value;
-    const entries = tcLog.filter(e => e.date >= startDate && e.date <= endDate);
+    var startDate = document.getElementById('tc-start-date').value;
+    var endDate = document.getElementById('tc-end-date').value;
+    var entries = tcLog.filter(function(e) { return e.date >= startDate && e.date <= endDate; });
     if (!entries.length) { alert('No entries in selected date range.'); return null; }
-    // Decode base64 template to ArrayBuffer
-    const raw = atob(templateB64);
-    const buf = new ArrayBuffer(raw.length);
-    const view = new Uint8Array(buf);
-    for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
-    // Load workbook with ExcelJS
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(buf);
-    const ws = wb.getWorksheet('Job Sheet');
-    if (!ws) { alert('Template missing "Job Sheet" tab.'); return null; }
-    // Helper: create a UTC date from a YYYY-MM-DD string (avoids timezone shift)
-    function makeDateUTC(dateStr) {
-        var parts = dateStr.split('-');
-        return new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+    // Decode base64 to binary
+    var raw = atob(templateB64);
+    var buf = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+    // Load as zip
+    var zip = await JSZip.loadAsync(buf);
+    var sheetFile = zip.file('xl/worksheets/sheet1.xml');
+    if (!sheetFile) { alert('Template missing sheet1.xml'); return null; }
+    var xml = await sheetFile.async('string');
+    // Cell editing function - surgically replaces cell values, preserves styles
+    function setCell(ref, value, type) {
+        var marker = '<c r="' + ref + '"';
+        var start = xml.indexOf(marker);
+        if (start < 0) return;
+        // Find end: self-closing /> or content </c>
+        var chunk = xml.substring(start, start + 500);
+        var selfIdx = chunk.indexOf('/>');
+        var gtIdx = chunk.indexOf('>');
+        var end;
+        if (selfIdx >= 0 && selfIdx <= gtIdx) {
+            end = start + selfIdx + 2;
+        } else {
+            var closeIdx = chunk.indexOf('</c>');
+            end = closeIdx >= 0 ? start + closeIdx + 4 : start + gtIdx + 1;
+        }
+        var oldCell = xml.substring(start, end);
+        var sm = oldCell.match(/s="([^"]*)"/);
+        var style = sm ? ' s="' + sm[1] + '"' : '';
+        var newCell;
+        if (type === 's' && value !== '' && value != null) {
+            var esc = String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            newCell = '<c r="' + ref + '"' + style + ' t="inlineStr"><is><t>' + esc + '</t></is></c>';
+        } else if (value === '' || value == null) {
+            newCell = '<c r="' + ref + '"' + style + '/>';
+        } else {
+            newCell = '<c r="' + ref + '"' + style + '><v>' + value + '</v></c>';
+        }
+        xml = xml.substring(0, start) + newCell + xml.substring(end);
+    }
+    function dateToSerial(ds) {
+        var p = ds.split('-');
+        var t = Date.UTC(+p[0], +p[1]-1, +p[2]);
+        var ep = Date.UTC(1899, 11, 31);
+        var s = (t - ep) / 86400000;
+        return s >= 60 ? s + 1 : s;
     }
     // Fill contractor info
-    ws.getCell('C4').value = profileData.name || '';
-    ws.getCell('C5').value = profileData.llc || '';
-    ws.getCell('C6').value = profileData.address || '';
-    ws.getCell('C7').value = profileData.cityStateZip || '';
-    ws.getCell('C8').value = profileData.phone || '';
+    setCell('C4', profileData.name || '', 's');
+    setCell('C5', profileData.llc || '', 's');
+    setCell('C6', profileData.address || '', 's');
+    setCell('C7', profileData.cityStateZip || '', 's');
+    setCell('C8', profileData.phone || '', 's');
     // Pay period dates
-    ws.getCell('N6').value = makeDateUTC(startDate);
-    ws.getCell('N6').numFmt = 'mm/dd/yyyy';
-    ws.getCell('N7').value = makeDateUTC(endDate);
-    ws.getCell('N7').numFmt = 'mm/dd/yyyy';
-    // Week data row mapping: week# -> [startRow, endRow] (7 rows each)
+    setCell('N6', dateToSerial(startDate), 'n');
+    setCell('N7', dateToSerial(endDate), 'n');
+    // Week row mapping
     var weekRows = { 1: [22,28], 2: [36,42], 3: [50,56], 4: [64,70] };
-    // Group entries by week
     var weeks = {};
     entries.forEach(function(e) {
         var wk = tcGetWeekNum(e.date, startDate);
-        if (wk >= 1 && wk <= 4) {
-            if (!weeks[wk]) weeks[wk] = [];
-            weeks[wk].push(e);
-        }
+        if (wk >= 1 && wk <= 4) { if (!weeks[wk]) weeks[wk] = []; weeks[wk].push(e); }
     });
-    // Fill each week's data rows
     for (var w = 1; w <= 4; w++) {
         var wEntries = weeks[w] || [];
         var rowStart = weekRows[w][0];
         var rowEnd = weekRows[w][1];
-        // Clear all 7 data rows first (preserve formulas in C, L, O, P, Q, T)
-        for (var r = rowStart; r <= rowEnd; r++) {
-            ws.getCell('B' + r).value = null;  // date
-            ws.getCell('D' + r).value = null;  // operator
-            ws.getCell('E' + r).value = null;  // well
-            ws.getCell('F' + r).value = null;  // rig
-            ws.getCell('G' + r).value = null;  // job #
-            ws.getCell('H' + r).value = null;  // county
-            ws.getCell('I' + r).value = null;  // hours worked
-            ws.getCell('J' + r).value = null;  // hours standby
-            ws.getCell('K' + r).value = null;  // hours not working
-            // C (day name formula), L (total formula), O/P/Q/T (calc formulas) left alone
-        }
-        // Fill entries into rows
-        for (var i = 0; i < wEntries.length && i < 7; i++) {
-            var e = wEntries[i];
-            var row = rowStart + i;
-            var dateCell = ws.getCell('B' + row);
-            dateCell.value = makeDateUTC(e.date);
-            dateCell.numFmt = 'mm/dd/yyyy';
-            ws.getCell('D' + row).value = e.operator || tcConfig.operator || '';
-            ws.getCell('E' + row).value = e.well || '';
-            ws.getCell('F' + row).value = e.rig || tcConfig.rig || '';
-            ws.getCell('H' + row).value = e.county || tcConfig.county || '';
-            ws.getCell('I' + row).value = e.worked || 0;
-            ws.getCell('J' + row).value = e.standby || 0;
-            ws.getCell('K' + row).value = e.notWorking || 0;
+        for (var ri = 0; ri < 7; ri++) {
+            var r = rowStart + ri;
+            var e = wEntries[ri];
+            if (e) {
+                setCell('B'+r, dateToSerial(e.date), 'n');
+                setCell('D'+r, e.operator || tcConfig.operator || '', 's');
+                setCell('E'+r, e.well || '', 's');
+                setCell('F'+r, e.rig || tcConfig.rig || '', 's');
+                setCell('H'+r, e.county || tcConfig.county || '', 's');
+                setCell('I'+r, e.worked || 0, 'n');
+                setCell('J'+r, e.standby || 0, 'n');
+                setCell('K'+r, e.notWorking || 0, 'n');
+            } else {
+                setCell('B'+r, null, 'n');
+                setCell('D'+r, null, 's');
+                setCell('E'+r, null, 's');
+                setCell('F'+r, null, 's');
+                setCell('H'+r, null, 's');
+                setCell('I'+r, null, 'n');
+                setCell('J'+r, null, 'n');
+                setCell('K'+r, null, 'n');
+            }
         }
     }
-    // Write to buffer
-    var outBuf = await wb.xlsx.writeBuffer();
-    return new Blob([outBuf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    zip.file('xl/worksheets/sheet1.xml', xml);
+    var outBuf = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    return outBuf;
 }
 
 function switchWBTab(tab) {
