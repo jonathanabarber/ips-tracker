@@ -6302,11 +6302,14 @@ function handleBleMeasurement(event) {
             
             updateBleStatus('✓ ' + tank.name + ': ' + adjustedInches + '" = ' + tank.bbls + ' BBL', 'Advancing...');
             
+            // Capture side/id BEFORE autoAdvance changes them to the next tank
+            const savedSide = bleActiveTankSide;
+            const savedId = bleActiveTankId;
             autoAdvanceBle();
             // Save locally first, render immediately, then sync single tank to Firebase
             localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
             render();
-            firebaseSaveSingleTank(bleActiveTankSide, bleActiveTankId);
+            firebaseSaveSingleTank(savedSide, savedId);
             scrollToActiveBle();
             // Clear done state after animation completes so future renders don't re-apply
             setTimeout(() => { bleDoneTankSide = null; bleDoneTankId = null; }, 2000);
