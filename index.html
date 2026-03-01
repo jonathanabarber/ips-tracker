@@ -1263,6 +1263,11 @@ Lat: 31.907   Long: -101.949"></textarea>
                         <div class="plug-header-label">Depth</div>
                         <div class="plug-header-value" id="plug-hdr-depth">--'</div>
                     </div>
+                    <div class="plug-header-divider"></div>
+                    <div class="plug-header-item">
+                        <div class="plug-header-label">Hole Vol</div>
+                        <div class="plug-header-value" id="plug-hdr-hole" style="color:#4fc3f7">--</div>
+                    </div>
                 </div>
 
                 <!-- Plug Info -->
@@ -1362,21 +1367,26 @@ Lat: 31.907   Long: -101.949"></textarea>
 
         <div id="wb-volumes" class="wb-content">
             <div class="plug-container">
-                <!-- Live Header Banner (volume focused) -->
+                <!-- Live Header Banner (synced from Plug data) -->
                 <div class="plug-header-banner">
                     <div class="plug-header-item">
-                        <div class="plug-header-label">Tubing</div>
-                        <div class="plug-header-value" id="vol-hdr-tbg" style="color:#4fc3f7">--</div>
+                        <div class="plug-header-label">Joint</div>
+                        <div class="plug-header-value" id="vol-hdr-jnt">--</div>
                     </div>
                     <div class="plug-header-divider"></div>
                     <div class="plug-header-item">
-                        <div class="plug-header-label">Annulus</div>
-                        <div class="plug-header-value" id="vol-hdr-ann" style="color:#4fc3f7">--</div>
+                        <div class="plug-header-label">Plug</div>
+                        <div class="plug-header-value" id="vol-hdr-plug">-- <span class="plug-total">/ --</span></div>
                     </div>
                     <div class="plug-header-divider"></div>
                     <div class="plug-header-item">
-                        <div class="plug-header-label">Hole Total</div>
-                        <div class="plug-header-value" id="vol-hdr-hole" style="color:#fff">--</div>
+                        <div class="plug-header-label">Depth</div>
+                        <div class="plug-header-value" id="vol-hdr-depth">--'</div>
+                    </div>
+                    <div class="plug-header-divider"></div>
+                    <div class="plug-header-item">
+                        <div class="plug-header-label">Hole Vol</div>
+                        <div class="plug-header-value" id="vol-hdr-hole" style="color:#4fc3f7">--</div>
                     </div>
                 </div>
                 <div class="tit-card">
@@ -1882,6 +1892,7 @@ const FIREBASE_CONFIG = {
 let fbApp = null, fbDb = null, fbRoom = null, fbListeners = [], fbPresenceRef = null;
 let _lastLocalWriteTime = 0; // Timestamp of our last write to Firebase
 let _lastLocalWriteBy = ''; // Who wrote last (our initials)
+let _lastReceivedFullSync = 0; // Track last seen _fullSync timestamp to detect new full syncs
 let fbIsAdmin = false; // Whether current user is the room admin
 let fbAdminInitials = ''; // The admin's initials for display
 
@@ -2025,6 +2036,7 @@ function firebaseLeaveRoom() {
     fbRoom = null;
     fbIsAdmin = false;
     fbAdminInitials = '';
+    _lastReceivedFullSync = 0;
     setSyncStatus('no-room', 'No Room');
     updateRoomUsersUI([]);
 }
@@ -2119,23 +2131,91 @@ function showRoomUsersInfo() {
 }
 
 // === Firebase WRITE helpers ===
+
+// Convert tank array to object keyed by tank ID for Firebase
+function tanksToFirebaseObj(arr) {
+    const obj = {};
+    const now = Date.now();
+    const who = profileData.initials || '';
+    (arr || []).forEach(t => {
+        const tc = Object.assign({}, t);
+        // Full sync — always stamp with current time so merge treats these as fresh
+        tc._updatedAt = now;
+        tc._updatedBy = who;
+        obj[t.id] = tc;
+    });
+    return obj;
+}
+
+// Convert Firebase object (or array) back to array
+function firebaseToTankArray(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    return Object.values(val);
+}
+
+// FULL SYNC — writes entire tank state (used for add/delete tank, jets, admin push, etc.)
 function firebaseSaveTanks() {
     if (!fbDb || !fbRoom) { console.log('[SYNC] Save skipped: no db or room', !!fbDb, fbRoom); return; }
     _lastLocalWriteTime = Date.now();
     _lastLocalWriteBy = profileData.initials || '';
-    console.log('[SYNC] Writing tanks to Firebase as ' + _lastLocalWriteBy + ' room=' + fbRoom);
+    console.log('[SYNC] Full tank write to Firebase as ' + _lastLocalWriteBy + ' room=' + fbRoom);
+    
+    const pumpObj = tanksToFirebaseObj(data.pumpTanks);
+    const returnObj = tanksToFirebaseObj(data.returnTanks);
+    
     fbDb.ref('rooms/' + fbRoom + '/tanks').set({
-        pumpTanks: data.pumpTanks || [],
-        returnTanks: data.returnTanks || [],
+        pumpTanks: Object.keys(pumpObj).length > 0 ? pumpObj : null,
+        returnTanks: Object.keys(returnObj).length > 0 ? returnObj : null,
+        meta: {
+            jetsHour: data.jetsHour || 0,
+            jetsShift: data.jetsShift || 0,
+            lastSystemTotal: data.lastSystemTotal || null,
+            lastCheckTime: data.lastCheckTime || null,
+            _updatedAt: Date.now(),
+            _updatedBy: profileData.initials || '',
+            _fullSync: Date.now()
+        },
+        history: (data.history || []).slice(0, 50),
+        transferLog: (data.transferLog || []).slice(0, 100)
+    }).catch(e => { console.error('[SYNC] Full save error:', e); });
+}
+
+// SINGLE TANK SAVE — writes only the changed tank (used for inches/contents changes)
+let _singleTankTimers = {};
+function firebaseSaveSingleTank(side, tankId) {
+    if (!fbDb || !fbRoom) return;
+    // Debounce per-tank to avoid spamming during rapid input
+    const key = side + '_' + tankId;
+    clearTimeout(_singleTankTimers[key]);
+    _singleTankTimers[key] = setTimeout(() => {
+        const arr = side === 'pump' ? data.pumpTanks : data.returnTanks;
+        const tank = arr.find(t => t.id === tankId);
+        if (!tank) return;
+        const tc = Object.assign({}, tank);
+        tc._updatedAt = Date.now();
+        tc._updatedBy = profileData.initials || '';
+        // Also update local tank timestamps
+        tank._updatedAt = tc._updatedAt;
+        tank._updatedBy = tc._updatedBy;
+        const fbSide = side === 'pump' ? 'pumpTanks' : 'returnTanks';
+        console.log('[SYNC] Single tank write: ' + fbSide + '/' + tankId + ' by ' + tc._updatedBy);
+        fbDb.ref('rooms/' + fbRoom + '/tanks/' + fbSide + '/' + tankId).set(tc)
+            .catch(e => console.error('[SYNC] Single tank save error:', e));
+    }, 300);
+}
+
+// META-ONLY SAVE — writes jetsHour, jetsShift, etc. without touching tank data
+function firebaseSaveTankMeta() {
+    if (!fbDb || !fbRoom) return;
+    fbDb.ref('rooms/' + fbRoom + '/tanks/meta').update({
         jetsHour: data.jetsHour || 0,
         jetsShift: data.jetsShift || 0,
         lastSystemTotal: data.lastSystemTotal || null,
         lastCheckTime: data.lastCheckTime || null,
-        history: (data.history || []).slice(0, 50),
-        transferLog: (data.transferLog || []).slice(0, 100),
-        _updatedAt: firebase.database.ServerValue.TIMESTAMP,
+        _updatedAt: Date.now(),
         _updatedBy: profileData.initials || ''
-    }).catch(e => { console.error('Firebase save error:', e); });
+    }).catch(e => console.error('[SYNC] Meta save error:', e));
 }
 
 function firebaseSaveTitData() {
@@ -2218,38 +2298,60 @@ function onRemoteTanks(snap) {
     if (!snap.exists()) return;
     try {
         const d = snap.val();
-        const newPump = d.pumpTanks ? fbToArray(d.pumpTanks) : [];
-        const newReturn = d.returnTanks ? fbToArray(d.returnTanks) : [];
         
-        // Check if this is our own echo (we wrote within last 3s and initials match)
-        const timeSince = Date.now() - _lastLocalWriteTime;
-        const myInitials = profileData.initials || '';
-        const writerInitials = d._updatedBy || '';
-        const isOwnEcho = (timeSince < 3000) && writerInitials !== '' && writerInitials === myInitials;
+        // Parse tanks from Firebase (handles both old array format and new object-keyed format)
+        const remotePump = firebaseToTankArray(d.pumpTanks);
+        const remoteReturn = firebaseToTankArray(d.returnTanks);
         
-        console.log('[SYNC] Remote tanks: by=' + writerInitials + ' me=' + myInitials + ' timeSince=' + timeSince + 'ms echo=' + isOwnEcho);
+        // Parse meta — support both old flat format and new nested meta format
+        const meta = d.meta || {};
+        const remoteFullSync = meta._fullSync || 0;
+        const isFullSync = remoteFullSync > _lastReceivedFullSync;
+        if (isFullSync) _lastReceivedFullSync = remoteFullSync;
         
-        if (isOwnEcho) {
-            console.log('[SYNC] Skipping own echo');
-            return;
+        // Recalculate BBLs from inches for consistency
+        remotePump.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
+        remoteReturn.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
+        
+        // Smart merge — per-tank timestamp comparison
+        if (isFullSync) {
+            // Full sync (add/delete tank, admin push, jets) — accept the full tank list
+            // but still keep any local tank that's genuinely newer (written within last 2s)
+            data.pumpTanks = mergeTanksFullSync(data.pumpTanks, remotePump);
+            data.returnTanks = mergeTanksFullSync(data.returnTanks, remoteReturn);
+            console.log('[SYNC] Full sync merge complete: ' + data.pumpTanks.length + ' pump, ' + data.returnTanks.length + ' return');
+        } else {
+            // Partial update (single tank change) — merge per-tank, keep newer
+            data.pumpTanks = mergeTanks(data.pumpTanks, remotePump);
+            data.returnTanks = mergeTanks(data.returnTanks, remoteReturn);
+            console.log('[SYNC] Partial merge complete: ' + data.pumpTanks.length + ' pump, ' + data.returnTanks.length + ' return');
         }
         
-        // Flash sync strip to show we received data
-        setSyncStatus('syncing', 'Receiving from ' + (writerInitials || 'unknown') + '...');
-        setTimeout(() => { setSyncStatus('online', 'Synced: ' + (profileData.wellName || '')); }, 1500);
+        // Meta fields — always accept from remote for shared counters
+        // Use old flat fields as fallback for backwards compat
+        const jh = meta.jetsHour !== undefined ? meta.jetsHour : d.jetsHour;
+        const js = meta.jetsShift !== undefined ? meta.jetsShift : d.jetsShift;
+        const lst = meta.lastSystemTotal !== undefined ? meta.lastSystemTotal : d.lastSystemTotal;
+        const lct = meta.lastCheckTime !== undefined ? meta.lastCheckTime : d.lastCheckTime;
+        if (jh !== undefined) data.jetsHour = jh;
+        if (js !== undefined) data.jetsShift = js;
+        if (lst !== undefined) data.lastSystemTotal = lst;
+        if (lct !== undefined) data.lastCheckTime = lct;
         
-        // Recalculate BBLs from inches to ensure consistency
-        newPump.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
-        newReturn.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
+        // History and transfer log
+        const hist = d.history || meta.history;
+        const xlog = d.transferLog || meta.transferLog;
+        if (hist) data.history = firebaseToTankArray(hist);
+        if (xlog) data.transferLog = firebaseToTankArray(xlog);
         
-        data.pumpTanks = newPump;
-        data.returnTanks = newReturn;
-        if (d.jetsHour !== undefined) data.jetsHour = d.jetsHour;
-        if (d.jetsShift !== undefined) data.jetsShift = d.jetsShift;
-        if (d.lastSystemTotal !== undefined) data.lastSystemTotal = d.lastSystemTotal;
-        if (d.lastCheckTime !== undefined) data.lastCheckTime = d.lastCheckTime;
-        if (d.history) data.history = fbToArray(d.history);
-        if (d.transferLog) data.transferLog = fbToArray(d.transferLog);
+        // Show sync flash
+        const writer = meta._updatedBy || d._updatedBy || '';
+        const myInitials = profileData.initials || '';
+        if (writer && writer !== myInitials) {
+            setSyncStatus('syncing', 'Receiving from ' + writer + '...');
+            setTimeout(() => { setSyncStatus('online', 'Synced: ' + (profileData.wellName || '')); }, 1500);
+        }
+        
         // Save to localStorage as offline cache
         localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
         render();
@@ -2260,6 +2362,86 @@ function onRemoteTanks(snap) {
         console.error('[SYNC] Error processing remote tanks:', err);
         setSyncStatus('offline', 'Sync Error: ' + err.message);
     }
+}
+
+// Merge helper: for partial updates (single tank changes)
+// Keeps the newer version of each tank based on _updatedAt timestamps
+function mergeTanks(localArr, remoteArr) {
+    const localMap = {};
+    localArr.forEach(t => { localMap[t.id] = t; });
+    const remoteMap = {};
+    remoteArr.forEach(t => { remoteMap[t.id] = t; });
+    
+    const allIds = new Set([
+        ...localArr.map(t => String(t.id)),
+        ...remoteArr.map(t => String(t.id))
+    ]);
+    const merged = [];
+    
+    allIds.forEach(idStr => {
+        const id = parseInt(idStr) || idStr;
+        const local = localMap[id];
+        const remote = remoteMap[id];
+        
+        if (local && remote) {
+            // Both exist — keep the one with newer _updatedAt
+            const lt = getTankTimestamp(local);
+            const rt = getTankTimestamp(remote);
+            merged.push(rt >= lt ? remote : local);
+        } else if (remote && !local) {
+            // New tank from remote
+            merged.push(remote);
+        } else if (local && !remote) {
+            // Local-only tank — keep it (it may have been added locally and not synced yet)
+            merged.push(local);
+        }
+    });
+    
+    return merged;
+}
+
+// Merge helper: for full syncs (add/delete tank, admin push, jets)
+// Remote is authoritative for which tanks exist, but per-tank values use timestamps
+function mergeTanksFullSync(localArr, remoteArr) {
+    const localMap = {};
+    localArr.forEach(t => { localMap[t.id] = t; });
+    
+    const merged = [];
+    
+    // Walk through remote tanks (authoritative list)
+    remoteArr.forEach(rt => {
+        const lt = localMap[rt.id];
+        if (lt) {
+            // Tank exists in both — keep newer values
+            const lTime = getTankTimestamp(lt);
+            const rTime = getTankTimestamp(rt);
+            merged.push(rTime >= lTime ? rt : lt);
+        } else {
+            // New from remote
+            merged.push(rt);
+        }
+    });
+    
+    // Also keep very recently updated local tanks not in remote (race condition safety)
+    localArr.forEach(lt => {
+        const inRemote = remoteArr.some(rt => rt.id === lt.id);
+        if (!inRemote) {
+            const age = Date.now() - getTankTimestamp(lt);
+            if (age < 3000) {
+                merged.push(lt); // Keep — probably our own recent change
+            }
+            // else: tank was intentionally removed by admin
+        }
+    });
+    
+    return merged;
+}
+
+// Get numeric timestamp from tank, handling both ISO strings and numbers
+function getTankTimestamp(tank) {
+    if (!tank._updatedAt) return 0;
+    if (typeof tank._updatedAt === 'number') return tank._updatedAt;
+    return new Date(tank._updatedAt).getTime() || 0;
 }
 
 function onRemoteTitData(snap) {
@@ -3694,17 +3876,32 @@ const OD_NUMERIC = {'2-3/8':2.375,'2-7/8':2.875,'3-1/2':3.5,'4-1/2':4.5,'5':5.0,
 const VOL_FIELDS = ['vol-tbg-od','vol-tbg-wt','vol-tbg-grade','vol-csg-od','vol-csg-wt','vol-csg-grade','vol-csg-depth','vol-liner-od','vol-liner-wt','vol-liner-grade','vol-liner-tol'];
 
 function syncVolumesHeader() {
-    // Refresh volume header from calculated values
     try {
-        var tbgCalc = document.getElementById('vol-calc-tbg');
-        var annCalc = document.getElementById('vol-calc-ann-total');
-        var totalCalc = document.getElementById('vol-calc-total');
-        var tbgHdr = document.getElementById('vol-hdr-tbg');
-        var annHdr = document.getElementById('vol-hdr-ann');
-        var holeHdr = document.getElementById('vol-hdr-hole');
-        if (tbgHdr) tbgHdr.textContent = (tbgCalc && tbgCalc.textContent !== '--') ? tbgCalc.textContent : '--';
-        if (annHdr) annHdr.textContent = (annCalc && annCalc.textContent !== '--') ? annCalc.textContent : '--';
-        if (holeHdr) holeHdr.textContent = (totalCalc && totalCalc.textContent !== '--') ? totalCalc.textContent : '--';
+        const saved = localStorage.getItem('ips_plug_data');
+        if (!saved) return;
+        const pd = JSON.parse(saved);
+        const jnt = pd['plug-jnt'] || '--';
+        const num = pd['plug-num'] || '--';
+        const total = pd['plug-total'] || '--';
+        const depth = pd['plug-depth'];
+        const jntEl = document.getElementById('vol-hdr-jnt');
+        const plugEl = document.getElementById('vol-hdr-plug');
+        const depthEl = document.getElementById('vol-hdr-depth');
+        if (jntEl) jntEl.textContent = jnt;
+        if (plugEl) plugEl.innerHTML = num + ' <span class="plug-total">/ ' + total + '</span>';
+        if (depthEl) depthEl.textContent = depth ? Number(depth).toLocaleString() + "'" : "--'";
+    } catch(e) {}
+    // Also refresh hole volume from calculated total
+    try {
+        const totalEl = document.getElementById('vol-calc-total');
+        const holeEl = document.getElementById('vol-hdr-hole');
+        const plugHoleEl = document.getElementById('plug-hdr-hole');
+        if (totalEl) {
+            const val = totalEl.textContent;
+            const display = (val && val !== '--') ? val + ' bbl' : '--';
+            if (holeEl) holeEl.textContent = display;
+            if (plugHoleEl) plugHoleEl.textContent = display;
+        }
     } catch(e) {}
     updateWbVolBanners();
 }
@@ -3806,13 +4003,12 @@ function calcVolumes() {
     document.getElementById('vol-calc-ann-total').textContent = totalAnn > 0 ? totalAnn.toFixed(1) : '--';
     document.getElementById('vol-calc-total').textContent = totalWellbore > 0 ? totalWellbore.toFixed(1) : '--';
 
-    // Update volume header banner values
-    var tbgHdr = document.getElementById('vol-hdr-tbg');
-    var annHdr = document.getElementById('vol-hdr-ann');
-    var holeHdr = document.getElementById('vol-hdr-hole');
-    if (tbgHdr) tbgHdr.textContent = tbgVol > 0 ? tbgVol.toFixed(1) : '--';
-    if (annHdr) annHdr.textContent = totalAnn > 0 ? totalAnn.toFixed(1) : '--';
-    if (holeHdr) holeHdr.textContent = totalWellbore > 0 ? totalWellbore.toFixed(1) : '--';
+    // Update header banner hole volume
+    const holeEl = document.getElementById('vol-hdr-hole');
+    const plugHoleEl = document.getElementById('plug-hdr-hole');
+    const holeDisplay = totalWellbore > 0 ? totalWellbore.toFixed(1) + ' bbl' : '--';
+    if (holeEl) holeEl.textContent = holeDisplay;
+    if (plugHoleEl) plugHoleEl.textContent = holeDisplay;
 
     updateWbVolBanners();
 }
@@ -4182,6 +4378,12 @@ function updateWbVolBanners() {
         if (a) a.textContent = ann || '--';
         if (tt) tt.textContent = total || '--';
     });
+    // Also update plug/vol header holes
+    var plugHoleEl = document.getElementById('plug-hdr-hole');
+    var volHoleEl = document.getElementById('vol-hdr-hole');
+    var holeDisplay = total ? total + ' bbl' : '--';
+    if (plugHoleEl) plugHoleEl.textContent = holeDisplay;
+    if (volHoleEl) volHoleEl.textContent = holeDisplay;
 }
 function getHoleVolume() {
     var el = document.getElementById('vol-calc-total');
@@ -4230,7 +4432,7 @@ function updateTank(side,id,field,val) {
         tank.estimated=false;
         tank.lastStrapTime=new Date().toISOString();
         tank.lastStrapBy=profileData.initials||'';
-        tank._updatedAt=new Date().toISOString();
+        tank._updatedAt=Date.now();
         tank._updatedBy=profileData.initials||'';
         // Targeted DOM update — update BBL, fill bar, and totals without full re-render
         const card = document.querySelector('.tank-card[data-side="'+side+'"][data-id="'+id+'"]');
@@ -4247,16 +4449,19 @@ function updateTank(side,id,field,val) {
         renderTotals();
     }else if(field==='contents'){
         tank.contents=val;
-        tank._updatedAt=new Date().toISOString();
+        tank._updatedAt=Date.now();
         tank._updatedBy=profileData.initials||'';
     } 
-    saveData();
+    // Save to localStorage
+    localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
+    // GRANULAR Firebase write — only this one tank, not the whole dataset
+    firebaseSaveSingleTank(side, id);
     // Only do full render for non-inches changes (contents needs card rebuild)
     if(field!=='inches') render();
 }
 // Debounce timer for Firebase saves during rapid input
 let _tankSaveTimer = null;
-function setSandcatFull(id) { const tank=data.returnTanks.find(t=>t.id===id); if(tank){tank.bbls=185;tank.inches=bblToInches(185);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';tank._updatedAt=new Date().toISOString();tank._updatedBy=profileData.initials||'';saveData();render();} }
+function setSandcatFull(id) { const tank=data.returnTanks.find(t=>t.id===id); if(tank){tank.bbls=185;tank.inches=bblToInches(185);tank.estimated=false;tank.lastStrapTime=new Date().toISOString();tank.lastStrapBy=profileData.initials||'';tank._updatedAt=Date.now();tank._updatedBy=profileData.initials||'';localStorage.setItem('ipsTrackerV3', JSON.stringify(data));firebaseSaveSingleTank('return',id);render();} }
 
 function calculateTotals() { let totals={brine:0,packer:0,mud:0,recirc:0,freshwater:0,other:0,system:0}; data.pumpTanks.forEach(t=>{totals.system+=t.bbls;if(t.type==='brine10'||t.type==='brine119')totals.brine+=t.bbls;else if(t.type==='packer')totals.packer+=t.bbls;else if(t.type==='aphron')totals.mud+=t.bbls;else if(t.type==='recirc')totals.recirc+=t.bbls;else if(t.type==='freshwater')totals.freshwater+=t.bbls;else totals.other+=t.bbls;}); data.returnTanks.forEach(t=>{totals.system+=t.bbls;const f=t.contents||'';if(f==='brine')totals.brine+=t.bbls;else if(f==='mud')totals.mud+=t.bbls;else if(f==='recirc')totals.recirc+=t.bbls;else if(f==='freshwater')totals.freshwater+=t.bbls;else totals.other+=t.bbls;}); return totals; }
 
@@ -4569,10 +4774,8 @@ function render() {
         }
         const surface = ft && last.totals ? (last.totals[ft] || 0) : last.systemTotal;
         if (capSurface) { capSurface.textContent = surface; capSurface.className = 'gl-value neutral'; capSurface.style.color = '#e0e0e0'; }
-        var holeStr = getHoleVolume();
-        var holeVol = holeStr ? parseFloat(holeStr) : 0;
-        if (capWellbore) { capWellbore.textContent = holeVol > 0 ? holeVol : '--'; capWellbore.style.color = holeVol > 0 ? '#4fc3f7' : '#888'; }
-        if (capTotal) { capTotal.textContent = holeVol > 0 ? Math.round((surface + holeVol) * 100) / 100 : surface; capTotal.className = 'gl-value neutral'; capTotal.style.color = '#e0e0e0'; }
+        if (capWellbore) { capWellbore.textContent = '--'; }
+        if (capTotal) { capTotal.textContent = surface; capTotal.className = 'gl-value neutral'; capTotal.style.color = '#e0e0e0'; }
         
         // Row 2: Time / Apparent / Actual / Transfers / Hourly
         if (capTime && data.lastCheckTime) {
@@ -4607,7 +4810,7 @@ function render() {
         if (capUser) { capUser.textContent = '--'; capUser.style.color = '#888'; }
         if (capFluid) { capFluid.textContent = '--'; capFluid.style.color = '#888'; }
         if (capSurface) { capSurface.textContent = '--'; }
-        if (capWellbore) { var hw = getHoleVolume(); var hv = hw ? parseFloat(hw) : 0; capWellbore.textContent = hv > 0 ? hv : '--'; capWellbore.style.color = hv > 0 ? '#4fc3f7' : '#888'; }
+        if (capWellbore) { capWellbore.textContent = '--'; }
         if (capTotal) { capTotal.textContent = '--'; }
         if (capTime) { capTime.textContent = '--'; capTime.style.color = '#888'; }
         if (elapsedEl) elapsedEl.textContent = '';
@@ -4638,7 +4841,7 @@ function renderGLTotals() {
     if(el('gl-jetted-total')) el('gl-jetted-total').textContent = data.jetsShift + ' BBL';
 }
 
-function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; var wbTbg=document.getElementById('vol-calc-tbg'),wbAnn=document.getElementById('vol-calc-ann-total'),wbTotal=document.getElementById('vol-calc-total'); var tbgV=wbTbg?wbTbg.textContent:'--',annV=wbAnn?wbAnn.textContent:'--',totalV=wbTotal?wbTotal.textContent:'--'; var holeNum=totalV!=='--'?parseFloat(totalV):0; html+='<div class="report-section"><div class="report-section-title">Wellbore Volumes</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Tubing</div><div class="report-total-value" style="color:#4fc3f7">'+tbgV+'</div></div><div class="report-total-item"><div class="report-total-label">Annulus</div><div class="report-total-value" style="color:#4fc3f7">'+annV+'</div></div><div class="report-total-item"><div class="report-total-label">Hole Total</div><div class="report-total-value" style="color:#fff;font-weight:700">'+totalV+'</div></div></div></div>'; if(holeNum>0){var sysColors={brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};var sysLabels={brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Fresh',other:'Other'};html+='<div class="report-section"><div class="report-section-title">System Totals (Surface + Hole)</div><div class="report-totals">';['brine','packer','mud','recirc','freshwater','other'].forEach(function(ft){var sv=totals[ft]||0;if(sv>0){html+='<div class="report-total-item"><div class="report-total-label">'+sysLabels[ft]+'</div><div class="report-total-value" style="color:'+sysColors[ft]+'">'+Math.round((sv+holeNum)*100)/100+'</div></div>';}});html+='</div></div>';} html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
+function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; var wbTbg=document.getElementById('vol-calc-tbg'),wbAnn=document.getElementById('vol-calc-ann-total'),wbTotal=document.getElementById('vol-calc-total'); var tbgV=wbTbg?wbTbg.textContent:'--',annV=wbAnn?wbAnn.textContent:'--',totalV=wbTotal?wbTotal.textContent:'--'; html+='<div class="report-section"><div class="report-section-title">Wellbore Volumes</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Tubing</div><div class="report-total-value" style="color:#4fc3f7">'+tbgV+'</div></div><div class="report-total-item"><div class="report-total-label">Annulus</div><div class="report-total-value" style="color:#4fc3f7">'+annV+'</div></div><div class="report-total-item"><div class="report-total-label">Hole Total</div><div class="report-total-value" style="color:#fff;font-weight:700">'+totalV+'</div></div></div></div>'; html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
 function hideTankReport() { document.getElementById('tank-report').classList.remove('show'); }
 function showTitrationReport() { const names={aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Freshwater'}; const locText = sampleLocation === 'out' ? 'Discharge (Out)' : 'Pump Side (In)'; const locColor = sampleLocation === 'out' ? '#ff7043' : '#42a5f5'; document.getElementById('tit-report-fluid').textContent=names[titData.fluidType]||titData.fluidType; const cl=document.getElementById('tit-chlorides').textContent,ha=document.getElementById('tit-hardness').textContent,ca=document.getElementById('tit-calcium').textContent,mg=document.getElementById('tit-magnesium').textContent; const surfaceVol=getSurfaceVolumeForFluid(titData.fluidType); let html='<div class="report-section"><div class="report-section-title">Sample Info</div><div class="report-row"><span class="report-row-label">Sample Location</span><span class="report-row-value" style="color:'+locColor+'">'+locText+'</span></div><div class="report-row"><span class="report-row-label">Fluid Type</span><span class="report-row-value">'+(names[titData.fluidType]||titData.fluidType)+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Basic Properties</div><div class="report-row"><span class="report-row-label">Viscosity</span><span class="report-row-value">'+(titData.viscosity||'--')+' sec</span></div><div class="report-row"><span class="report-row-label">Density</span><span class="report-row-value">'+(titData.density||'--')+' ppg</span></div><div class="report-row"><span class="report-row-label">pH</span><span class="report-row-value">'+(titData.ph||'--')+'</span></div><div class="report-row"><span class="report-row-label">PF</span><span class="report-row-value">'+(titData.pf||'--')+'</span></div><div class="report-row"><span class="report-row-label">MF</span><span class="report-row-value">'+(titData.mf||'--')+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Chemical Analysis</div><div class="report-row"><span class="report-row-label">Chlorides</span><span class="report-row-value">'+cl+' ppm</span></div><div class="report-row"><span class="report-row-label">Calcium</span><span class="report-row-value">'+ca+' ppm</span></div><div class="report-row"><span class="report-row-label">Total Hardness</span><span class="report-row-value">'+ha+' ppm</span></div><div class="report-row"><span class="report-row-label">Magnesium</span><span class="report-row-value">'+mg+' ppm</span></div></div>'; const pvText=document.getElementById('tit-pv').textContent; const ypText=document.getElementById('tit-yp').textContent; const avText=document.getElementById('tit-av').textContent; html+='<div class="report-section"><div class="report-section-title">Rheology</div><div class="report-row"><span class="report-row-label">600 RPM</span><span class="report-row-value">'+(titData.r600||'--')+'</span></div><div class="report-row"><span class="report-row-label">300 RPM</span><span class="report-row-value">'+(titData.r300||'--')+'</span></div><div class="report-row"><span class="report-row-label">3 RPM</span><span class="report-row-value">'+(titData.r3||'--')+'</span></div><div class="report-row"><span class="report-row-label">PV</span><span class="report-row-value">'+pvText+' cP</span></div><div class="report-row"><span class="report-row-label">YP</span><span class="report-row-value">'+ypText+' lb/100ft²</span></div><div class="report-row"><span class="report-row-label">AV</span><span class="report-row-value">'+avText+' cP</span></div><div class="report-row"><span class="report-row-label">Gel Strength</span><span class="report-row-value">'+(titData.gel10s||'--')+' lb/100ft²</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Volume</div><div class="report-row"><span class="report-row-label">Surface Volume ('+names[titData.fluidType]+')</span><span class="report-row-value">'+surfaceVol+' bbl</span></div></div>'; html+='<div class="report-timestamp">'+new Date().toLocaleString()+'</div>'; document.getElementById('tit-report-content').innerHTML=html; document.getElementById('titration-report').classList.add('show'); }
 function hideTitrationReport() { document.getElementById('titration-report').classList.remove('show'); }
@@ -4802,10 +5005,8 @@ function renderVolumeLog() {
             surface = h.totals[ft];
         }
         
-        var vlHoleStr = getHoleVolume();
-        var vlHoleVol = vlHoleStr ? parseFloat(vlHoleStr) : 0;
-        const wellbore = vlHoleVol > 0 ? vlHoleVol : '--';
-        const total = vlHoleVol > 0 ? Math.round((surface + vlHoleVol) * 100) / 100 : surface;
+        const wellbore = '--';
+        const total = surface;
         
         // === APPARENT: compare to previous entry's total for this type ===
         const prevEntry = (idx < data.history.length - 1) ? data.history[idx + 1] : null;
@@ -4862,7 +5063,7 @@ function renderVolumeLog() {
                 '<div style="color:#4fc3f7;font-size:10px">' + t + '</div></td>' +
             '<td style="padding:3px 2px;color:' + fluidClr + ';font-weight:600">' + fluidName + '</td>' +
             '<td style="padding:3px 2px;text-align:right;color:#e0e0e0">' + surface + '</td>' +
-            '<td style="padding:3px 2px;text-align:right;color:' + (vlHoleVol > 0 ? '#4fc3f7' : '#555') + '">' + wellbore + '</td>' +
+            '<td style="padding:3px 2px;text-align:right;color:#555">' + wellbore + '</td>' +
             '<td style="padding:3px 2px;text-align:right;color:#e0e0e0;font-weight:600">' + total + '</td></tr>';
         
         // ROW 2: Apparent / Actual / Transfers / Hourly
@@ -5207,7 +5408,6 @@ function showMonitorReport() {
         html += '<tr style="color:#555;font-size:8px;text-transform:uppercase;border-bottom:1px solid #2d4a6f"><td style="padding:0 2px 3px">Apparent</td><td style="padding:0 2px 3px;text-align:right">Actual</td><td style="padding:0 2px 3px;text-align:right">Transfers</td><td style="padding:0 2px 3px;text-align:right">Hourly</td></tr>';
         
         const fmtGL = (v) => { if(v===null) return '<span style="color:#888">--</span>'; const c=v>0?'#4caf50':v<0?'#ef5350':'#888'; return '<span style="color:'+c+'">'+(v>=0?'+':'')+v+'</span>'; };
-        var rptHoleStr = getHoleVolume(); var rptHole = rptHoleStr ? parseFloat(rptHoleStr) : 0;
         
         data.history.forEach((h, idx) => {
             const t = new Date(h.time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
@@ -5245,7 +5445,7 @@ function showMonitorReport() {
                 }
             }
             
-            html += '<tr style="border-top:1px solid #2d4a6f"><td rowspan="2" style="padding:4px 2px;white-space:nowrap;vertical-align:middle">' + (h.initials?'<div style="color:#66bb6a;font-weight:600;font-size:11px">'+h.initials+'</div>':'') + '<div style="color:#4fc3f7;font-size:10px">'+t+'</div></td><td style="padding:3px 2px;color:'+fluidClr+';font-weight:600">'+fluidName+'</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0">'+surface+'</td><td style="padding:3px 2px;text-align:right;color:'+(rptHole>0?'#4fc3f7':'#555')+'">'+(rptHole>0?rptHole:'--')+'</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0;font-weight:600">'+(rptHole>0?Math.round((surface+rptHole)*100)/100:surface)+'</td></tr>';
+            html += '<tr style="border-top:1px solid #2d4a6f"><td rowspan="2" style="padding:4px 2px;white-space:nowrap;vertical-align:middle">' + (h.initials?'<div style="color:#66bb6a;font-weight:600;font-size:11px">'+h.initials+'</div>':'') + '<div style="color:#4fc3f7;font-size:10px">'+t+'</div></td><td style="padding:3px 2px;color:'+fluidClr+';font-weight:600">'+fluidName+'</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0">'+surface+'</td><td style="padding:3px 2px;text-align:right;color:#555">--</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0;font-weight:600">'+surface+'</td></tr>';
             html += '<tr><td style="padding:0 2px 3px">'+fmtGL(apparent)+'</td><td style="padding:0 2px 3px;text-align:right">'+fmtGL(actual)+'</td><td style="padding:0 2px 3px;text-align:right;font-size:9px">'+transferStr+'</td><td style="padding:0 2px 3px;text-align:right">'+hourly+'</td></tr>';
             html += breakdownRow;
         });
@@ -5647,10 +5847,13 @@ function voiceConfirmEntry() {
         tank.estimated = false;
         tank.lastStrapTime = new Date().toISOString();
         tank.lastStrapBy = profileData.initials || '';
+        tank._updatedAt = Date.now();
+        tank._updatedBy = profileData.initials || '';
         // Flash green on completed tank mic icon
         voiceDoneTankSide = voiceCurrentSide;
         voiceDoneTankId = voiceCurrentTank.id;
-        saveData();
+        localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
+        firebaseSaveSingleTank(voiceCurrentSide, voiceCurrentTank.id);
         render();
         // Clear green after 2 seconds
         setTimeout(() => { voiceDoneTankSide = null; voiceDoneTankId = null; render(); }, 2000);
@@ -6068,7 +6271,7 @@ function handleBleMeasurement(event) {
             tank.estimated = false;
             tank.lastStrapTime = new Date().toISOString();
             tank.lastStrapBy = profileData.initials || '';
-            tank._updatedAt = new Date().toISOString();
+            tank._updatedAt = Date.now();
             tank._updatedBy = profileData.initials || '';
             bleDoneTankSide = bleActiveTankSide;
             bleDoneTankId = bleActiveTankId;
@@ -6076,10 +6279,10 @@ function handleBleMeasurement(event) {
             updateBleStatus('✓ ' + tank.name + ': ' + adjustedInches + '" = ' + tank.bbls + ' BBL', 'Advancing...');
             
             autoAdvanceBle();
-            // Save locally first, render immediately, then sync to Firebase
+            // Save locally first, render immediately, then sync single tank to Firebase
             localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
             render();
-            firebaseSaveTanks();
+            firebaseSaveSingleTank(bleActiveTankSide, bleActiveTankId);
             scrollToActiveBle();
             // Clear done state after animation completes so future renders don't re-apply
             setTimeout(() => { bleDoneTankSide = null; bleDoneTankId = null; }, 2000);
@@ -6228,10 +6431,7 @@ function renderGLFiltered() {
         // Surface/Total for this type
         const currTypeTotal = last.totals ? (last.totals[glFluidFilter] || 0) : null;
         if (capSurface) { capSurface.textContent = currTypeTotal !== null ? currTypeTotal : '--'; capSurface.style.color = '#e0e0e0'; }
-        var holeStr = getHoleVolume();
-        var holeVol = holeStr ? parseFloat(holeStr) : 0;
-        if (capWellbore) { capWellbore.textContent = holeVol > 0 ? holeVol : '--'; capWellbore.style.color = holeVol > 0 ? '#4fc3f7' : '#888'; }
-        if (capTotal) { capTotal.textContent = (currTypeTotal !== null && holeVol > 0) ? Math.round((currTypeTotal + holeVol) * 100) / 100 : (currTypeTotal !== null ? currTypeTotal : '--'); capTotal.style.color = '#e0e0e0'; }
+        if (capTotal) { capTotal.textContent = currTypeTotal !== null ? currTypeTotal : '--'; capTotal.style.color = '#e0e0e0'; }
         
         // Transfers for this type
         if (capTransfers) {
@@ -6269,10 +6469,7 @@ function renderGLFiltered() {
         if (capFluid) { capFluid.textContent = last.filterType ? (fluidNames[last.filterType] || last.filterType) : 'System'; capFluid.style.color = last.filterType ? (fluidBoxColors[last.filterType] || '#e0e0e0') : '#e0e0e0'; }
         const surface = last.filterType && last.totals ? (last.totals[last.filterType] || 0) : last.systemTotal;
         if (capSurface) { capSurface.textContent = surface; capSurface.style.color = '#e0e0e0'; }
-        var holeStr2 = getHoleVolume();
-        var holeVol2 = holeStr2 ? parseFloat(holeStr2) : 0;
-        if (capWellbore) { capWellbore.textContent = holeVol2 > 0 ? holeVol2 : '--'; capWellbore.style.color = holeVol2 > 0 ? '#4fc3f7' : '#888'; }
-        if (capTotal) { capTotal.textContent = holeVol2 > 0 ? Math.round((surface + holeVol2) * 100) / 100 : surface; capTotal.style.color = '#e0e0e0'; }
+        if (capTotal) { capTotal.textContent = surface; capTotal.style.color = '#e0e0e0'; }
         
         // System transfers
         if (capTransfers) {
