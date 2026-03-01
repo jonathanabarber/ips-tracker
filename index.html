@@ -3023,11 +3023,152 @@ async function tcGenerateXLSX() {
         }
     }
     finalizeSS();
-    // Strip stale cached values from formula cells so Excel must recalculate
-    xml = xml.replace(/<f>([^<]*)<\/f><v>[^<]*<\/v>/g, '<f>$1</f>');
+    // Read Rate Sheet values for formula pre-calculation
+    var rs2File = zip.file('xl/worksheets/sheet2.xml');
+    var regRate = 0, otRate = 0, dayRateVal = 0, perDiem = 0, mileageRate = 0, dailyPayRate = 0;
+    var rs2Xml = '';
+    if (rs2File) {
+        rs2Xml = await rs2File.async('string');
+        function rsVal(ref) {
+            var m = rs2Xml.match(new RegExp('<c r="' + ref + '"[^>]*><v>([^<]*)</v></c>'));
+            return m ? parseFloat(m[1]) || 0 : 0;
+        }
+        regRate = rsVal('C5');      // Regular hourly rate
+        otRate = rsVal('C6');       // Overtime hourly rate
+        dayRateVal = rsVal('C7');   // Day rate (for performance bonus)
+        perDiem = rsVal('C9');      // Per diem
+        mileageRate = rsVal('C12'); // Mileage rate
+        dailyPayRate = rsVal('C15');// Daily pay rate (column P)
+    }
+    // Generic setCache: strips old <v> from formula cell, inserts correct one
+    function setCacheIn(xmlStr, ref, value) {
+        var marker = '<c r="' + ref + '"';
+        var idx = xmlStr.indexOf(marker);
+        if (idx < 0) return xmlStr;
+        var chunk = xmlStr.substring(idx, idx + 600);
+        var fStart = chunk.indexOf('<f>'), fEnd = chunk.indexOf('</f>');
+        if (fStart < 0 || fEnd < 0) return xmlStr; // not a formula cell
+        // Remove existing <v>...</v> after </f> if present
+        var afterF = idx + fEnd + 4;
+        var rest = xmlStr.substring(afterF);
+        if (rest.indexOf('<v>') === 0) {
+            var vEnd = rest.indexOf('</v>');
+            if (vEnd >= 0) {
+                xmlStr = xmlStr.substring(0, afterF) + rest.substring(vEnd + 4);
+            }
+        }
+        // Insert new cached value
+        afterF = xmlStr.indexOf('</f>', idx) + 4;
+        var vStr = String(value);
+        xmlStr = xmlStr.substring(0, afterF) + '<v>' + vStr + '</v>' + xmlStr.substring(afterF);
+        return xmlStr;
+    }
+    // Sheet3 ("Sheet1" in Excel): day counter formulas
+    // Week 1: rows 5-11 (J11 sum), Week 2: 15-21 (J21), Week 3: 25-31 (J31), Week 4: 35-41 (J41)
+    var s3File = zip.file('xl/worksheets/sheet3.xml');
+    var s3Xml = s3File ? await s3File.async('string') : '';
+    var s3WeekRows = { 1: [5,11], 2: [15,21], 3: [25,31], 4: [35,41] };
+    var s3SumRows = { 1: 'J11', 2: 'J21', 3: 'J31', 4: 'J41' };
+    var weekDayCounts = {};
+    // Pre-calculate all formula cached values across sheets
+    for (var w = 1; w <= 4; w++) {
+        var wEntries = weeks[w] || [];
+        var rowStart = weekRows[w][0]; // Sheet1 data start: 22, 36, 50, 64
+        var s3Start = s3WeekRows[w][0];
+        var sumI = 0, sumJ = 0, sumK = 0, sumL = 0;
+        var sumO = 0, sumP = 0, sumQ = 0, sumS = 0, sumT = 0;
+        var dayCount = 0;
+        for (var ri = 0; ri < 7; ri++) {
+            var r = rowStart + ri;
+            var s3r = s3Start + ri;
+            var e = wEntries[ri];
+            var iVal = e ? (e.worked || 0) : 0;
+            var jVal = e ? (e.standby || 0) : 0;
+            var kVal = e ? (e.notWorking || 0) : 0;
+            var lVal = iVal + jVal + kVal;
+            var hasDate = !!e;
+            // Sheet3: E=worked, F=standby, I=day counter
+            if (s3Xml) {
+                s3Xml = setCacheIn(s3Xml, 'E' + s3r, iVal);
+                s3Xml = setCacheIn(s3Xml, 'F' + s3r, jVal);
+                var ij = iVal + jVal;
+                var dayVal = (ij === 12) ? 0.5 : (ij === 24 ? 1 : 0);
+                s3Xml = setCacheIn(s3Xml, 'I' + s3r, dayVal);
+                dayCount += dayVal;
+            }
+            // Sheet1: L, O, P, Q, T per-row formulas
+            var oVal = 0;
+            var pVal = (lVal === 0) ? 0 : dailyPayRate;
+            var qVal = (lVal === 0) ? 0 : perDiem;
+            var sVal = 0;
+            var tVal = hasDate ? (oVal + pVal + qVal + sVal) : 0;
+            xml = setCacheIn(xml, 'L' + r, lVal);
+            xml = setCacheIn(xml, 'O' + r, oVal);
+            xml = setCacheIn(xml, 'P' + r, pVal);
+            xml = setCacheIn(xml, 'Q' + r, qVal);
+            xml = setCacheIn(xml, 'T' + r, tVal);
+            sumI += iVal; sumJ += jVal; sumK += kVal; sumL += lVal;
+            sumO += oVal; sumP += pVal; sumQ += qVal; sumS += sVal; sumT += tVal;
+        }
+        weekDayCounts[w] = dayCount;
+        // Sheet3: J sum row (day count total)
+        if (s3Xml) s3Xml = setCacheIn(s3Xml, s3SumRows[w], dayCount);
+        // Sheet1 Row 29/43/57/71: weekly summary sums
+        var sumRow = rowStart + 7;
+        xml = setCacheIn(xml, 'I' + sumRow, sumI);
+        xml = setCacheIn(xml, 'J' + sumRow, sumJ);
+        xml = setCacheIn(xml, 'K' + sumRow, sumK);
+        xml = setCacheIn(xml, 'L' + sumRow, sumL);
+        xml = setCacheIn(xml, 'O' + sumRow, sumO);
+        xml = setCacheIn(xml, 'P' + sumRow, sumP);
+        xml = setCacheIn(xml, 'Q' + sumRow, sumQ);
+        xml = setCacheIn(xml, 'S' + sumRow, sumS);
+        xml = setCacheIn(xml, 'T' + sumRow, sumT);
+        // Sheet1 Rows 30-31: pay calculations
+        var payRow = sumRow + 1;
+        var otRow = payRow + 1;
+        var totalIJ = sumI + sumJ;
+        var regHrs = Math.min(totalIJ, 40);
+        var otHrs = Math.max(totalIJ - 40, 0);
+        var regPay = regRate * regHrs;
+        var otPay = otRate * otHrs;
+        var wkGuarantee = dayCount * dayRateVal;
+        var perfBonus = Math.max(wkGuarantee - regPay - otPay, 0);
+        var totalPay = regPay + otPay + perfBonus;
+        var grandTotal = totalPay + sumT;
+        xml = setCacheIn(xml, 'D' + payRow, regRate);
+        xml = setCacheIn(xml, 'D' + otRow, otRate);
+        xml = setCacheIn(xml, 'G' + payRow, regHrs);
+        xml = setCacheIn(xml, 'G' + otRow, otHrs > 0 ? otHrs : 0);
+        xml = setCacheIn(xml, 'I' + payRow, regPay);
+        xml = setCacheIn(xml, 'I' + otRow, otPay);
+        xml = setCacheIn(xml, 'N' + payRow, perfBonus);
+        xml = setCacheIn(xml, 'R' + payRow, totalPay);
+        xml = setCacheIn(xml, 'T' + payRow, grandTotal);
+    }
+    // Rate Sheet: update H3-H6 (day counts) and J3-J6 (weekly guarantees)
+    if (rs2Xml) {
+        var rsHRows = {1:'H3', 2:'H4', 3:'H5', 4:'H6'};
+        var rsJRows = {1:'J3', 2:'J4', 3:'J5', 4:'J6'};
+        for (var w = 1; w <= 4; w++) {
+            var dc = weekDayCounts[w] || 0;
+            rs2Xml = setCacheIn(rs2Xml, rsHRows[w], dc);
+            rs2Xml = setCacheIn(rs2Xml, rsJRows[w], dc * dayRateVal);
+        }
+        zip.file('xl/worksheets/sheet2.xml', rs2Xml);
+    }
+    if (s3Xml) zip.file('xl/worksheets/sheet3.xml', s3Xml);
+    // Force full recalc on open as backup
+    var wbFile = zip.file('xl/workbook.xml');
+    if (wbFile) {
+        var wbXml = await wbFile.async('string');
+        if (wbXml.indexOf('fullCalcOnLoad') < 0) {
+            wbXml = wbXml.replace(/<calcPr/, '<calcPr fullCalcOnLoad="1"');
+        }
+        zip.file('xl/workbook.xml', wbXml);
+    }
     zip.file('xl/worksheets/sheet1.xml', xml);
     if (ssFile) zip.file('xl/sharedStrings.xml', ss);
-    // Keep calcChain.xml intact so weekly totals and pay formulas recalculate
     var outBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     return outBlob;
 }
