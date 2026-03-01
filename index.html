@@ -169,12 +169,15 @@
         /* Totals Bar */
         .totals-bar { display: flex; justify-content: space-around; padding: 10px 8px; background: transparent; flex-wrap: wrap; gap: 6px; }
         /* Wellbore Volume Banner */
-        .wb-vol-banner { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 5px 10px; background: rgba(79,195,247,0.06); border-bottom: 1px solid rgba(79,195,247,0.15); font-size: 10px; font-weight: 600; letter-spacing: 0.5px; }
-        .wb-vol-banner .wb-vol-item { color: #78909c; }
-        .wb-vol-banner .wb-vol-item span { color: #4fc3f7; margin-left: 3px; }
-        .wb-vol-banner .wb-vol-divider { color: #2d4a6f; }
-        .wb-vol-banner .wb-vol-total { color: #b0bec5; font-weight: 700; }
-        .wb-vol-banner .wb-vol-total span { color: #fff; margin-left: 3px; }
+        .wb-vol-banner { display: flex; justify-content: space-around; align-items: center; padding: 8px 10px; margin: 0 10px; background: linear-gradient(135deg, #0d1b2a, #162535); border: 1px solid #2d4a6f; border-radius: 8px; margin-top: 6px; }
+        .wb-vol-box { text-align: center; flex: 1; padding: 4px 2px; }
+        .wb-vol-box + .wb-vol-box { border-left: 1px solid #2d4a6f; }
+        .wb-vol-label { font-size: 9px; color: #78909c; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; margin-bottom: 2px; }
+        .wb-vol-value { font-size: 16px; font-weight: 700; color: #4fc3f7; }
+        .wb-vol-box.hole .wb-vol-label { color: #b0bec5; }
+        .wb-vol-box.hole .wb-vol-value { color: #fff; }
+        .wb-vol-box.sys .wb-vol-value { color: #78909c; }
+        .wb-vol-box.sys .wb-vol-value.active { color: #ffd54f; }
         .total-item { text-align: center; padding: 6px 8px; border-radius: 6px; min-width: 48px; background: #1b2838; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
         .total-item:active { transform: scale(0.95); }
         .total-item.filter-active { border-color: currentColor; background: rgba(255,255,255,0.08); }
@@ -958,11 +961,10 @@ Lat: 31.907   Long: -101.949"></textarea>
             <div class="total-item" id="filter-other" onclick="setFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="total-other">0</div></div>
         </div>
         <div class="wb-vol-banner" id="wb-vol-banner-tanks">
-            <div class="wb-vol-item">TBG<span id="wvb-tanks-tbg">--</span></div>
-            <div class="wb-vol-divider">|</div>
-            <div class="wb-vol-item">ANN<span id="wvb-tanks-ann">--</span></div>
-            <div class="wb-vol-divider">|</div>
-            <div class="wb-vol-total">HOLE<span id="wvb-tanks-total">--</span></div>
+            <div class="wb-vol-box"><div class="wb-vol-label">TBG</div><div class="wb-vol-value" id="wvb-tanks-tbg">--</div></div>
+            <div class="wb-vol-box"><div class="wb-vol-label">ANN</div><div class="wb-vol-value" id="wvb-tanks-ann">--</div></div>
+            <div class="wb-vol-box hole"><div class="wb-vol-label">HOLE</div><div class="wb-vol-value" id="wvb-tanks-total">--</div></div>
+            <div class="wb-vol-box sys"><div class="wb-vol-label">SYS</div><div class="wb-vol-value" id="wvb-tanks-sys">--</div></div>
         </div>
         <div class="side-toggle" id="side-toggle">
             <button class="side-tab active" onclick="switchSide('pump')">Pump Side</button>
@@ -989,11 +991,10 @@ Lat: 31.907   Long: -101.949"></textarea>
             <div class="total-item" id="gl-filter-other" onclick="setGLFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="gl-total-other">0</div></div>
         </div>
         <div class="wb-vol-banner" id="wb-vol-banner-monitor">
-            <div class="wb-vol-item">TBG<span id="wvb-monitor-tbg">--</span></div>
-            <div class="wb-vol-divider">|</div>
-            <div class="wb-vol-item">ANN<span id="wvb-monitor-ann">--</span></div>
-            <div class="wb-vol-divider">|</div>
-            <div class="wb-vol-total">HOLE<span id="wvb-monitor-total">--</span></div>
+            <div class="wb-vol-box"><div class="wb-vol-label">TBG</div><div class="wb-vol-value" id="wvb-monitor-tbg">--</div></div>
+            <div class="wb-vol-box"><div class="wb-vol-label">ANN</div><div class="wb-vol-value" id="wvb-monitor-ann">--</div></div>
+            <div class="wb-vol-box hole"><div class="wb-vol-label">HOLE</div><div class="wb-vol-value" id="wvb-monitor-total">--</div></div>
+            <div class="wb-vol-box sys"><div class="wb-vol-label">SYS</div><div class="wb-vol-value" id="wvb-monitor-sys">--</div></div>
         </div>
         <div style="padding:12px;padding-bottom:80px">
             <div id="gl-filter-label" style="text-align:center;font-size:11px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px;padding:4px 0">Capture <span style="color:#e0e0e0">System</span></div>
@@ -1038,11 +1039,10 @@ Lat: 31.907   Long: -101.949"></textarea>
             <div class="total-item" id="xfer-filter-other" onclick="setXferFluidFilter('other')"><div class="total-label">Other</div><div class="total-value other" id="xfer-total-other">0</div></div>
         </div>
         <div class="wb-vol-banner" id="wb-vol-banner-xfer">
-            <div class="wb-vol-item">TBG<span id="wvb-xfer-tbg">--</span></div>
-            <div class="wb-vol-divider">|</div>
-            <div class="wb-vol-item">ANN<span id="wvb-xfer-ann">--</span></div>
-            <div class="wb-vol-divider">|</div>
-            <div class="wb-vol-total">HOLE<span id="wvb-xfer-total">--</span></div>
+            <div class="wb-vol-box"><div class="wb-vol-label">TBG</div><div class="wb-vol-value" id="wvb-xfer-tbg">--</div></div>
+            <div class="wb-vol-box"><div class="wb-vol-label">ANN</div><div class="wb-vol-value" id="wvb-xfer-ann">--</div></div>
+            <div class="wb-vol-box hole"><div class="wb-vol-label">HOLE</div><div class="wb-vol-value" id="wvb-xfer-total">--</div></div>
+            <div class="wb-vol-box sys"><div class="wb-vol-label">SYS</div><div class="wb-vol-value" id="wvb-xfer-sys">--</div></div>
         </div>
         <div style="padding:12px;padding-bottom:80px">
             <div id="xfer-filter-label" style="text-align:center;font-size:11px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px;padding:4px 0 8px">Capture <span style="color:#e0e0e0">System</span></div>
@@ -1263,11 +1263,6 @@ Lat: 31.907   Long: -101.949"></textarea>
                         <div class="plug-header-label">Depth</div>
                         <div class="plug-header-value" id="plug-hdr-depth">--'</div>
                     </div>
-                    <div class="plug-header-divider"></div>
-                    <div class="plug-header-item">
-                        <div class="plug-header-label">Hole Vol</div>
-                        <div class="plug-header-value" id="plug-hdr-hole" style="color:#4fc3f7">--</div>
-                    </div>
                 </div>
 
                 <!-- Plug Info -->
@@ -1367,26 +1362,21 @@ Lat: 31.907   Long: -101.949"></textarea>
 
         <div id="wb-volumes" class="wb-content">
             <div class="plug-container">
-                <!-- Live Header Banner (synced from Plug data) -->
+                <!-- Live Header Banner (volume focused) -->
                 <div class="plug-header-banner">
                     <div class="plug-header-item">
-                        <div class="plug-header-label">Joint</div>
-                        <div class="plug-header-value" id="vol-hdr-jnt">--</div>
+                        <div class="plug-header-label">Tubing</div>
+                        <div class="plug-header-value" id="vol-hdr-tbg" style="color:#4fc3f7">--</div>
                     </div>
                     <div class="plug-header-divider"></div>
                     <div class="plug-header-item">
-                        <div class="plug-header-label">Plug</div>
-                        <div class="plug-header-value" id="vol-hdr-plug">-- <span class="plug-total">/ --</span></div>
+                        <div class="plug-header-label">Annulus</div>
+                        <div class="plug-header-value" id="vol-hdr-ann" style="color:#4fc3f7">--</div>
                     </div>
                     <div class="plug-header-divider"></div>
                     <div class="plug-header-item">
-                        <div class="plug-header-label">Depth</div>
-                        <div class="plug-header-value" id="vol-hdr-depth">--'</div>
-                    </div>
-                    <div class="plug-header-divider"></div>
-                    <div class="plug-header-item">
-                        <div class="plug-header-label">Hole Vol</div>
-                        <div class="plug-header-value" id="vol-hdr-hole" style="color:#4fc3f7">--</div>
+                        <div class="plug-header-label">Hole Total</div>
+                        <div class="plug-header-value" id="vol-hdr-hole" style="color:#fff">--</div>
                     </div>
                 </div>
                 <div class="tit-card">
@@ -3704,32 +3694,17 @@ const OD_NUMERIC = {'2-3/8':2.375,'2-7/8':2.875,'3-1/2':3.5,'4-1/2':4.5,'5':5.0,
 const VOL_FIELDS = ['vol-tbg-od','vol-tbg-wt','vol-tbg-grade','vol-csg-od','vol-csg-wt','vol-csg-grade','vol-csg-depth','vol-liner-od','vol-liner-wt','vol-liner-grade','vol-liner-tol'];
 
 function syncVolumesHeader() {
+    // Refresh volume header from calculated values
     try {
-        const saved = localStorage.getItem('ips_plug_data');
-        if (!saved) return;
-        const pd = JSON.parse(saved);
-        const jnt = pd['plug-jnt'] || '--';
-        const num = pd['plug-num'] || '--';
-        const total = pd['plug-total'] || '--';
-        const depth = pd['plug-depth'];
-        const jntEl = document.getElementById('vol-hdr-jnt');
-        const plugEl = document.getElementById('vol-hdr-plug');
-        const depthEl = document.getElementById('vol-hdr-depth');
-        if (jntEl) jntEl.textContent = jnt;
-        if (plugEl) plugEl.innerHTML = num + ' <span class="plug-total">/ ' + total + '</span>';
-        if (depthEl) depthEl.textContent = depth ? Number(depth).toLocaleString() + "'" : "--'";
-    } catch(e) {}
-    // Also refresh hole volume from calculated total
-    try {
-        const totalEl = document.getElementById('vol-calc-total');
-        const holeEl = document.getElementById('vol-hdr-hole');
-        const plugHoleEl = document.getElementById('plug-hdr-hole');
-        if (totalEl) {
-            const val = totalEl.textContent;
-            const display = (val && val !== '--') ? val + ' bbl' : '--';
-            if (holeEl) holeEl.textContent = display;
-            if (plugHoleEl) plugHoleEl.textContent = display;
-        }
+        var tbgCalc = document.getElementById('vol-calc-tbg');
+        var annCalc = document.getElementById('vol-calc-ann-total');
+        var totalCalc = document.getElementById('vol-calc-total');
+        var tbgHdr = document.getElementById('vol-hdr-tbg');
+        var annHdr = document.getElementById('vol-hdr-ann');
+        var holeHdr = document.getElementById('vol-hdr-hole');
+        if (tbgHdr) tbgHdr.textContent = (tbgCalc && tbgCalc.textContent !== '--') ? tbgCalc.textContent : '--';
+        if (annHdr) annHdr.textContent = (annCalc && annCalc.textContent !== '--') ? annCalc.textContent : '--';
+        if (holeHdr) holeHdr.textContent = (totalCalc && totalCalc.textContent !== '--') ? totalCalc.textContent : '--';
     } catch(e) {}
     updateWbVolBanners();
 }
@@ -3831,12 +3806,13 @@ function calcVolumes() {
     document.getElementById('vol-calc-ann-total').textContent = totalAnn > 0 ? totalAnn.toFixed(1) : '--';
     document.getElementById('vol-calc-total').textContent = totalWellbore > 0 ? totalWellbore.toFixed(1) : '--';
 
-    // Update header banner hole volume
-    const holeEl = document.getElementById('vol-hdr-hole');
-    const plugHoleEl = document.getElementById('plug-hdr-hole');
-    const holeDisplay = totalWellbore > 0 ? totalWellbore.toFixed(1) + ' bbl' : '--';
-    if (holeEl) holeEl.textContent = holeDisplay;
-    if (plugHoleEl) plugHoleEl.textContent = holeDisplay;
+    // Update volume header banner values
+    var tbgHdr = document.getElementById('vol-hdr-tbg');
+    var annHdr = document.getElementById('vol-hdr-ann');
+    var holeHdr = document.getElementById('vol-hdr-hole');
+    if (tbgHdr) tbgHdr.textContent = tbgVol > 0 ? tbgVol.toFixed(1) : '--';
+    if (annHdr) annHdr.textContent = totalAnn > 0 ? totalAnn.toFixed(1) : '--';
+    if (holeHdr) holeHdr.textContent = totalWellbore > 0 ? totalWellbore.toFixed(1) : '--';
 
     updateWbVolBanners();
 }
@@ -3971,6 +3947,8 @@ function setXferFluidFilter(type) {
             label.innerHTML = 'Capture <span style="color:#e0e0e0">System</span>';
         }
     }
+    // Update SYS volume on xfer banner
+    updateSystemVolume('xfer', xferFluidFilter, calculateTotals());
 }
 
 function renderXferTotals() {
@@ -4200,21 +4178,34 @@ function updateWbVolBanners() {
         var t = document.getElementById('wvb-' + tab + '-tbg');
         var a = document.getElementById('wvb-' + tab + '-ann');
         var tt = document.getElementById('wvb-' + tab + '-total');
-        if (t) t.textContent = tbg ? tbg + ' bbl' : '--';
-        if (a) a.textContent = ann ? ann + ' bbl' : '--';
-        if (tt) tt.textContent = total ? total + ' bbl' : '--';
+        if (t) t.textContent = tbg || '--';
+        if (a) a.textContent = ann || '--';
+        if (tt) tt.textContent = total || '--';
     });
-    // Also update plug/vol header holes
-    var plugHoleEl = document.getElementById('plug-hdr-hole');
-    var volHoleEl = document.getElementById('vol-hdr-hole');
-    var holeDisplay = total ? total + ' bbl' : '--';
-    if (plugHoleEl) plugHoleEl.textContent = holeDisplay;
-    if (volHoleEl) volHoleEl.textContent = holeDisplay;
 }
 function getHoleVolume() {
     var el = document.getElementById('vol-calc-total');
     if (el && el.textContent && el.textContent !== '--') return el.textContent;
     return '';
+}
+function updateSystemVolume(tab, filter, totals) {
+    var sysEl = document.getElementById('wvb-' + tab + '-sys');
+    if (!sysEl) return;
+    if (!filter) {
+        sysEl.textContent = '--';
+        sysEl.style.color = '';
+        sysEl.classList.remove('active');
+        return;
+    }
+    var fluidColors = {brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};
+    var clr = fluidColors[filter] || '#ffd54f';
+    var holeStr = getHoleVolume();
+    var holeVol = holeStr ? parseFloat(holeStr) : 0;
+    var surfaceVol = totals[filter] || 0;
+    var sysTotal = Math.round((holeVol + surfaceVol) * 100) / 100;
+    sysEl.textContent = sysTotal;
+    sysEl.style.color = clr;
+    sysEl.classList.add('active');
 }
 function renderTotals() {
     const totals=calculateTotals(); 
@@ -4227,6 +4218,8 @@ function renderTotals() {
     if(el('total-other')) el('total-other').textContent=totals.other;
     if(el('system-total')) el('system-total').textContent=totals.system+' BBL'; 
     if(el('jetted-total')) el('jetted-total').textContent=data.jetsShift+' BBL';
+    // Keep SYS total in sync
+    updateSystemVolume('tanks', activeFluidFilter, totals);
 }
 function updateTank(side,id,field,val) { 
     const tank=(side==='pump'?data.pumpTanks:data.returnTanks).find(t=>t.id===id); 
@@ -4543,6 +4536,11 @@ function render() {
         if (xBtn) xBtn.classList.toggle('filter-active', xferFluidFilter === type);
     });
     
+    // Update SYS total (surface fluid + hole volume) on tanks banner
+    updateSystemVolume('tanks', activeFluidFilter, totals);
+    updateSystemVolume('monitor', glFluidFilter, totals);
+    updateSystemVolume('xfer', xferFluidFilter, totals);
+    
     renderGLTotals();
     renderXferTotals();
     // Monitor display — populate two-row stat boxes from last history entry
@@ -4571,8 +4569,10 @@ function render() {
         }
         const surface = ft && last.totals ? (last.totals[ft] || 0) : last.systemTotal;
         if (capSurface) { capSurface.textContent = surface; capSurface.className = 'gl-value neutral'; capSurface.style.color = '#e0e0e0'; }
-        if (capWellbore) { capWellbore.textContent = '--'; }
-        if (capTotal) { capTotal.textContent = surface; capTotal.className = 'gl-value neutral'; capTotal.style.color = '#e0e0e0'; }
+        var holeStr = getHoleVolume();
+        var holeVol = holeStr ? parseFloat(holeStr) : 0;
+        if (capWellbore) { capWellbore.textContent = holeVol > 0 ? holeVol : '--'; capWellbore.style.color = holeVol > 0 ? '#4fc3f7' : '#888'; }
+        if (capTotal) { capTotal.textContent = holeVol > 0 ? Math.round((surface + holeVol) * 100) / 100 : surface; capTotal.className = 'gl-value neutral'; capTotal.style.color = '#e0e0e0'; }
         
         // Row 2: Time / Apparent / Actual / Transfers / Hourly
         if (capTime && data.lastCheckTime) {
@@ -4607,7 +4607,7 @@ function render() {
         if (capUser) { capUser.textContent = '--'; capUser.style.color = '#888'; }
         if (capFluid) { capFluid.textContent = '--'; capFluid.style.color = '#888'; }
         if (capSurface) { capSurface.textContent = '--'; }
-        if (capWellbore) { capWellbore.textContent = '--'; }
+        if (capWellbore) { var hw = getHoleVolume(); var hv = hw ? parseFloat(hw) : 0; capWellbore.textContent = hv > 0 ? hv : '--'; capWellbore.style.color = hv > 0 ? '#4fc3f7' : '#888'; }
         if (capTotal) { capTotal.textContent = '--'; }
         if (capTime) { capTime.textContent = '--'; capTime.style.color = '#888'; }
         if (elapsedEl) elapsedEl.textContent = '';
@@ -4638,7 +4638,7 @@ function renderGLTotals() {
     if(el('gl-jetted-total')) el('gl-jetted-total').textContent = data.jetsShift + ' BBL';
 }
 
-function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; var wbTbg=document.getElementById('vol-calc-tbg'),wbAnn=document.getElementById('vol-calc-ann-total'),wbTotal=document.getElementById('vol-calc-total'); var tbgV=wbTbg?wbTbg.textContent:'--',annV=wbAnn?wbAnn.textContent:'--',totalV=wbTotal?wbTotal.textContent:'--'; html+='<div class="report-section"><div class="report-section-title">Wellbore Volumes</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Tubing</div><div class="report-total-value" style="color:#4fc3f7">'+tbgV+'</div></div><div class="report-total-item"><div class="report-total-label">Annulus</div><div class="report-total-value" style="color:#4fc3f7">'+annV+'</div></div><div class="report-total-item"><div class="report-total-label">Hole Total</div><div class="report-total-value" style="color:#fff;font-weight:700">'+totalV+'</div></div></div></div>'; html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
+function showTankReport() { const totals=calculateTotals(),now=new Date(); document.getElementById('tank-report-time').textContent=now.toLocaleDateString()+' '+now.toLocaleTimeString(); let html=''; if(data.pumpTanks.length){html+='<div class="report-section"><div class="report-section-title">Pump Side</div>';data.pumpTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} if(data.returnTanks.length){html+='<div class="report-section"><div class="report-section-title">Return Side</div>';data.returnTanks.forEach(t=>{html+='<div class="report-row"><span class="report-row-label">'+t.name+(t.contents?' ['+t.contents+']':'')+'</span><span class="report-row-value">'+t.inches+'" '+(t.estimated?'(est) ':'')+'= '+t.bbls+' BBL</span></div>';});html+='</div>';} html+='<div class="report-section"><div class="report-section-title">Totals</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Brine</div><div class="report-total-value" style="color:#42a5f5">'+totals.brine+'</div></div><div class="report-total-item"><div class="report-total-label">Packer</div><div class="report-total-value" style="color:#ff7043">'+totals.packer+'</div></div><div class="report-total-item"><div class="report-total-label">Mud</div><div class="report-total-value" style="color:#a1887f">'+totals.mud+'</div></div><div class="report-total-item"><div class="report-total-label">Recirc</div><div class="report-total-value" style="color:#ba68c8">'+totals.recirc+'</div></div><div class="report-total-item"><div class="report-total-label">Fresh</div><div class="report-total-value" style="color:#4db6ac">'+totals.freshwater+'</div></div><div class="report-total-item"><div class="report-total-label">Other</div><div class="report-total-value" style="color:#90a4ae">'+totals.other+'</div></div></div></div>'; html+='<div class="report-system-totals"><div class="report-system-box total"><div class="report-system-label">System Total</div><div class="report-system-value">'+totals.system+' BBL</div></div><div class="report-system-box jetted"><div class="report-system-label">Jetted (Shift)</div><div class="report-system-value">'+data.jetsShift+' BBL</div></div></div>'; var wbTbg=document.getElementById('vol-calc-tbg'),wbAnn=document.getElementById('vol-calc-ann-total'),wbTotal=document.getElementById('vol-calc-total'); var tbgV=wbTbg?wbTbg.textContent:'--',annV=wbAnn?wbAnn.textContent:'--',totalV=wbTotal?wbTotal.textContent:'--'; var holeNum=totalV!=='--'?parseFloat(totalV):0; html+='<div class="report-section"><div class="report-section-title">Wellbore Volumes</div><div class="report-totals"><div class="report-total-item"><div class="report-total-label">Tubing</div><div class="report-total-value" style="color:#4fc3f7">'+tbgV+'</div></div><div class="report-total-item"><div class="report-total-label">Annulus</div><div class="report-total-value" style="color:#4fc3f7">'+annV+'</div></div><div class="report-total-item"><div class="report-total-label">Hole Total</div><div class="report-total-value" style="color:#fff;font-weight:700">'+totalV+'</div></div></div></div>'; if(holeNum>0){var sysColors={brine:'#42a5f5',packer:'#ff7043',mud:'#a1887f',recirc:'#ba68c8',freshwater:'#4db6ac',other:'#90a4ae'};var sysLabels={brine:'Brine',packer:'Packer',mud:'Mud',recirc:'Recirc',freshwater:'Fresh',other:'Other'};html+='<div class="report-section"><div class="report-section-title">System Totals (Surface + Hole)</div><div class="report-totals">';['brine','packer','mud','recirc','freshwater','other'].forEach(function(ft){var sv=totals[ft]||0;if(sv>0){html+='<div class="report-total-item"><div class="report-total-label">'+sysLabels[ft]+'</div><div class="report-total-value" style="color:'+sysColors[ft]+'">'+Math.round((sv+holeNum)*100)/100+'</div></div>';}});html+='</div></div>';} html+='<div class="report-timestamp">'+now.toLocaleString()+'</div>'; document.getElementById('tank-report-content').innerHTML=html; document.getElementById('tank-report').classList.add('show'); }
 function hideTankReport() { document.getElementById('tank-report').classList.remove('show'); }
 function showTitrationReport() { const names={aphron:'Aphron',brine:'Brine',recirc:'Recirc',freshwater:'Freshwater'}; const locText = sampleLocation === 'out' ? 'Discharge (Out)' : 'Pump Side (In)'; const locColor = sampleLocation === 'out' ? '#ff7043' : '#42a5f5'; document.getElementById('tit-report-fluid').textContent=names[titData.fluidType]||titData.fluidType; const cl=document.getElementById('tit-chlorides').textContent,ha=document.getElementById('tit-hardness').textContent,ca=document.getElementById('tit-calcium').textContent,mg=document.getElementById('tit-magnesium').textContent; const surfaceVol=getSurfaceVolumeForFluid(titData.fluidType); let html='<div class="report-section"><div class="report-section-title">Sample Info</div><div class="report-row"><span class="report-row-label">Sample Location</span><span class="report-row-value" style="color:'+locColor+'">'+locText+'</span></div><div class="report-row"><span class="report-row-label">Fluid Type</span><span class="report-row-value">'+(names[titData.fluidType]||titData.fluidType)+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Basic Properties</div><div class="report-row"><span class="report-row-label">Viscosity</span><span class="report-row-value">'+(titData.viscosity||'--')+' sec</span></div><div class="report-row"><span class="report-row-label">Density</span><span class="report-row-value">'+(titData.density||'--')+' ppg</span></div><div class="report-row"><span class="report-row-label">pH</span><span class="report-row-value">'+(titData.ph||'--')+'</span></div><div class="report-row"><span class="report-row-label">PF</span><span class="report-row-value">'+(titData.pf||'--')+'</span></div><div class="report-row"><span class="report-row-label">MF</span><span class="report-row-value">'+(titData.mf||'--')+'</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Chemical Analysis</div><div class="report-row"><span class="report-row-label">Chlorides</span><span class="report-row-value">'+cl+' ppm</span></div><div class="report-row"><span class="report-row-label">Calcium</span><span class="report-row-value">'+ca+' ppm</span></div><div class="report-row"><span class="report-row-label">Total Hardness</span><span class="report-row-value">'+ha+' ppm</span></div><div class="report-row"><span class="report-row-label">Magnesium</span><span class="report-row-value">'+mg+' ppm</span></div></div>'; const pvText=document.getElementById('tit-pv').textContent; const ypText=document.getElementById('tit-yp').textContent; const avText=document.getElementById('tit-av').textContent; html+='<div class="report-section"><div class="report-section-title">Rheology</div><div class="report-row"><span class="report-row-label">600 RPM</span><span class="report-row-value">'+(titData.r600||'--')+'</span></div><div class="report-row"><span class="report-row-label">300 RPM</span><span class="report-row-value">'+(titData.r300||'--')+'</span></div><div class="report-row"><span class="report-row-label">3 RPM</span><span class="report-row-value">'+(titData.r3||'--')+'</span></div><div class="report-row"><span class="report-row-label">PV</span><span class="report-row-value">'+pvText+' cP</span></div><div class="report-row"><span class="report-row-label">YP</span><span class="report-row-value">'+ypText+' lb/100ft²</span></div><div class="report-row"><span class="report-row-label">AV</span><span class="report-row-value">'+avText+' cP</span></div><div class="report-row"><span class="report-row-label">Gel Strength</span><span class="report-row-value">'+(titData.gel10s||'--')+' lb/100ft²</span></div></div>'; html+='<div class="report-section"><div class="report-section-title">Volume</div><div class="report-row"><span class="report-row-label">Surface Volume ('+names[titData.fluidType]+')</span><span class="report-row-value">'+surfaceVol+' bbl</span></div></div>'; html+='<div class="report-timestamp">'+new Date().toLocaleString()+'</div>'; document.getElementById('tit-report-content').innerHTML=html; document.getElementById('titration-report').classList.add('show'); }
 function hideTitrationReport() { document.getElementById('titration-report').classList.remove('show'); }
@@ -4802,8 +4802,10 @@ function renderVolumeLog() {
             surface = h.totals[ft];
         }
         
-        const wellbore = '--';
-        const total = surface;
+        var vlHoleStr = getHoleVolume();
+        var vlHoleVol = vlHoleStr ? parseFloat(vlHoleStr) : 0;
+        const wellbore = vlHoleVol > 0 ? vlHoleVol : '--';
+        const total = vlHoleVol > 0 ? Math.round((surface + vlHoleVol) * 100) / 100 : surface;
         
         // === APPARENT: compare to previous entry's total for this type ===
         const prevEntry = (idx < data.history.length - 1) ? data.history[idx + 1] : null;
@@ -4860,7 +4862,7 @@ function renderVolumeLog() {
                 '<div style="color:#4fc3f7;font-size:10px">' + t + '</div></td>' +
             '<td style="padding:3px 2px;color:' + fluidClr + ';font-weight:600">' + fluidName + '</td>' +
             '<td style="padding:3px 2px;text-align:right;color:#e0e0e0">' + surface + '</td>' +
-            '<td style="padding:3px 2px;text-align:right;color:#555">' + wellbore + '</td>' +
+            '<td style="padding:3px 2px;text-align:right;color:' + (vlHoleVol > 0 ? '#4fc3f7' : '#555') + '">' + wellbore + '</td>' +
             '<td style="padding:3px 2px;text-align:right;color:#e0e0e0;font-weight:600">' + total + '</td></tr>';
         
         // ROW 2: Apparent / Actual / Transfers / Hourly
@@ -5205,6 +5207,7 @@ function showMonitorReport() {
         html += '<tr style="color:#555;font-size:8px;text-transform:uppercase;border-bottom:1px solid #2d4a6f"><td style="padding:0 2px 3px">Apparent</td><td style="padding:0 2px 3px;text-align:right">Actual</td><td style="padding:0 2px 3px;text-align:right">Transfers</td><td style="padding:0 2px 3px;text-align:right">Hourly</td></tr>';
         
         const fmtGL = (v) => { if(v===null) return '<span style="color:#888">--</span>'; const c=v>0?'#4caf50':v<0?'#ef5350':'#888'; return '<span style="color:'+c+'">'+(v>=0?'+':'')+v+'</span>'; };
+        var rptHoleStr = getHoleVolume(); var rptHole = rptHoleStr ? parseFloat(rptHoleStr) : 0;
         
         data.history.forEach((h, idx) => {
             const t = new Date(h.time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
@@ -5242,7 +5245,7 @@ function showMonitorReport() {
                 }
             }
             
-            html += '<tr style="border-top:1px solid #2d4a6f"><td rowspan="2" style="padding:4px 2px;white-space:nowrap;vertical-align:middle">' + (h.initials?'<div style="color:#66bb6a;font-weight:600;font-size:11px">'+h.initials+'</div>':'') + '<div style="color:#4fc3f7;font-size:10px">'+t+'</div></td><td style="padding:3px 2px;color:'+fluidClr+';font-weight:600">'+fluidName+'</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0">'+surface+'</td><td style="padding:3px 2px;text-align:right;color:#555">--</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0;font-weight:600">'+surface+'</td></tr>';
+            html += '<tr style="border-top:1px solid #2d4a6f"><td rowspan="2" style="padding:4px 2px;white-space:nowrap;vertical-align:middle">' + (h.initials?'<div style="color:#66bb6a;font-weight:600;font-size:11px">'+h.initials+'</div>':'') + '<div style="color:#4fc3f7;font-size:10px">'+t+'</div></td><td style="padding:3px 2px;color:'+fluidClr+';font-weight:600">'+fluidName+'</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0">'+surface+'</td><td style="padding:3px 2px;text-align:right;color:'+(rptHole>0?'#4fc3f7':'#555')+'">'+(rptHole>0?rptHole:'--')+'</td><td style="padding:3px 2px;text-align:right;color:#e0e0e0;font-weight:600">'+(rptHole>0?Math.round((surface+rptHole)*100)/100:surface)+'</td></tr>';
             html += '<tr><td style="padding:0 2px 3px">'+fmtGL(apparent)+'</td><td style="padding:0 2px 3px;text-align:right">'+fmtGL(actual)+'</td><td style="padding:0 2px 3px;text-align:right;font-size:9px">'+transferStr+'</td><td style="padding:0 2px 3px;text-align:right">'+hourly+'</td></tr>';
             html += breakdownRow;
         });
@@ -6185,6 +6188,8 @@ function setGLFluidFilter(type) {
     }
     // Re-render the GL display from last check with filter applied
     renderGLFiltered();
+    // Update SYS volume on monitor banner
+    updateSystemVolume('monitor', glFluidFilter, calculateTotals());
 }
 
 function renderGLFiltered() {
@@ -6223,7 +6228,10 @@ function renderGLFiltered() {
         // Surface/Total for this type
         const currTypeTotal = last.totals ? (last.totals[glFluidFilter] || 0) : null;
         if (capSurface) { capSurface.textContent = currTypeTotal !== null ? currTypeTotal : '--'; capSurface.style.color = '#e0e0e0'; }
-        if (capTotal) { capTotal.textContent = currTypeTotal !== null ? currTypeTotal : '--'; capTotal.style.color = '#e0e0e0'; }
+        var holeStr = getHoleVolume();
+        var holeVol = holeStr ? parseFloat(holeStr) : 0;
+        if (capWellbore) { capWellbore.textContent = holeVol > 0 ? holeVol : '--'; capWellbore.style.color = holeVol > 0 ? '#4fc3f7' : '#888'; }
+        if (capTotal) { capTotal.textContent = (currTypeTotal !== null && holeVol > 0) ? Math.round((currTypeTotal + holeVol) * 100) / 100 : (currTypeTotal !== null ? currTypeTotal : '--'); capTotal.style.color = '#e0e0e0'; }
         
         // Transfers for this type
         if (capTransfers) {
@@ -6261,7 +6269,10 @@ function renderGLFiltered() {
         if (capFluid) { capFluid.textContent = last.filterType ? (fluidNames[last.filterType] || last.filterType) : 'System'; capFluid.style.color = last.filterType ? (fluidBoxColors[last.filterType] || '#e0e0e0') : '#e0e0e0'; }
         const surface = last.filterType && last.totals ? (last.totals[last.filterType] || 0) : last.systemTotal;
         if (capSurface) { capSurface.textContent = surface; capSurface.style.color = '#e0e0e0'; }
-        if (capTotal) { capTotal.textContent = surface; capTotal.style.color = '#e0e0e0'; }
+        var holeStr2 = getHoleVolume();
+        var holeVol2 = holeStr2 ? parseFloat(holeStr2) : 0;
+        if (capWellbore) { capWellbore.textContent = holeVol2 > 0 ? holeVol2 : '--'; capWellbore.style.color = holeVol2 > 0 ? '#4fc3f7' : '#888'; }
+        if (capTotal) { capTotal.textContent = holeVol2 > 0 ? Math.round((surface + holeVol2) * 100) / 100 : surface; capTotal.style.color = '#e0e0e0'; }
         
         // System transfers
         if (capTransfers) {
