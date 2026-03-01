@@ -743,7 +743,7 @@
     <div class="profile-modal-overlay" id="profile-modal">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#1b2838;border-bottom:1px solid #2d4a6f;flex-shrink:0">
             <span style="font-size:16px;font-weight:700;color:#4fc3f7;text-transform:uppercase;letter-spacing:1px">⚙️ Settings</span>
-            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.2.0</span>
+            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:#ffa726;letter-spacing:0.5px">v1.3.0</span>
             <button onclick="closeProfileModal()" style="background:none;border:1px solid #2d4a6f;color:#e0e0e0;width:36px;height:36px;border-radius:6px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
         <div class="profile-modal">
@@ -2183,7 +2183,6 @@ function firebaseSaveTanks() {
 
 // SINGLE TANK SAVE — writes only the changed tank (used for inches/contents changes)
 let _singleTankTimers = {};
-let _myRecentWrites = {}; // Track our own writes to suppress echoes
 function firebaseSaveSingleTank(side, tankId) {
     if (!fbDb || !fbRoom) return;
     // Debounce per-tank to avoid spamming during rapid input
@@ -2199,8 +2198,6 @@ function firebaseSaveSingleTank(side, tankId) {
         // Also update local tank timestamps
         tank._updatedAt = tc._updatedAt;
         tank._updatedBy = tc._updatedBy;
-        // Mark this as our own write so onRemoteTanks can skip the echo
-        _myRecentWrites[tankId] = tc._updatedAt;
         const fbSide = side === 'pump' ? 'pumpTanks' : 'returnTanks';
         console.log('[SYNC] Single tank write: ' + fbSide + '/' + tankId + ' by ' + tc._updatedBy);
         fbDb.ref('rooms/' + fbRoom + '/tanks/' + fbSide + '/' + tankId).set(tc)
@@ -2312,41 +2309,6 @@ function onRemoteTanks(snap) {
         const isFullSync = remoteFullSync > _lastReceivedFullSync;
         if (isFullSync) _lastReceivedFullSync = remoteFullSync;
         
-        // === ECHO DETECTION ===
-        // Check if this update is just our own single-tank write bouncing back
-        // If so, skip the merge and render to avoid destroying active input fields
-        if (!isFullSync) {
-            const allRemote = [...remotePump, ...remoteReturn];
-            let isOwnEcho = true;
-            let foundChanged = false;
-            for (const rt of allRemote) {
-                const ts = getTankTimestamp(rt);
-                if (_myRecentWrites[rt.id] && Math.abs(ts - _myRecentWrites[rt.id]) < 500) {
-                    foundChanged = true;
-                    // This tank matches our recent write — it's an echo
-                } else {
-                    // Check if this tank actually differs from local
-                    const localArr = remotePump.includes(rt) ? data.pumpTanks : data.returnTanks;
-                    const lt = localArr.find(t => t.id === rt.id);
-                    if (lt && lt.inches !== rt.inches) {
-                        isOwnEcho = false; // Someone else changed something
-                        break;
-                    }
-                }
-            }
-            if (isOwnEcho && foundChanged) {
-                console.log('[SYNC] Skipping own echo');
-                // Clean up old write trackers (older than 5s)
-                const now = Date.now();
-                Object.keys(_myRecentWrites).forEach(k => {
-                    if (now - _myRecentWrites[k] > 5000) delete _myRecentWrites[k];
-                });
-                return;
-            }
-        }
-        // Clear write trackers on full sync
-        if (isFullSync) _myRecentWrites = {};
-        
         // Recalculate BBLs from inches for consistency
         remotePump.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
         remoteReturn.forEach(t => { if(t.inches > 0) t.bbls = inchesToBbl(t.inches); });
@@ -2392,6 +2354,30 @@ function onRemoteTanks(snap) {
         
         // Save to localStorage as offline cache
         localStorage.setItem('ipsTrackerV3', JSON.stringify(data));
+        
+        // === ACTIVE INPUT GUARD ===
+        // If user is currently typing in a tank input, DON'T render (it destroys the input)
+        // Data is already merged in memory — schedule render for when they finish typing
+        const activeEl = document.activeElement;
+        const isTypingInTank = activeEl && activeEl.tagName === 'INPUT' && activeEl.closest && activeEl.closest('.tank-card');
+        if (isTypingInTank) {
+            console.log('[SYNC] Data merged but render deferred — user typing in tank');
+            // Schedule render for when user leaves the input
+            if (!activeEl._syncBlurBound) {
+                activeEl._syncBlurBound = true;
+                activeEl.addEventListener('blur', function onBlur() {
+                    activeEl.removeEventListener('blur', onBlur);
+                    activeEl._syncBlurBound = false;
+                    render();
+                    renderTransferLog();
+                    renderVolumeLog();
+                }, { once: true });
+            }
+            // Still update totals bar without full render
+            renderTotals();
+            return;
+        }
+        
         render();
         renderTransferLog();
         renderVolumeLog();
