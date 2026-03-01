@@ -878,15 +878,16 @@
             <div class="chat-feed-input-area" id="cf-paste-area">
                 <textarea class="chat-feed-textarea" id="cf-text-input" placeholder="Paste chat text here...
 
-Example:
+Example (drilling report):
 Plug: 79 of 91
 JNT: 362/ 4 out
 Depth: 11,387
-Time: 06:59
-Drill: 3 min
-Wash time: 14 minutes
-RIH Wt: 50K
-..."></textarea>
+...
+
+Or paste WellSite Navigator data:
+PIONEER NATURAL RES. USA, INC. WELL NAME
+API #4232947808   County: MIDLAND
+Lat: 31.907   Long: -101.949"></textarea>
             </div>
 
             <!-- Image Mode -->
@@ -2819,10 +2820,18 @@ function tcEmailTimecard() {
         a.click();
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 5000);
+        // Build professional email body
+        var name = profileData.name || '';
+        var llc = profileData.llc || '';
+        var phone = profileData.phone || '';
+        var bodyLines = ['Hi,', '', 'I\'m submitting my timecard for the period ' + startDate + ' to ' + endDate + '. Please find the attached timesheet for review.', '', 'If any adjustments or corrections are needed, please don\'t hesitate to let me know and I\'ll get them updated right away.', '', 'Thank you,', name];
+        if (llc) bodyLines.push(llc);
+        if (phone) bodyLines.push(phone);
+        bodyLines.push('', '(Please attach the downloaded file: ' + fileName + ')');
+        var body = encodeURIComponent(bodyLines.join('\n'));
         // Open mailto
-        const to = tcConfig.submitEmail || '';
-        const subject = encodeURIComponent('Timecard - ' + (profileData.name || '') + ' - ' + startDate + ' to ' + endDate);
-        const body = encodeURIComponent('Please find my timecard attached for the period ' + startDate + ' to ' + endDate + '.\n\nFile: ' + fileName + '\n\n(Please attach the downloaded file from your Downloads folder)');
+        var to = tcConfig.submitEmail || '';
+        var subject = encodeURIComponent('Timecard - ' + name + ' - ' + startDate + ' to ' + endDate);
         window.location.href = 'mailto:' + to + '?subject=' + subject + '&body=' + body;
         // Close preview
         document.getElementById('tc-preview-overlay').classList.remove('show');
@@ -2972,9 +2981,11 @@ async function tcGenerateXLSX() {
                 setCell('E'+r, e.well || '', 's');
                 setCell('F'+r, e.rig || tcConfig.rig || '', 's');
                 setCell('H'+r, e.county || tcConfig.county || '', 's');
-                setCell('I'+r, e.worked || 0, 'n');
-                setCell('J'+r, e.standby || 0, 'n');
-                setCell('K'+r, e.notWorking || 0, 'n');
+                var hw = e.worked || 0, hs = e.standby || 0, hn = e.notWorking || 0;
+                setCell('I'+r, hw, 'n');
+                setCell('J'+r, hs, 'n');
+                setCell('K'+r, hn, 'n');
+                setCell('L'+r, hw + hs + hn, 'n');
             } else {
                 setCell('B'+r, null, 'n');
                 setCell('C'+r, null, 's');
@@ -2985,6 +2996,7 @@ async function tcGenerateXLSX() {
                 setCell('I'+r, null, 'n');
                 setCell('J'+r, null, 'n');
                 setCell('K'+r, null, 'n');
+                setCell('L'+r, null, 'n');
             }
         }
     }
@@ -6280,6 +6292,90 @@ function applyChatFeedToApp(record) {
     return synced;
 }
 
+// WellSite Navigator paste parser
+function parseWellSiteNavigator(text) {
+    // Detect WSN format: has API # and County: on same or adjacent lines
+    if (!/API\s*#/i.test(text) || !/County:/i.test(text)) return null;
+    var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+    if (lines.length < 2) return null;
+    // Line 1: OPERATOR NAME ... WELL NAME
+    // Split at common operator suffixes
+    var line1 = lines[0];
+    var wellName = '';
+    var suffixes = [' INC.', ' INC', ' LLC', ' LLC.', ' L.L.C.', ' CO.', ' CORP.', ' CORP', ' L.P.', ' LP', ' USA,'];
+    var splitIdx = -1;
+    for (var i = 0; i < suffixes.length; i++) {
+        var idx = line1.toUpperCase().lastIndexOf(suffixes[i]);
+        if (idx >= 0) {
+            var afterSuffix = idx + suffixes[i].length;
+            if (afterSuffix > splitIdx) splitIdx = afterSuffix;
+        }
+    }
+    if (splitIdx > 0 && splitIdx < line1.length) {
+        wellName = line1.substring(splitIdx).trim();
+    } else {
+        // Fallback: use entire first line
+        wellName = line1;
+    }
+    // Parse API and County from remaining lines
+    var fullText = lines.join(' ');
+    var countyMatch = fullText.match(/County:\s*([A-Za-z\s]+?)(?:\s{2,}|$|Lat:|Long:|API)/i);
+    var county = countyMatch ? countyMatch[1].trim() : '';
+    // State from API prefix (API state codes used in oil & gas)
+    var apiMatch = fullText.match(/API\s*#?\s*(\d{2})/i);
+    var stateCode = apiMatch ? apiMatch[1] : '';
+    var apiStates = {'42':'TX','30':'NM','33':'ND','35':'OK','05':'CA','08':'CO','19':'LA','25':'MT','49':'WY','43':'UT','15':'KS','37':'PA','01':'AL','02':'AK','21':'MS','07':'FL','32':'NY','46':'SD','44':'VT','47':'VA','48':'WV'};
+    var state = apiStates[stateCode] || '';
+    // Lat/Long
+    var latMatch = fullText.match(/Lat:\s*([\d.-]+)/i);
+    var longMatch = fullText.match(/Long:\s*([\d.-]+)/i);
+    return {
+        wellName: wellName,
+        county: county,
+        state: state,
+        countyFull: county + (state ? ', ' + state : ''),
+        lat: latMatch ? latMatch[1] : '',
+        lng: longMatch ? longMatch[1] : '',
+        api: fullText.match(/API\s*#?\s*(\d+)/i) ? fullText.match(/API\s*#?\s*(\d+)/i)[1] : ''
+    };
+}
+function applyWellSiteData(data) {
+    // Set well name in profile
+    if (data.wellName) {
+        profileData.wellName = data.wellName;
+        var wellInput = document.getElementById('well-name');
+        if (wellInput) wellInput.value = data.wellName;
+        var headerWell = document.getElementById('header-well');
+        if (headerWell) headerWell.textContent = data.wellName;
+        saveProfile();
+    }
+    // Set county in timecard config
+    if (data.countyFull) {
+        tcConfig.county = data.countyFull;
+        var countyInput = document.getElementById('tc-county');
+        if (countyInput) countyInput.value = data.countyFull;
+        localStorage.setItem('ipsTcConfig', JSON.stringify(tcConfig));
+        if (typeof tcUpdateDefaultsBadge === 'function') tcUpdateDefaultsBadge();
+    }
+    // Show success in results container
+    var html = '<div class="chat-feed-results"><div class="chat-feed-results-header">';
+    html += '<span class="chat-feed-results-title">✓ Well Data Applied</span>';
+    html += '<span class="chat-feed-results-count">WellSite Navigator</span></div>';
+    html += '<div class="chat-feed-results-body"><div class="chat-feed-record">';
+    html += '<div class="chat-feed-field-grid">';
+    html += '<div class="chat-feed-field"><span class="chat-feed-field-label">Well</span><span class="chat-feed-field-value" style="color:#4fc3f7">' + data.wellName + '</span></div>';
+    if (data.countyFull) html += '<div class="chat-feed-field"><span class="chat-feed-field-label">County</span><span class="chat-feed-field-value">' + data.countyFull + '</span></div>';
+    if (data.api) html += '<div class="chat-feed-field"><span class="chat-feed-field-label">API</span><span class="chat-feed-field-value">' + data.api + '</span></div>';
+    if (data.lat && data.lng) html += '<div class="chat-feed-field"><span class="chat-feed-field-label">Coords</span><span class="chat-feed-field-value">' + data.lat + ', ' + data.lng + '</span></div>';
+    html += '</div></div></div></div>';
+    document.getElementById('cf-results-container').innerHTML = html;
+    // Toast
+    var toast = document.createElement('div');
+    toast.textContent = '📍 ' + data.wellName + ' — ' + data.countyFull;
+    toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1565c0;color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;max-width:90%;text-align:center';
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 3000);
+}
 function processChatFeed() {
     let text = '';
     
@@ -6288,10 +6384,16 @@ function processChatFeed() {
         if (!text) { alert('Paste some chat text first'); return; }
     } else {
         if (!chatFeedImageData) { alert('Upload a screenshot first'); return; }
-        // For image mode, show a message that OCR needs AI API
-        // For now, prompt user to manually transcribe or use paste mode
         alert('Screenshot processing requires an AI vision API (coming soon).\n\nFor now, copy the text from the chat and use Paste mode.');
         switchChatFeedTab('paste');
+        return;
+    }
+    
+    // Check for WellSite Navigator format first
+    var wsnResult = parseWellSiteNavigator(text);
+    if (wsnResult) {
+        applyWellSiteData(wsnResult);
+        document.getElementById('cf-text-input').value = '';
         return;
     }
     
