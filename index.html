@@ -818,7 +818,16 @@
                     <span class="settings-acc-chevron">▼</span>
                 </div>
                 <div class="settings-acc-body">
-                    <div style="font-size:11px;color:#888;margin-bottom:10px">Upload the blank AES timesheet with your rates already filled in. The app will use it as a template when generating timecards.</div>
+                    <div style="font-size:10px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Personal Info</div>
+                    <div class="profile-input-group"><label>LLC / Company Name</label><input type="text" id="profile-llc-input" placeholder="e.g. JB Consulting Services LLC" oninput="savePersonalInfo()"></div>
+                    <div class="profile-input-group"><label>Street Address</label><input type="text" id="profile-address-input" placeholder="e.g. 3001 Harvest Hills Ave #377" oninput="savePersonalInfo()"></div>
+                    <div style="display:flex;gap:8px">
+                        <div class="profile-input-group" style="flex:1"><label>City, State, ZIP</label><input type="text" id="profile-citystzip-input" placeholder="e.g. Williston, ND 58801" oninput="savePersonalInfo()"></div>
+                        <div class="profile-input-group" style="flex:1"><label>Phone #</label><input type="text" id="profile-phone-input" placeholder="e.g. 7013343904" oninput="savePersonalInfo()"></div>
+                    </div>
+                    <hr style="border:none;border-top:1px solid #2d4a6f;margin:10px 0">
+                    <div style="font-size:10px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Template</div>
+                    <div style="font-size:11px;color:#888;margin-bottom:10px">Upload the blank AES timesheet with your rates already filled in.</div>
                     <div id="tc-template-status" style="padding:10px 12px;background:#1b2838;border-radius:6px;margin-bottom:10px;border:1px solid #2d4a6f;font-size:12px;color:#888">No template uploaded</div>
                     <input type="file" id="tc-template-upload" accept=".xlsx" style="display:none" onchange="tcHandleTemplateUpload(this)">
                     <button class="profile-action-btn" onclick="tcLoadExcelJSThenUpload()"><span class="action-icon">📄</span> Upload Timesheet Template</button>
@@ -1703,6 +1712,13 @@ function saveProfileData() {
     localStorage.setItem('ipsProfile', JSON.stringify(profileData));
     updateProfileButton();
 }
+function savePersonalInfo() {
+    profileData.llc = (document.getElementById('profile-llc-input')||{}).value || '';
+    profileData.address = (document.getElementById('profile-address-input')||{}).value || '';
+    profileData.cityStateZip = (document.getElementById('profile-citystzip-input')||{}).value || '';
+    profileData.phone = (document.getElementById('profile-phone-input')||{}).value || '';
+    saveProfileData();
+}
 function updateProfileButton() {
     const btn = document.getElementById('profile-btn');
     if (profileData.name) {
@@ -1721,6 +1737,10 @@ function updateProfileButton() {
 function openProfileModal() {
     document.getElementById('profile-name-input').value = profileData.name || '';
     document.getElementById('profile-well-input').value = profileData.wellName || '';
+    var llcEl = document.getElementById('profile-llc-input'); if (llcEl) llcEl.value = profileData.llc || '';
+    var addrEl = document.getElementById('profile-address-input'); if (addrEl) addrEl.value = profileData.address || '';
+    var csEl = document.getElementById('profile-citystzip-input'); if (csEl) csEl.value = profileData.cityStateZip || '';
+    var phEl = document.getElementById('profile-phone-input'); if (phEl) phEl.value = profileData.phone || '';
     updateInitialsPreview();
     renderPackerTreatedControls();
     loadTimecardConfigUI();
@@ -2441,7 +2461,7 @@ function tcUpdateTemplateStatus() {
     if (clearBtn) clearBtn.style.display = hasTemplate ? 'flex' : 'none';
 }
 function tcLogDay(type) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = tcLocalToday();
     const existing = tcLog.findIndex(e => e.date === today);
     const well = profileData.wellName || '';
     const county = ''; // user can edit later
@@ -2468,7 +2488,7 @@ function tcLogDay(type) {
     setTimeout(() => toast.remove(), 2000);
 }
 function tcLogDayCustom() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = tcLocalToday();
     const existing = tcLog.find(e => e.date === today);
     const w = prompt('Hours Worked:', existing ? existing.worked : '12');
     if (w === null) return;
@@ -2532,7 +2552,7 @@ function tcAddPastDay() {
     };
 }
 function tcUpdateTodayStatus() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = tcLocalToday();
     const entry = tcLog.find(e => e.date === today);
     const label = document.getElementById('tc-today-label');
     if (!label) return;
@@ -2543,6 +2563,10 @@ function tcUpdateTodayStatus() {
         label.textContent = 'Not logged yet';
         label.style.color = '#888';
     }
+}
+function tcLocalToday() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 let tcEditMode = false;
 function tcToggleEditMode() {
@@ -2565,7 +2589,6 @@ function tcRenderLog() {
         const d = new Date(e.date + 'T12:00:00');
         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
         const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const rigStr = e.rig || tcConfig.rig || '';
         let actions = '';
         if (tcEditMode) {
             actions = '<div class="tc-actions">' +
@@ -2577,7 +2600,7 @@ function tcRenderLog() {
             '<div class="tc-date">' + dayName + ' ' + dateStr + '</div>' +
             '<div class="tc-well" style="display:flex;flex-direction:column;gap:1px">' +
                 '<span>' + (e.well || '--') + '</span>' +
-                (rigStr ? '<span style="font-size:9px;color:#78909c">' + rigStr + '</span>' : '') +
+                '<span style="font-size:9px;color:#78909c">' + [e.operator || tcConfig.operator, e.rig || tcConfig.rig].filter(Boolean).join(' · ') + '</span>' +
             '</div>' +
             '<div class="tc-hours">' + e.worked + 'W/' + e.standby + 'S</div>' +
             actions + '</div>';
@@ -2834,11 +2857,24 @@ async function tcGenerateXLSX() {
     await wb.xlsx.load(buf);
     const ws = wb.getWorksheet('Job Sheet');
     if (!ws) { alert('Template missing "Job Sheet" tab.'); return null; }
+    // Helper: convert date string to Excel serial number
+    function dateToExcelSerial(dateStr) {
+        var d = new Date(dateStr + 'T12:00:00');
+        // Excel epoch is Jan 1 1900, but has the Lotus 1-2-3 bug (treats 1900 as leap year)
+        var epoch = new Date(1899, 11, 30, 0, 0, 0);
+        return Math.round((d - epoch) / 86400000);
+    }
     // Fill contractor info
     ws.getCell('C4').value = profileData.name || '';
+    ws.getCell('C5').value = profileData.llc || '';
+    ws.getCell('C6').value = profileData.address || '';
+    ws.getCell('C7').value = profileData.cityStateZip || '';
+    ws.getCell('C8').value = profileData.phone || '';
     // Pay period dates
-    ws.getCell('N6').value = new Date(startDate + 'T12:00:00');
-    ws.getCell('N7').value = new Date(endDate + 'T12:00:00');
+    ws.getCell('N6').value = dateToExcelSerial(startDate);
+    ws.getCell('N6').numFmt = 'mm/dd/yyyy';
+    ws.getCell('N7').value = dateToExcelSerial(endDate);
+    ws.getCell('N7').numFmt = 'mm/dd/yyyy';
     // Week data row mapping: week# -> [startRow, endRow] (7 rows each)
     var weekRows = { 1: [22,28], 2: [36,42], 3: [50,56], 4: [64,70] };
     // Group entries by week
@@ -2872,7 +2908,9 @@ async function tcGenerateXLSX() {
         for (var i = 0; i < wEntries.length && i < 7; i++) {
             var e = wEntries[i];
             var row = rowStart + i;
-            ws.getCell('B' + row).value = new Date(e.date + 'T12:00:00');
+            var dateCell = ws.getCell('B' + row);
+            dateCell.value = dateToExcelSerial(e.date);
+            dateCell.numFmt = 'mm/dd/yyyy';
             ws.getCell('D' + row).value = e.operator || tcConfig.operator || '';
             ws.getCell('E' + row).value = e.well || '';
             ws.getCell('F' + row).value = e.rig || tcConfig.rig || '';
