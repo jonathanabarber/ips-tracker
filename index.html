@@ -821,7 +821,7 @@
                     <div style="font-size:11px;color:#888;margin-bottom:10px">Upload the blank AES timesheet with your rates already filled in. The app will use it as a template when generating timecards.</div>
                     <div id="tc-template-status" style="padding:10px 12px;background:#1b2838;border-radius:6px;margin-bottom:10px;border:1px solid #2d4a6f;font-size:12px;color:#888">No template uploaded</div>
                     <input type="file" id="tc-template-upload" accept=".xlsx" style="display:none" onchange="tcHandleTemplateUpload(this)">
-                    <button class="profile-action-btn" onclick="document.getElementById('tc-template-upload').click()"><span class="action-icon">📄</span> Upload Timesheet Template</button>
+                    <button class="profile-action-btn" onclick="tcLoadExcelJSThenUpload()"><span class="action-icon">📄</span> Upload Timesheet Template</button>
                     <button class="profile-action-btn" onclick="tcClearTemplate()" style="border-color:#c62828;color:#ef5350;display:none" id="tc-template-clear-btn"><span class="action-icon">🗑️</span> Remove Template</button>
                     <hr style="border:none;border-top:1px solid #2d4a6f;margin:12px 0">
                     <div style="font-size:11px;color:#888;margin-bottom:8px">These fields auto-fill when logging days. Edit per entry if needed.</div>
@@ -2358,26 +2358,47 @@ function loadTimecardConfigUI() {
     f('tc-operator','operator'); f('tc-rig','rig'); f('tc-county','county');
     tcUpdateTemplateStatus();
 }
+async function tcLoadExcelJSThenUpload() {
+    if (typeof ExcelJS === 'undefined') {
+        try {
+            await new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+                s.onload = res; s.onerror = rej;
+                document.head.appendChild(s);
+            });
+        } catch(e) { alert('Failed to load library. Check your internet connection.'); return; }
+    }
+    document.getElementById('tc-template-upload').click();
+}
 function tcHandleTemplateUpload(input) {
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         const data = new Uint8Array(e.target.result);
-        const b64 = btoa(String.fromCharCode.apply(null, data));
+        // Convert to base64 in chunks to avoid stack overflow
+        var binStr = '';
+        var chunkSize = 8192;
+        for (var ci = 0; ci < data.length; ci += chunkSize) {
+            var chunk = data.subarray(ci, Math.min(ci + chunkSize, data.length));
+            binStr += String.fromCharCode.apply(null, chunk);
+        }
+        const b64 = btoa(binStr);
         try {
             localStorage.setItem('ipsTcTemplate', b64);
             tcConfig.templateName = file.name;
-            // Extract rates from Rate Sheet using SheetJS
+            // Extract rates from Rate Sheet using ExcelJS
             try {
-                if (typeof XLSX !== 'undefined') {
-                    const wb = XLSX.read(data, { type: 'array' });
-                    const rs = wb.Sheets['Rate Sheet'];
+                if (typeof ExcelJS !== 'undefined') {
+                    const ewb = new ExcelJS.Workbook();
+                    await ewb.xlsx.load(e.target.result);
+                    const rs = ewb.getWorksheet('Rate Sheet');
                     if (rs) {
-                        if (rs['C5']) tcConfig.extractedRegRate = parseFloat(rs['C5'].v) || 0;
-                        if (rs['C6']) tcConfig.extractedOtRate = parseFloat(rs['C6'].v) || 0;
-                        if (rs['C7']) tcConfig.extractedDayRate = parseFloat(rs['C7'].v) || 0;
-                        if (rs['C9']) tcConfig.extractedPerDiem = parseFloat(rs['C9'].v) || 0;
+                        var v5 = rs.getCell('C5').value; tcConfig.extractedRegRate = (typeof v5 === 'object' && v5 !== null) ? parseFloat(v5.result || 0) : parseFloat(v5) || 0;
+                        var v6 = rs.getCell('C6').value; tcConfig.extractedOtRate = (typeof v6 === 'object' && v6 !== null) ? parseFloat(v6.result || 0) : parseFloat(v6) || 0;
+                        var v7 = rs.getCell('C7').value; tcConfig.extractedDayRate = (typeof v7 === 'object' && v7 !== null) ? parseFloat(v7.result || 0) : parseFloat(v7) || 0;
+                        var v9 = rs.getCell('C9').value; tcConfig.extractedPerDiem = (typeof v9 === 'object' && v9 !== null) ? parseFloat(v9.result || 0) : parseFloat(v9) || 0;
                     }
                 }
             } catch(ex) { console.log('Rate extraction skipped:', ex); }
@@ -2785,101 +2806,85 @@ function tcEmailTimecard() {
     });
 }
 async function tcGenerateXLSX() {
-    // Load SheetJS if not loaded
-    if (typeof XLSX === 'undefined') {
+    // Load ExcelJS if not loaded
+    if (typeof ExcelJS === 'undefined') {
         try {
             await new Promise((res, rej) => {
                 const s = document.createElement('script');
-                s.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
                 s.onload = res; s.onerror = rej;
                 document.head.appendChild(s);
             });
         } catch(e) { alert('Failed to load spreadsheet library'); return null; }
     }
+    // Load template from localStorage
+    const templateB64 = localStorage.getItem('ipsTcTemplate');
+    if (!templateB64) { alert('No timesheet template uploaded. Go to Settings → Timecard to upload your AES template.'); return null; }
     const startDate = document.getElementById('tc-start-date').value;
     const endDate = document.getElementById('tc-end-date').value;
     const entries = tcLog.filter(e => e.date >= startDate && e.date <= endDate);
-    const regRate = tcConfig.regRate || 0;
-    const otRate = tcConfig.otRate || 0;
-    const dayRate = tcConfig.dayRate || 0;
-    const perDiem = tcConfig.perDiem || 0;
-    // Build Job Sheet data
-    const rows = [];
-    rows.push(['', 'EARNINGS SUMMARY']);
-    rows.push(['', 'CONTRACTOR INFORMATION', '', '', '', '', '', '', '', '', '', '', 'JOB LOCATION INFORMATION']);
-    rows.push([]);
-    rows.push(['', 'YOUR NAME', profileData.name || '', '', '', '', '', '', '', '', '', '', 'Directional Company', tcConfig.operator || '']);
-    rows.push(['', 'YOUR LLC', 'JB Consulting Services LLC', '', '', '', '', '', '', '', '', '', '', 'Completions']);
-    rows.push(['', 'STREET ADDRESS', '', '', '', '', '', '', '', '', '', '', 'PAY PERIOD START', startDate]);
-    rows.push(['', 'CITY, STATE, ZIP', '', '', '', '', '', '', '', '', '', '', 'PAY PERIOD END', endDate]);
-    rows.push(['', 'PHONE #', '7013343904']);
-    rows.push([]);
-    rows.push(['', '', '', '', '', '', '', '', '', '', '', '', 'SUPERVISOR INFORMATION']);
-    rows.push(['', '', '', '', '', '', '', '', '', '', '', '', 'NAME', tcConfig.superName || '']);
-    rows.push(['', '', '', '', '', '', '', '', '', '', '', '', 'EMAIL', tcConfig.superEmail || '']);
-    rows.push(['', '', '', '', '', '', '', '', '', '', '', '', 'PHONE', tcConfig.superPhone || '']);
-    rows.push([]);
-    // Group into weeks
-    const weeks = {};
-    entries.forEach(e => {
-        const wk = tcGetWeekNum(e.date, startDate);
-        if (wk < 1 || wk > 4) return;
-        if (!weeks[wk]) weeks[wk] = [];
-        weeks[wk].push(e);
-    });
-    let grandRegPay = 0, grandOtPay = 0, grandBonus = 0, grandPerDiem = 0;
-    for (let w = 1; w <= 4; w++) {
-        const wEntries = weeks[w] || [];
-        rows.push([]);
-        rows.push(['WEEK ' + w, 'DATE', 'DAY', 'Operating Company', 'WELL NAME', 'Rig Name', 'Job #', 'COUNTY & STATE', 'Hours Worked', 'Hours Standby', 'Hours Not Working', 'Total Hours', '', '', '', 'PER DIEM ($)']);
-        rows.push([]);
-        let weekWorked = 0, weekStandby = 0, weekPerDiem = 0;
-        for (let i = 0; i < 7; i++) {
-            const e = wEntries[i];
-            if (e) {
-                const d = new Date(e.date + 'T12:00:00');
-                const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
-                const total = e.worked + e.standby;
-                const pd = total > 0 ? perDiem : 0;
-                weekWorked += e.worked; weekStandby += e.standby; weekPerDiem += pd;
-                rows.push(['', e.date, dayName, e.operator || tcConfig.operator || '', e.well || '', e.rig || tcConfig.rig || '', '', e.county || '', e.worked, e.standby, e.notWorking || 0, total, '', '', '', pd]);
-            } else {
-                rows.push([]);
-            }
+    if (!entries.length) { alert('No entries in selected date range.'); return null; }
+    // Decode base64 template to ArrayBuffer
+    const raw = atob(templateB64);
+    const buf = new ArrayBuffer(raw.length);
+    const view = new Uint8Array(buf);
+    for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
+    // Load workbook with ExcelJS
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf);
+    const ws = wb.getWorksheet('Job Sheet');
+    if (!ws) { alert('Template missing "Job Sheet" tab.'); return null; }
+    // Fill contractor info
+    ws.getCell('C4').value = profileData.name || '';
+    // Pay period dates
+    ws.getCell('N6').value = new Date(startDate + 'T12:00:00');
+    ws.getCell('N7').value = new Date(endDate + 'T12:00:00');
+    // Week data row mapping: week# -> [startRow, endRow] (7 rows each)
+    var weekRows = { 1: [22,28], 2: [36,42], 3: [50,56], 4: [64,70] };
+    // Group entries by week
+    var weeks = {};
+    entries.forEach(function(e) {
+        var wk = tcGetWeekNum(e.date, startDate);
+        if (wk >= 1 && wk <= 4) {
+            if (!weeks[wk]) weeks[wk] = [];
+            weeks[wk].push(e);
         }
-        const weekTotal = weekWorked + weekStandby;
-        const regHrs = Math.min(weekTotal, 40);
-        const otHrs = Math.max(weekTotal - 40, 0);
-        const regPay = regRate * regHrs;
-        const otPay = otRate * otHrs;
-        const billableDays = wEntries.reduce((sum, e) => { const t = e.worked + e.standby; return sum + (t >= 24 ? 1 : t >= 12 ? 0.5 : 0); }, 0);
-        const maxBonus = dayRate * billableDays;
-        const perfBonus = Math.max(maxBonus - regPay - otPay, 0);
-        grandRegPay += regPay; grandOtPay += otPay; grandBonus += perfBonus; grandPerDiem += weekPerDiem;
-        rows.push(['', '', '', '', '', '', '', 'TOTALS', weekWorked, weekStandby, '', weekTotal, '', '', '', weekPerDiem]);
-        rows.push(['', 'Regular Rate:', '', regRate, 'Regular Hours', '', regHrs, 'Regular Pay', regPay.toFixed(2), '', 'Weekly Performance Bonus', perfBonus.toFixed(2)]);
-        rows.push(['', 'Overtime Rate:', '', otRate, 'Overtime Hours', '', otHrs, 'Overtime Pay', otPay.toFixed(2)]);
+    });
+    // Fill each week's data rows
+    for (var w = 1; w <= 4; w++) {
+        var wEntries = weeks[w] || [];
+        var rowStart = weekRows[w][0];
+        var rowEnd = weekRows[w][1];
+        // Clear all 7 data rows first (preserve formulas in C, L, O, P, Q, T)
+        for (var r = rowStart; r <= rowEnd; r++) {
+            ws.getCell('B' + r).value = null;  // date
+            ws.getCell('D' + r).value = null;  // operator
+            ws.getCell('E' + r).value = null;  // well
+            ws.getCell('F' + r).value = null;  // rig
+            ws.getCell('G' + r).value = null;  // job #
+            ws.getCell('H' + r).value = null;  // county
+            ws.getCell('I' + r).value = null;  // hours worked
+            ws.getCell('J' + r).value = null;  // hours standby
+            ws.getCell('K' + r).value = null;  // hours not working
+            // C (day name formula), L (total formula), O/P/Q/T (calc formulas) left alone
+        }
+        // Fill entries into rows
+        for (var i = 0; i < wEntries.length && i < 7; i++) {
+            var e = wEntries[i];
+            var row = rowStart + i;
+            ws.getCell('B' + row).value = new Date(e.date + 'T12:00:00');
+            ws.getCell('D' + row).value = e.operator || tcConfig.operator || '';
+            ws.getCell('E' + row).value = e.well || '';
+            ws.getCell('F' + row).value = e.rig || tcConfig.rig || '';
+            ws.getCell('H' + row).value = e.county || tcConfig.county || '';
+            ws.getCell('I' + row).value = e.worked || 0;
+            ws.getCell('J' + row).value = e.standby || 0;
+            ws.getCell('K' + row).value = e.notWorking || 0;
+        }
     }
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    // Set column widths
-    ws['!cols'] = [{wch:8},{wch:14},{wch:14},{wch:14},{wch:20},{wch:12},{wch:10},{wch:14},{wch:12},{wch:12},{wch:14},{wch:10},{wch:6},{wch:10},{wch:8},{wch:10}];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Job Sheet');
-    // Rate Sheet
-    const rateRows = [
-        ['', 'UPSTREAM CONSULTANT RATES'],
-        ['', 'CONSULTANT:', profileData.name || ''],
-        [],
-        ['', 'NET ST RATE TO CONSULTANT:', regRate],
-        ['', 'NET OT RATE TO CONSULTANT:', otRate],
-        ['', 'AVERAGE RATE:', dayRate],
-        [],
-        ['', 'PER DIEM ($)', perDiem],
-    ];
-    const ws2 = XLSX.utils.aoa_to_sheet(rateRows);
-    XLSX.utils.book_append_sheet(wb, ws2, 'Rate Sheet');
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    return new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    // Write to buffer
+    var outBuf = await wb.xlsx.writeBuffer();
+    return new Blob([outBuf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
 function switchWBTab(tab) {
