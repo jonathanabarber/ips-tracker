@@ -2940,6 +2940,10 @@ async function tcGenerateXLSX() {
         var s = (t - ep) / 86400000;
         return s >= 60 ? s + 1 : s;
     }
+    function getDayName(ds) {
+        var d = new Date(ds + 'T12:00:00');
+        return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+    }
     // Fill contractor info
     setCell('C4', profileData.name || '', 's');
     setCell('C5', profileData.llc || '', 's');
@@ -2963,6 +2967,7 @@ async function tcGenerateXLSX() {
             var e = wEntries[ri];
             if (e) {
                 setCell('B'+r, dateToSerial(e.date), 'n');
+                setCell('C'+r, getDayName(e.date), 's');
                 setCell('D'+r, e.operator || tcConfig.operator || '', 's');
                 setCell('E'+r, e.well || '', 's');
                 setCell('F'+r, e.rig || tcConfig.rig || '', 's');
@@ -2972,6 +2977,7 @@ async function tcGenerateXLSX() {
                 setCell('K'+r, e.notWorking || 0, 'n');
             } else {
                 setCell('B'+r, null, 'n');
+                setCell('C'+r, null, 's');
                 setCell('D'+r, null, 's');
                 setCell('E'+r, null, 's');
                 setCell('F'+r, null, 's');
@@ -2985,6 +2991,8 @@ async function tcGenerateXLSX() {
     finalizeSS();
     zip.file('xl/worksheets/sheet1.xml', xml);
     if (ssFile) zip.file('xl/sharedStrings.xml', ss);
+    // Remove calcChain to prevent recovery from recalculating overwritten formula cells
+    zip.remove('xl/calcChain.xml');
     var outBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     return outBlob;
 }
