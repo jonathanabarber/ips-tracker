@@ -1445,7 +1445,8 @@ RIH Wt: 50K
         </div>
         <div class="tc-preview-body" id="tc-preview-body"></div>
         <div style="padding:12px 20px;background:#1b2838;border-top:1px solid #2d4a6f;display:flex;gap:8px;flex-shrink:0">
-            <button class="tc-log-btn" style="background:#2e7d32;color:white;flex:1;margin:0" onclick="tcApproveAndShare()">✅ Approve & Share</button>
+            <button class="tc-log-btn" style="background:#2e7d32;color:white;flex:1;margin:0" onclick="tcApproveAndShare()">⬇️ Download</button>
+            <button class="tc-log-btn" style="background:#1565c0;color:white;flex:1;margin:0" onclick="tcEmailTimecard()">✉️ Email</button>
         </div>
     </div>
 
@@ -2522,22 +2523,60 @@ function tcPreviewTimecard() {
     document.body.style.overflow = 'hidden';
 }
 function tcApproveAndShare() {
-    // Generate XLSX and share
     tcGenerateXLSX().then(blob => {
         if (!blob) return;
         const startDate = document.getElementById('tc-start-date').value;
         const endDate = document.getElementById('tc-end-date').value;
         const fileName = (profileData.name || 'Timecard').replace(/\s+/g, '_') + '_' + startDate + '_to_' + endDate + '.xlsx';
-        const file = new File([blob], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            navigator.share({ title: 'Timecard - ' + (profileData.name || ''), files: [file] }).catch(() => {});
-        } else {
-            // Fallback: download
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = fileName; a.click();
-            URL.revokeObjectURL(url);
-        }
+        // Always download first
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        // Close preview
+        document.getElementById('tc-preview-overlay').classList.remove('show');
+        document.body.style.overflow = '';
+        // Try native share after a short delay
+        setTimeout(() => {
+            try {
+                const file = new File([blob], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({ title: 'Timecard - ' + (profileData.name || ''), files: [file] }).catch(() => {});
+                }
+            } catch(e) {}
+        }, 500);
+        // Toast
+        const toast = document.createElement('div');
+        toast.innerHTML = '📄 <b>' + fileName + '</b> downloaded.<br><span style="font-size:11px;color:#aaa">Check your Downloads folder to email it.</span>';
+        toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1b2838;border:1px solid #4fc3f7;color:white;padding:14px 20px;border-radius:10px;font-size:13px;z-index:999;max-width:90%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.5)';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+    });
+}
+function tcEmailTimecard() {
+    // Download first, then open email
+    tcGenerateXLSX().then(blob => {
+        if (!blob) return;
+        const startDate = document.getElementById('tc-start-date').value;
+        const endDate = document.getElementById('tc-end-date').value;
+        const fileName = (profileData.name || 'Timecard').replace(/\s+/g, '_') + '_' + startDate + '_to_' + endDate + '.xlsx';
+        // Download the file
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        // Open mailto
+        const to = tcConfig.submitEmail || '';
+        const subject = encodeURIComponent('Timecard - ' + (profileData.name || '') + ' - ' + startDate + ' to ' + endDate);
+        const body = encodeURIComponent('Please find my timecard attached for the period ' + startDate + ' to ' + endDate + '.\n\nFile: ' + fileName + '\n\n(Please attach the downloaded file from your Downloads folder)');
+        window.location.href = 'mailto:' + to + '?subject=' + subject + '&body=' + body;
+        // Close preview
         document.getElementById('tc-preview-overlay').classList.remove('show');
         document.body.style.overflow = '';
     });
