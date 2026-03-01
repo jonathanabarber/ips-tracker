@@ -2379,11 +2379,11 @@ function loadTimecardConfigUI() {
     tcUpdateTemplateStatus();
 }
 async function tcLoadExcelJSThenUpload() {
-    if (typeof ExcelJS === 'undefined') {
+    if (typeof JSZip === 'undefined') {
         try {
-            await new Promise((res, rej) => {
-                const s = document.createElement('script');
-                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+            await new Promise(function(res, rej) {
+                var s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
                 s.onload = res; s.onerror = rej;
                 document.head.appendChild(s);
             });
@@ -2397,7 +2397,6 @@ function tcHandleTemplateUpload(input) {
     const reader = new FileReader();
     reader.onload = async function(e) {
         const data = new Uint8Array(e.target.result);
-        // Convert to base64 in chunks to avoid stack overflow
         var binStr = '';
         var chunkSize = 8192;
         for (var ci = 0; ci < data.length; ci += chunkSize) {
@@ -2408,18 +2407,20 @@ function tcHandleTemplateUpload(input) {
         try {
             localStorage.setItem('ipsTcTemplate', b64);
             tcConfig.templateName = file.name;
-            // Extract rates from Rate Sheet using ExcelJS
+            // Extract rates from Rate Sheet using JSZip
             try {
-                if (typeof ExcelJS !== 'undefined') {
-                    const ewb = new ExcelJS.Workbook();
-                    await ewb.xlsx.load(e.target.result);
-                    const rs = ewb.getWorksheet('Rate Sheet');
-                    if (rs) {
-                        var v5 = rs.getCell('C5').value; tcConfig.extractedRegRate = (typeof v5 === 'object' && v5 !== null) ? parseFloat(v5.result || 0) : parseFloat(v5) || 0;
-                        var v6 = rs.getCell('C6').value; tcConfig.extractedOtRate = (typeof v6 === 'object' && v6 !== null) ? parseFloat(v6.result || 0) : parseFloat(v6) || 0;
-                        var v7 = rs.getCell('C7').value; tcConfig.extractedDayRate = (typeof v7 === 'object' && v7 !== null) ? parseFloat(v7.result || 0) : parseFloat(v7) || 0;
-                        var v9 = rs.getCell('C9').value; tcConfig.extractedPerDiem = (typeof v9 === 'object' && v9 !== null) ? parseFloat(v9.result || 0) : parseFloat(v9) || 0;
+                var zip = await JSZip.loadAsync(e.target.result);
+                var rsFile = zip.file('xl/worksheets/sheet2.xml');
+                if (rsFile) {
+                    var rsXml = await rsFile.async('string');
+                    function getCellVal(xml, ref) {
+                        var m = xml.match(new RegExp('<c r="' + ref + '"[^>]*><v>([^<]*)</v></c>'));
+                        return m ? parseFloat(m[1]) || 0 : 0;
                     }
+                    tcConfig.extractedRegRate = getCellVal(rsXml, 'C5');
+                    tcConfig.extractedOtRate = getCellVal(rsXml, 'C6');
+                    tcConfig.extractedDayRate = getCellVal(rsXml, 'C7');
+                    tcConfig.extractedPerDiem = getCellVal(rsXml, 'C9');
                 }
             } catch(ex) { console.log('Rate extraction skipped:', ex); }
             localStorage.setItem('ipsTcConfig', JSON.stringify(tcConfig));
@@ -2832,36 +2833,82 @@ async function tcGenerateXLSX() {
     // Load JSZip if not loaded
     if (typeof JSZip === 'undefined') {
         try {
-            await new Promise((res, rej) => {
-                const s = document.createElement('script');
+            await new Promise(function(res, rej) {
+                var s = document.createElement('script');
                 s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
                 s.onload = res; s.onerror = rej;
                 document.head.appendChild(s);
             });
-        } catch(e) { alert('Failed to load spreadsheet library'); return null; }
+        } catch(e) { alert('Failed to load library'); return null; }
     }
-    // Load template from localStorage
     var templateB64 = localStorage.getItem('ipsTcTemplate');
-    if (!templateB64) { alert('No timesheet template uploaded. Go to Settings → Timecard to upload your AES template.'); return null; }
+    if (!templateB64) { alert('No timesheet template uploaded. Go to Settings → Timecard to upload.'); return null; }
     var startDate = document.getElementById('tc-start-date').value;
     var endDate = document.getElementById('tc-end-date').value;
     var entries = tcLog.filter(function(e) { return e.date >= startDate && e.date <= endDate; });
     if (!entries.length) { alert('No entries in selected date range.'); return null; }
-    // Decode base64 to binary
+    // Decode template
     var raw = atob(templateB64);
     var buf = new Uint8Array(raw.length);
     for (var i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
-    // Load as zip
     var zip = await JSZip.loadAsync(buf);
     var sheetFile = zip.file('xl/worksheets/sheet1.xml');
-    if (!sheetFile) { alert('Template missing sheet1.xml'); return null; }
+    if (!sheetFile) { alert('Template missing sheet data'); return null; }
     var xml = await sheetFile.async('string');
-    // Cell editing function - surgically replaces cell values, preserves styles
+    var ssFile = zip.file('xl/sharedStrings.xml');
+    var ss = ssFile ? await ssFile.async('string') : '';
+    // Parse shared strings
+    var ssCountMatch = ss.match(/count="(\d+)" uniqueCount="(\d+)"/);
+    var ssTotal = ssCountMatch ? parseInt(ssCountMatch[1]) : 0;
+    var ssUnique = ssCountMatch ? parseInt(ssCountMatch[2]) : 0;
+    var newStrings = [];
+    var newStringMap = {};
+    function addSS(str) {
+        var esc = String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        // Check new strings cache first
+        if (newStringMap[esc] !== undefined) return newStringMap[esc];
+        // Check existing shared strings
+        var searchTag = '<t>' + esc + '</t>';
+        var pos = ss.indexOf(searchTag);
+        if (pos >= 0) {
+            // Count which <si> index this is
+            var before = ss.substring(0, pos);
+            var idx = (before.match(/<si>/g) || []).length - 1;
+            if (idx < 0) idx = 0;
+            // Verify by counting <si> tags
+            var siCount = 0;
+            var siRe = /<si>/g;
+            var m;
+            while ((m = siRe.exec(ss)) !== null) {
+                var tStart = ss.indexOf('<t>', m.index);
+                var tEnd = ss.indexOf('</t>', tStart);
+                if (tStart >= 0 && tEnd >= 0 && ss.substring(tStart+3, tEnd) === esc) {
+                    newStringMap[esc] = siCount;
+                    return siCount;
+                }
+                siCount++;
+            }
+        }
+        // Add new
+        var newIdx = ssUnique + newStrings.length;
+        newStrings.push(esc);
+        newStringMap[esc] = newIdx;
+        return newIdx;
+    }
+    function finalizeSS() {
+        if (!newStrings.length) return;
+        var nt = ssTotal + newStrings.length;
+        var nu = ssUnique + newStrings.length;
+        ss = ss.replace(/count="\d+" uniqueCount="\d+"/, 'count="' + nt + '" uniqueCount="' + nu + '"');
+        var ins = ss.lastIndexOf('</sst>');
+        var adds = newStrings.map(function(s) { return '<si><t>' + s + '</t></si>'; }).join('');
+        ss = ss.substring(0, ins) + adds + ss.substring(ins);
+    }
+    // Cell editor - preserves styles, uses shared strings for text
     function setCell(ref, value, type) {
         var marker = '<c r="' + ref + '"';
         var start = xml.indexOf(marker);
         if (start < 0) return;
-        // Find end: self-closing /> or content </c>
         var chunk = xml.substring(start, start + 500);
         var selfIdx = chunk.indexOf('/>');
         var gtIdx = chunk.indexOf('>');
@@ -2875,16 +2922,16 @@ async function tcGenerateXLSX() {
         var oldCell = xml.substring(start, end);
         var sm = oldCell.match(/s="([^"]*)"/);
         var style = sm ? ' s="' + sm[1] + '"' : '';
-        var newCell;
-        if (type === 's' && value !== '' && value != null) {
-            var esc = String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-            newCell = '<c r="' + ref + '"' + style + ' t="inlineStr"><is><t>' + esc + '</t></is></c>';
-        } else if (value === '' || value == null) {
-            newCell = '<c r="' + ref + '"' + style + '/>';
+        var nc;
+        if (type === 's' && value && value !== '') {
+            var si = addSS(value);
+            nc = '<c r="' + ref + '"' + style + ' t="s"><v>' + si + '</v></c>';
+        } else if (value == null || value === '') {
+            nc = '<c r="' + ref + '"' + style + '/>';
         } else {
-            newCell = '<c r="' + ref + '"' + style + '><v>' + value + '</v></c>';
+            nc = '<c r="' + ref + '"' + style + '><v>' + value + '</v></c>';
         }
-        xml = xml.substring(0, start) + newCell + xml.substring(end);
+        xml = xml.substring(0, start) + nc + xml.substring(end);
     }
     function dateToSerial(ds) {
         var p = ds.split('-');
@@ -2899,7 +2946,6 @@ async function tcGenerateXLSX() {
     setCell('C6', profileData.address || '', 's');
     setCell('C7', profileData.cityStateZip || '', 's');
     setCell('C8', profileData.phone || '', 's');
-    // Pay period dates
     setCell('N6', dateToSerial(startDate), 'n');
     setCell('N7', dateToSerial(endDate), 'n');
     // Week row mapping
@@ -2912,7 +2958,6 @@ async function tcGenerateXLSX() {
     for (var w = 1; w <= 4; w++) {
         var wEntries = weeks[w] || [];
         var rowStart = weekRows[w][0];
-        var rowEnd = weekRows[w][1];
         for (var ri = 0; ri < 7; ri++) {
             var r = rowStart + ri;
             var e = wEntries[ri];
@@ -2937,9 +2982,11 @@ async function tcGenerateXLSX() {
             }
         }
     }
+    finalizeSS();
     zip.file('xl/worksheets/sheet1.xml', xml);
-    var outBuf = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    return outBuf;
+    if (ssFile) zip.file('xl/sharedStrings.xml', ss);
+    var outBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    return outBlob;
 }
 
 function switchWBTab(tab) {
