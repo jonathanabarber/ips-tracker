@@ -1102,8 +1102,8 @@
                     <div id="claude-api-status" style="padding:8px 12px;background:var(--bg-body);border-radius:6px;margin-bottom:10px;border:1px solid var(--border);font-size:12px;color:var(--text-secondary)">
                         No API key set
                     </div>
-                    <button class="profile-action-btn" onclick="testClaudeConnection()" id="claude-test-btn" style="border-color:#1565c0;color:var(--accent)"><span class="action-icon">🧪</span> Test Connection</button>
-                    <button class="profile-action-btn" onclick="openClaudeTestModal()" style="border-color:#2e7d32;color:#66bb6a"><span class="action-icon">💬</span> Test Chat Parser</button>
+                    <button class="profile-action-btn" onclick="testClaudeConnection()" id="claude-test-btn" style="border-color:#1565c0;color:var(--accent)">Test Connection</button>
+                    <button class="profile-action-btn" onclick="openClaudeTestModal()" style="border-color:#2e7d32;color:#66bb6a">Test Chat Parser</button>
                 </div>
             </div>
             <!-- Timecard Config -->
@@ -2240,11 +2240,14 @@ async function runClaudeTest() {
         ]);
 
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        const responseText = result.content?.[0]?.text || '';
+        let responseText = result.content?.[0]?.text || '';
 
         // Show raw response
         rawEl.style.display = 'block';
         rawOutputEl.textContent = responseText;
+
+        // Strip markdown code fences if present
+        responseText = responseText.replace(/^```json\s*/i, '').replace(/^```\s*/m, '').replace(/\s*```$/m, '').trim();
 
         // Try to parse JSON
         try {
@@ -2292,7 +2295,8 @@ async function runClaudeTest() {
 async function parseFieldMessage(text) {
     try {
         const result = await callClaudeAPI([{ role: 'user', content: text }]);
-        const responseText = result.content?.[0]?.text || '';
+        let responseText = result.content?.[0]?.text || '';
+        responseText = responseText.replace(/^```json\s*/i, '').replace(/^```\s*/m, '').replace(/\s*```$/m, '').trim();
         return JSON.parse(responseText);
     } catch (e) {
         console.error('[CLAUDE] Parse error:', e);
@@ -7615,7 +7619,7 @@ if ('serviceWorker' in navigator) {
     <div class="modal" id="claude-test-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg-modal-overlay);z-index:9999;justify-content:center;align-items:center">
         <div style="background:var(--bg-card);border-radius:12px;width:95%;max-width:500px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--bg-body);border-bottom:1px solid var(--border)">
-                <div style="font-size:16px;font-weight:700;color:var(--accent)">💬 Chat Parser Test</div>
+                <div style="font-size:16px;font-weight:700;color:var(--accent)">Chat Parser Test</div>
                 <button onclick="closeClaudeTestModal()" style="background:none;border:1px solid var(--border);color:var(--text-primary);width:32px;height:32px;border-radius:6px;font-size:16px;cursor:pointer">✕</button>
             </div>
             <div style="padding:14px 16px;overflow-y:auto;flex:1">
