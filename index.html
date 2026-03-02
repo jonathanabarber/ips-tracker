@@ -22,7 +22,7 @@
     <style>
 
         /* ===== THEME SYSTEM ===== */
-        :root, [data-theme="midnight"] {
+        :root, [data-theme="default"] {
             --bg-body: #1b2838;
             --bg-deep: #0d1b2a;
             --bg-card: #243447;
@@ -51,7 +51,7 @@
             --plug-banner-bg: linear-gradient(135deg, #1a365d, #243447);
         }
 
-        [data-theme="light"] {
+        [data-theme="tyler"] {
             --bg-body: #f0f2f5;
             --bg-deep: #e2e6ea;
             --bg-card: #ffffff;
@@ -80,7 +80,7 @@
             --plug-banner-bg: linear-gradient(135deg, #e8ecf1, #f0f2f5);
         }
 
-        [data-theme="slate"] {
+        [data-theme="oleary"] {
             --bg-body: #2d3142;
             --bg-deep: #222535;
             --bg-card: #3a3e52;
@@ -109,7 +109,7 @@
             --plug-banner-bg: linear-gradient(135deg, #363a4e, #3a3e52);
         }
 
-        [data-theme="desert"] {
+        [data-theme="mike"] {
             --bg-body: #2c2218;
             --bg-deep: #211a12;
             --bg-card: #3a2f22;
@@ -138,7 +138,7 @@
             --plug-banner-bg: linear-gradient(135deg, #3a2a18, #3a2f22);
         }
 
-        [data-theme="highcontrast"] {
+        [data-theme="cory"] {
             --bg-body: #000000;
             --bg-deep: #0a0a0a;
             --bg-card: #1a1a1a;
@@ -544,13 +544,13 @@
         .theme-swatch-label { font-size:11px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.5px; }
 
         /* Light theme adjustments */
-        [data-theme="light"] .tank-card { box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-        [data-theme="light"] .profile-modal { background: var(--bg-card); }
-        [data-theme="light"] .profile-action-btn { border-color: var(--border) !important; }
-        [data-theme="light"] input, [data-theme="light"] select, [data-theme="light"] textarea { color: var(--text-primary); }
-        [data-theme="light"] .header-btn { background: rgba(255,255,255,0.15); color: #e0e0e0; }
-        [data-theme="light"] .room-users-badge .user-count { color: #fff; }
-        [data-theme="light"] .log-edit-modal { background: var(--bg-card); }
+        [data-theme="tyler"] .tank-card { box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        [data-theme="tyler"] .profile-modal { background: var(--bg-card); }
+        [data-theme="tyler"] .profile-action-btn { border-color: var(--border) !important; }
+        [data-theme="tyler"] input, [data-theme="tyler"] select, [data-theme="tyler"] textarea { color: var(--text-primary); }
+        [data-theme="tyler"] .header-btn { background: rgba(255,255,255,0.15); color: #e0e0e0; }
+        [data-theme="tyler"] .room-users-badge .user-count { color: #fff; }
+        [data-theme="tyler"] .log-edit-modal { background: var(--bg-card); }
 
         /* Matt theme adjustments */
         [data-theme="matt"] .tank-card { box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
@@ -1038,45 +1038,45 @@
                 <div class="settings-acc-body">
                     <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Color Theme</div>
                     <div id="theme-picker" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                        <button class="theme-swatch" data-theme="midnight" onclick="setTheme('midnight')">
+                        <button class="theme-swatch" data-theme="default" onclick="setTheme('default')">
                             <div class="theme-swatch-preview" style="background:#1b2838;border:2px solid #2d4a6f">
                                 <div style="height:4px;background:#0d1b2a;border-radius:2px;margin-bottom:3px"></div>
                                 <div style="display:flex;gap:3px"><div style="flex:1;height:8px;background:#243447;border-radius:2px"></div><div style="flex:1;height:8px;background:#243447;border-radius:2px"></div></div>
                                 <div style="height:3px;width:40%;background:#4fc3f7;border-radius:2px;margin-top:3px"></div>
                             </div>
-                            <span class="theme-swatch-label">Midnight</span>
+                            <span class="theme-swatch-label">Default</span>
                         </button>
-                        <button class="theme-swatch" data-theme="light" onclick="setTheme('light')">
+                        <button class="theme-swatch" data-theme="tyler" onclick="setTheme('tyler')">
                             <div class="theme-swatch-preview" style="background:#f0f2f5;border:2px solid #c8cdd5">
                                 <div style="height:4px;background:#1a2d45;border-radius:2px;margin-bottom:3px"></div>
                                 <div style="display:flex;gap:3px"><div style="flex:1;height:8px;background:#ffffff;border-radius:2px;border:1px solid #dde1e8"></div><div style="flex:1;height:8px;background:#ffffff;border-radius:2px;border:1px solid #dde1e8"></div></div>
                                 <div style="height:3px;width:40%;background:#0277bd;border-radius:2px;margin-top:3px"></div>
                             </div>
-                            <span class="theme-swatch-label">Daylight</span>
+                            <span class="theme-swatch-label">Tyler</span>
                         </button>
-                        <button class="theme-swatch" data-theme="slate" onclick="setTheme('slate')">
+                        <button class="theme-swatch" data-theme="oleary" onclick="setTheme('oleary')">
                             <div class="theme-swatch-preview" style="background:#2d3142;border:2px solid #4a4f65">
                                 <div style="height:4px;background:#222535;border-radius:2px;margin-bottom:3px"></div>
                                 <div style="display:flex;gap:3px"><div style="flex:1;height:8px;background:#3a3e52;border-radius:2px"></div><div style="flex:1;height:8px;background:#3a3e52;border-radius:2px"></div></div>
                                 <div style="height:3px;width:40%;background:#7eb8da;border-radius:2px;margin-top:3px"></div>
                             </div>
-                            <span class="theme-swatch-label">Slate</span>
+                            <span class="theme-swatch-label">Oleary</span>
                         </button>
-                        <button class="theme-swatch" data-theme="desert" onclick="setTheme('desert')">
+                        <button class="theme-swatch" data-theme="mike" onclick="setTheme('mike')">
                             <div class="theme-swatch-preview" style="background:#2c2218;border:2px solid #5a4a35">
                                 <div style="height:4px;background:#211a12;border-radius:2px;margin-bottom:3px"></div>
                                 <div style="display:flex;gap:3px"><div style="flex:1;height:8px;background:#3a2f22;border-radius:2px"></div><div style="flex:1;height:8px;background:#3a2f22;border-radius:2px"></div></div>
                                 <div style="height:3px;width:40%;background:#d4915c;border-radius:2px;margin-top:3px"></div>
                             </div>
-                            <span class="theme-swatch-label">Desert</span>
+                            <span class="theme-swatch-label">Mike</span>
                         </button>
-                        <button class="theme-swatch" data-theme="highcontrast" onclick="setTheme('highcontrast')">
+                        <button class="theme-swatch" data-theme="cory" onclick="setTheme('cory')">
                             <div class="theme-swatch-preview" style="background:#000000;border:2px solid #444444">
                                 <div style="height:4px;background:#0a0a0a;border-radius:2px;margin-bottom:3px"></div>
                                 <div style="display:flex;gap:3px"><div style="flex:1;height:8px;background:#1a1a1a;border-radius:2px"></div><div style="flex:1;height:8px;background:#1a1a1a;border-radius:2px"></div></div>
                                 <div style="height:3px;width:40%;background:#00e5ff;border-radius:2px;margin-top:3px"></div>
                             </div>
-                            <span class="theme-swatch-label">High Contrast</span>
+                            <span class="theme-swatch-label">Cory</span>
                         </button>
                         <button class="theme-swatch" data-theme="matt" onclick="setTheme('matt')">
                             <div class="theme-swatch-preview" style="background:#c8ced8;border:2px solid #a0a8b8">
@@ -2058,14 +2058,14 @@ function setTheme(themeName) {
     // Update meta theme-color for mobile browser chrome
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
-        const themeColors = { midnight: '#0d1b2a', light: '#1a2d45', slate: '#222535', desert: '#211a12', highcontrast: '#0a0a0a', matt: '#2a3448' };
+        const themeColors = { default: '#0d1b2a', tyler: '#1a2d45', oleary: '#222535', mike: '#211a12', cory: '#0a0a0a', matt: '#2a3448' };
         metaTheme.content = themeColors[themeName] || '#0d1b2a';
     }
     console.log('[THEME] Set to:', themeName);
 }
 
 function loadTheme() {
-    const saved = localStorage.getItem('ips_theme') || 'midnight';
+    const saved = localStorage.getItem('ips_theme') || 'default';
     setTheme(saved);
 }
 
@@ -2082,7 +2082,7 @@ function openProfileModal() {
     const oi = document.getElementById('ble-offset-input');
     if (oi) { oi.value = bleOffsetInches; updateOffsetDisplay(); }
     // Highlight active theme swatch
-    const currentTheme = localStorage.getItem('ips_theme') || 'midnight';
+    const currentTheme = localStorage.getItem('ips_theme') || 'default';
     document.querySelectorAll('.theme-swatch').forEach(s => {
         s.classList.toggle('active', s.getAttribute('data-theme') === currentTheme);
     });
