@@ -948,7 +948,7 @@
     <div class="profile-modal-overlay" id="profile-modal">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:var(--bg-body);border-bottom:1px solid var(--border);flex-shrink:0">
             <span style="font-size:16px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px">⚙️ Settings</span>
-            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:var(--accent-version);letter-spacing:0.5px">v1.3.1</span>
+            <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:14px;font-weight:700;color:var(--accent-version);letter-spacing:0.5px">v1.4.0</span>
             <button onclick="closeProfileModal()" style="background:none;border:1px solid var(--border);color:var(--text-primary);width:36px;height:36px;border-radius:6px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
         <div class="profile-modal">
@@ -1087,6 +1087,23 @@
                             <span class="theme-swatch-label">Matt</span>
                         </button>
                     </div>
+
+                    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+                    <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">AI Chat Parser</div>
+                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Connect to Claude AI for smart parsing of field messages. Understands plug counts, depths, fluid volumes, and pressures in any format.</div>
+                    <div class="profile-input-group">
+                        <label>Anthropic API Key</label>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <input type="password" id="claude-api-key" placeholder="sk-ant-..." style="flex:1;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:14px;font-family:monospace" oninput="saveClaudeApiKey()">
+                            <button onclick="toggleApiKeyVis()" style="background:var(--btn-header);border:none;color:var(--text-primary);padding:8px 10px;border-radius:6px;font-size:12px;cursor:pointer">👁</button>
+                        </div>
+                        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Stored locally on this device only. Never shared.</div>
+                    </div>
+                    <div id="claude-api-status" style="padding:8px 12px;background:var(--bg-body);border-radius:6px;margin-bottom:10px;border:1px solid var(--border);font-size:12px;color:var(--text-secondary)">
+                        No API key set
+                    </div>
+                    <button class="profile-action-btn" onclick="testClaudeConnection()" id="claude-test-btn" style="border-color:#1565c0;color:var(--accent)"><span class="action-icon">🧪</span> Test Connection</button>
+                    <button class="profile-action-btn" onclick="openClaudeTestModal()" style="border-color:#2e7d32;color:#66bb6a"><span class="action-icon">💬</span> Test Chat Parser</button>
                 </div>
             </div>
             <!-- Timecard Config -->
@@ -2069,6 +2086,220 @@ function loadTheme() {
     setTheme(saved);
 }
 
+// ========== CLAUDE AI CHAT PARSER ==========
+// System prompt — gives Claude context about the operation (like Projects instructions)
+const CLAUDE_SYSTEM_PROMPT = `You are a data extraction assistant for an oilfield drilling operations app called IPS Tracker. You work on completions operations in the Permian Basin (West Texas).
+
+CONTEXT: The crew is performing frac plug drillout operations on horizontal production wells. They drill out composite frac plugs from cased hole using coiled tubing or workover rigs, managing drilling fluids (brine, mud, packer fluid) across surface tank systems.
+
+YOUR JOB: Extract structured operational data from field messages. These messages come from WhatsApp/Viber group chats and may be informal, abbreviated, misspelled, or in mixed formats. Ignore non-operational messages (food orders, personal chat, etc).
+
+EXTRACT THESE DATA TYPES WHEN PRESENT:
+- plug_update: {current_plug, total_plugs, depth_ft, status}
+- fluid_volumes: {fluid_type, volume_bbl, action (system/jetted/transferred/built)}
+- mud_weight: {value, unit (ppg)}
+- pressures: {type (pump/annular/surface), value_psi}
+- flow_rate: {value, unit (bpm/gpm)}
+- chlorides: {value_ppm}
+- viscosity: {value_sec, type (marsh_funnel)}
+- tank_reading: {tank_name, inches, bbls}
+- general_status: {message} - operational notes worth logging
+
+FLUID TYPES: brine, brine10 (10# brine / 10lb brine), packer, mud, freshwater, recirc, sandcat, mixed, other
+
+RESPOND WITH ONLY valid JSON — no markdown, no backticks, no explanation. Format:
+{"items": [{"type": "plug_update", "data": {...}}, ...], "ignored": ["non-operational message text"]}
+
+If no operational data found, return: {"items": [], "ignored": ["original message"]}`;
+
+function saveClaudeApiKey() {
+    const key = document.getElementById('claude-api-key').value.trim();
+    if (key) {
+        localStorage.setItem('ips_claude_api_key', key);
+        updateClaudeStatus('Key saved', '#66bb6a');
+    } else {
+        localStorage.removeItem('ips_claude_api_key');
+        updateClaudeStatus('No API key set', null);
+    }
+}
+
+function loadClaudeApiKey() {
+    const key = localStorage.getItem('ips_claude_api_key') || '';
+    const el = document.getElementById('claude-api-key');
+    if (el) el.value = key;
+    if (key) {
+        updateClaudeStatus('Key saved (' + key.slice(-6) + ')', '#66bb6a');
+    }
+}
+
+function toggleApiKeyVis() {
+    const el = document.getElementById('claude-api-key');
+    el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function updateClaudeStatus(msg, color) {
+    const el = document.getElementById('claude-api-status');
+    if (!el) return;
+    el.textContent = msg;
+    if (color) el.style.color = color;
+    else el.style.color = '';
+}
+
+async function callClaudeAPI(messages, opts = {}) {
+    const apiKey = localStorage.getItem('ips_claude_api_key');
+    if (!apiKey) throw new Error('No API key set');
+
+    const body = {
+        model: opts.model || 'claude-sonnet-4-20250514',
+        max_tokens: opts.maxTokens || 1024,
+        system: opts.system || CLAUDE_SYSTEM_PROMPT,
+        messages: messages
+    };
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error?.message || 'API error: ' + resp.status);
+    }
+
+    return await resp.json();
+}
+
+async function testClaudeConnection() {
+    const btn = document.getElementById('claude-test-btn');
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<span class="action-icon">⏳</span> Testing...';
+    btn.style.pointerEvents = 'none';
+
+    try {
+        const result = await callClaudeAPI(
+            [{ role: 'user', content: 'Reply with exactly: CONNECTION_OK' }],
+            { system: 'Reply with exactly the text CONNECTION_OK and nothing else.', maxTokens: 20 }
+        );
+        const text = result.content?.[0]?.text || '';
+        if (text.includes('CONNECTION_OK')) {
+            updateClaudeStatus('Connected — API key works', '#66bb6a');
+        } else {
+            updateClaudeStatus('Got response but unexpected: ' + text.slice(0, 50), '#ffa726');
+        }
+    } catch (e) {
+        updateClaudeStatus('Error: ' + e.message, '#ef5350');
+    }
+
+    btn.innerHTML = origText;
+    btn.style.pointerEvents = '';
+}
+
+function openClaudeTestModal() {
+    const key = localStorage.getItem('ips_claude_api_key');
+    if (!key) {
+        alert('Set your Anthropic API key in App Settings first.');
+        return;
+    }
+    const modal = document.getElementById('claude-test-modal');
+    modal.style.display = 'flex';
+    document.getElementById('claude-test-result').style.display = 'none';
+    document.getElementById('claude-test-raw').style.display = 'none';
+    document.getElementById('claude-test-status').style.display = 'none';
+}
+
+function closeClaudeTestModal() {
+    document.getElementById('claude-test-modal').style.display = 'none';
+}
+
+async function runClaudeTest() {
+    const input = document.getElementById('claude-test-input').value.trim();
+    if (!input) { alert('Paste some field messages first'); return; }
+
+    const statusEl = document.getElementById('claude-test-status');
+    const resultEl = document.getElementById('claude-test-result');
+    const rawEl = document.getElementById('claude-test-raw');
+    const outputEl = document.getElementById('claude-test-output');
+    const rawOutputEl = document.getElementById('claude-test-raw-output');
+
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Sending to Claude...';
+    statusEl.style.color = 'var(--accent)';
+    resultEl.style.display = 'none';
+    rawEl.style.display = 'none';
+
+    try {
+        const startTime = Date.now();
+        const result = await callClaudeAPI([
+            { role: 'user', content: input }
+        ]);
+
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const responseText = result.content?.[0]?.text || '';
+
+        // Show raw response
+        rawEl.style.display = 'block';
+        rawOutputEl.textContent = responseText;
+
+        // Try to parse JSON
+        try {
+            const parsed = JSON.parse(responseText);
+            resultEl.style.display = 'block';
+
+            // Format nicely
+            let display = '';
+            if (parsed.items && parsed.items.length > 0) {
+                parsed.items.forEach((item, i) => {
+                    display += '── Item ' + (i + 1) + ': ' + item.type + ' ──\n';
+                    Object.entries(item.data || {}).forEach(([k, v]) => {
+                        display += '  ' + k + ': ' + v + '\n';
+                    });
+                    display += '\n';
+                });
+            } else {
+                display += 'No operational data found.\n';
+            }
+            if (parsed.ignored && parsed.ignored.length > 0) {
+                display += '── Ignored ──\n';
+                parsed.ignored.forEach(msg => { display += '  "' + msg + '"\n'; });
+            }
+            outputEl.textContent = display;
+            statusEl.textContent = 'Parsed in ' + elapsed + 's — ' + (parsed.items?.length || 0) + ' items extracted';
+            statusEl.style.color = '#66bb6a';
+        } catch (parseErr) {
+            resultEl.style.display = 'block';
+            outputEl.textContent = 'Claude responded but not valid JSON.\nThis can happen — see raw response below.';
+            statusEl.textContent = 'Response received in ' + elapsed + 's (parse issue)';
+            statusEl.style.color = '#ffa726';
+        }
+
+        // Show token usage
+        if (result.usage) {
+            statusEl.textContent += ' | ' + result.usage.input_tokens + ' in / ' + result.usage.output_tokens + ' out tokens';
+        }
+    } catch (e) {
+        statusEl.textContent = 'Error: ' + e.message;
+        statusEl.style.color = '#ef5350';
+    }
+}
+
+// Parse field messages through Claude and return structured data
+async function parseFieldMessage(text) {
+    try {
+        const result = await callClaudeAPI([{ role: 'user', content: text }]);
+        const responseText = result.content?.[0]?.text || '';
+        return JSON.parse(responseText);
+    } catch (e) {
+        console.error('[CLAUDE] Parse error:', e);
+        return null;
+    }
+}
+
 function openProfileModal() {
     document.getElementById('profile-name-input').value = profileData.name || '';
     document.getElementById('profile-well-input').value = profileData.wellName || '';
@@ -2079,6 +2310,7 @@ function openProfileModal() {
     updateInitialsPreview();
     renderPackerTreatedControls();
     loadTimecardConfigUI();
+    loadClaudeApiKey();
     const oi = document.getElementById('ble-offset-input');
     if (oi) { oi.value = bleOffsetInches; updateOffsetDisplay(); }
     // Highlight active theme swatch
@@ -7379,5 +7611,29 @@ if ('serviceWorker' in navigator) {
             <div class="log-edit-body" id="log-edit-body"></div>
         </div>
     </div>
+    <!-- Claude AI Test Modal -->
+    <div class="modal" id="claude-test-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg-modal-overlay);z-index:9999;justify-content:center;align-items:center">
+        <div style="background:var(--bg-card);border-radius:12px;width:95%;max-width:500px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--bg-body);border-bottom:1px solid var(--border)">
+                <div style="font-size:16px;font-weight:700;color:var(--accent)">💬 Chat Parser Test</div>
+                <button onclick="closeClaudeTestModal()" style="background:none;border:1px solid var(--border);color:var(--text-primary);width:32px;height:32px;border-radius:6px;font-size:16px;cursor:pointer">✕</button>
+            </div>
+            <div style="padding:14px 16px;overflow-y:auto;flex:1">
+                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Paste field messages below — any format. Claude will extract operational data.</div>
+                <textarea id="claude-test-input" rows="5" placeholder="e.g. drilled plug 40 of 91 at 14200 ft&#10;644 bbls  185 sandcat  6.6 MW&#10;pumped 120 bbls brine down annulus" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:14px;font-family:inherit;resize:vertical"></textarea>
+                <button onclick="runClaudeTest()" style="width:100%;margin-top:10px;padding:12px;background:#1565c0;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Parse with Claude</button>
+                <div id="claude-test-status" style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;display:none"></div>
+                <div id="claude-test-result" style="margin-top:12px;display:none">
+                    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Extracted Data</div>
+                    <pre id="claude-test-output" style="background:var(--bg-body);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:12px;color:var(--text-primary);white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto;font-family:monospace"></pre>
+                </div>
+                <div id="claude-test-raw" style="margin-top:10px;display:none">
+                    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Claude's Response</div>
+                    <pre id="claude-test-raw-output" style="background:var(--bg-body);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto;font-family:monospace"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
