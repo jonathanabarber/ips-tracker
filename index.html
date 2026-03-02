@@ -109,7 +109,7 @@
             --plug-banner-bg: linear-gradient(135deg, #363a4e, #3a3e52);
         }
 
-        [data-theme="mike"] {
+        [data-theme="cavin"] {
             --bg-body: #2c2218;
             --bg-deep: #211a12;
             --bg-card: #3a2f22;
@@ -541,7 +541,7 @@
         .theme-swatch:hover { border-color: var(--text-secondary); }
         .theme-swatch.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(79,195,247,0.3); }
         .theme-swatch-preview { width:100%;height:40px;border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;justify-content:center; }
-        .theme-swatch-label { font-size:11px;font-weight:600;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.5px; }
+        .theme-swatch-label { font-size:11px;font-weight:700;color:#e0e0e0;text-transform:uppercase;letter-spacing:0.5px; }
 
         /* Light theme adjustments */
         [data-theme="tyler"] .tank-card { box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
@@ -1062,13 +1062,13 @@
                             </div>
                             <span class="theme-swatch-label">Oleary</span>
                         </button>
-                        <button class="theme-swatch" data-theme="mike" onclick="setTheme('mike')">
+                        <button class="theme-swatch" data-theme="cavin" onclick="setTheme('cavin')">
                             <div class="theme-swatch-preview" style="background:#2c2218;border:2px solid #5a4a35">
                                 <div style="height:4px;background:#211a12;border-radius:2px;margin-bottom:3px"></div>
                                 <div style="display:flex;gap:3px"><div style="flex:1;height:8px;background:#3a2f22;border-radius:2px"></div><div style="flex:1;height:8px;background:#3a2f22;border-radius:2px"></div></div>
                                 <div style="height:3px;width:40%;background:#d4915c;border-radius:2px;margin-top:3px"></div>
                             </div>
-                            <span class="theme-swatch-label">Mike</span>
+                            <span class="theme-swatch-label">Cavin</span>
                         </button>
                         <button class="theme-swatch" data-theme="cory" onclick="setTheme('cory')">
                             <div class="theme-swatch-preview" style="background:#000000;border:2px solid #444444">
@@ -2058,7 +2058,7 @@ function setTheme(themeName) {
     // Update meta theme-color for mobile browser chrome
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
-        const themeColors = { default: '#0d1b2a', tyler: '#1a2d45', oleary: '#222535', mike: '#211a12', cory: '#0a0a0a', matt: '#2a3448' };
+        const themeColors = { default: '#0d1b2a', tyler: '#1a2d45', oleary: '#222535', cavin: '#211a12', cory: '#0a0a0a', matt: '#2a3448' };
         metaTheme.content = themeColors[themeName] || '#0d1b2a';
     }
     console.log('[THEME] Set to:', themeName);
