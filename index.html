@@ -1255,10 +1255,6 @@ Lat: 31.907   Long: -101.949"></textarea>
         <div class="tanks-container active" id="pump-tanks"></div>
         <div class="tanks-container" id="return-tanks"></div>
         <div class="filtered-tanks" id="filtered-tanks"></div>
-        <div class="system-totals">
-            <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="system-total">0 BBL</div></div>
-            <div class="system-total"><div class="system-total-label">Jetted (Shift)</div><div class="system-total-value jetted" id="jetted-total">0 BBL</div></div>
-        </div>
         <button class="report-btn" onclick="showTankReport()">Generate Tank Report</button>
     </div>
 
@@ -1297,10 +1293,6 @@ Lat: 31.907   Long: -101.949"></textarea>
                 <div class="gl-box"><div class="gl-label">Actual</div><div class="gl-value neutral" id="true-change">--</div></div>
                 <div class="gl-box"><div class="gl-label">Transfers</div><div class="gl-value neutral" id="cap-transfers" style="font-size:11px">--</div></div>
                 <div class="gl-box"><div class="gl-label">Hourly</div><div class="gl-value neutral" id="rate-per-hour">--</div></div>
-            </div>
-            <div class="system-totals" style="margin:0 0 12px">
-                <div class="system-total"><div class="system-total-label">System Total</div><div class="system-total-value" id="gl-system-total">0 BBL</div></div>
-                <div class="system-total"><div class="system-total-label">Jetted (Shift)</div><div class="system-total-value jetted" id="gl-jetted-total">0 BBL</div></div>
             </div>
             <div style="background:var(--bg-body);border-radius:6px;padding:10px;max-height:400px;overflow-y:auto">
                 <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Volume Log <button style="background:var(--btn-header);border:none;color:var(--text-primary);padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer" onclick="openLogEdit('volume')">Edit</button></div>
@@ -1343,14 +1335,14 @@ Lat: 31.907   Long: -101.949"></textarea>
                     <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:10px">
                         <button onclick="adjustBuildCount(-1)" style="width:44px;height:44px;border:1px solid #6d4c41;border-radius:8px;background:var(--bg-body);color:#a1887f;font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
                         <div style="text-align:center;min-width:80px">
-                            <div style="font-size:36px;font-weight:800;color:#a1887f" id="build-count">1</div>
+                            <div style="font-size:36px;font-weight:800;color:#a1887f" id="build-count">0</div>
                             <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase">Batches</div>
                         </div>
                         <button onclick="adjustBuildCount(1)" style="width:44px;height:44px;border:1px solid #6d4c41;border-radius:8px;background:var(--bg-body);color:#a1887f;font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
                     </div>
                     <div style="text-align:center;margin-bottom:6px">
                         <span style="font-size:12px;color:var(--text-secondary)">Total: </span>
-                        <span style="font-size:20px;font-weight:700;color:#a1887f" id="build-total-display">120 BBL</span>
+                        <span style="font-size:20px;font-weight:700;color:#a1887f" id="build-total-display">0 BBL</span>
                     </div>
                 </div>
                 <div class="controls" style="margin-top:10px;margin-bottom:0">
@@ -1417,7 +1409,7 @@ Lat: 31.907   Long: -101.949"></textarea>
                 <div style="background:var(--bg-deep);border-radius:8px;padding:16px;text-align:center">
                     <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px">Target GPM</div>
                     <div style="font-size:36px;font-weight:700;color:#4caf50" id="fr-target">--</div>
-                    <div style="font-size:12px;color:var(--text-secondary)">Set Dayton dial until IFM shows this</div>
+                    <div style="font-size:12px;color:var(--text-secondary)">Set Dayton dial until IFM shows this (if equipped)</div>
                 </div>
                 <button onclick="logInjChange('fr')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">Log FR Change</button>
             </div>
@@ -1435,7 +1427,7 @@ Lat: 31.907   Long: -101.949"></textarea>
                 <div style="background:var(--bg-deep);border-radius:8px;padding:16px;text-align:center">
                     <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px">Target GPM</div>
                     <div style="font-size:36px;font-weight:700;color:#4caf50" id="lube-target">--</div>
-                    <div style="font-size:12px;color:var(--text-secondary)">Set Dayton dial until IFM shows this</div>
+                    <div style="font-size:12px;color:var(--text-secondary)">Set Dayton dial until IFM shows this (if equipped)</div>
                 </div>
                 <button onclick="logInjChange('lube')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">Log Lube Change</button>
             </div>
@@ -4820,16 +4812,19 @@ function setJetType(type) {
         buildRow.style.display = 'block';
         if (volRow) volRow.querySelector('span').textContent = 'BBL/batch';
         if (volInput) volInput.value = '35';
+        buildCount = 0;
+        document.getElementById('build-count').textContent = '0';
         updateBuildTotal();
     } else {
         buildRow.style.display = 'none';
         if (volRow) volRow.querySelector('span').textContent = 'BBL';
         if (volInput) volInput.value = '120';
     }
+    updateTransferShiftTotal();
 }
-let buildCount = 1;
+let buildCount = 0;
 function adjustBuildCount(delta) {
-    buildCount = Math.max(1, buildCount + delta);
+    buildCount = Math.max(0, buildCount + delta);
     document.getElementById('build-count').textContent = buildCount;
     updateBuildTotal();
 }
@@ -4855,15 +4850,38 @@ function finalizeBuild(tanks, totalVol) {
     tanks.forEach(t => { t.bbls += per; t.inches = bblToInches(t.bbls); t.estimated = true; });
     if (!data.transferLog) data.transferLog = [];
     data.transferLog.unshift({ time: new Date().toISOString(), initials: profileData.initials || '', type: 'build', volume: totalVol, batches: buildCount, perBatch: parseFloat(document.getElementById('jet-volume').value) || 35, tanks: tanks.map(t => t.name) });
-    buildCount = 1;
-    document.getElementById('build-count').textContent = '1';
+    buildCount = 0;
+    document.getElementById('build-count').textContent = '0';
     const perBatch = parseFloat(document.getElementById('jet-volume').value) || 35;
-    document.getElementById('build-total-display').textContent = perBatch + ' BBL';
+    document.getElementById('build-total-display').textContent = '0 BBL';
     saveData(); render(); renderTransferLog(); populateBuildDest(); firebaseSaveTransferLogDirect();
     if (tanks.length === 1) alert('Built ' + totalVol + ' BBL\n' + tanks[0].name + ': ' + tanks[0].bbls + ' BBL (est ' + tanks[0].inches + '")');
     else alert('Built ' + totalVol + ' BBL across ' + tanks.length + ' tanks');
 }
-function resetShiftJetted() { if(confirm('Reset shift jetted total?')) { data.jetsShift=0; saveData(); render(); } }
+function resetShiftJetted() { if(confirm('Reset shift jetted total?')) { data.jetsShift=0; saveData(); render(); updateTransferShiftTotal(); } }
+
+function updateTransferShiftTotal() {
+    const el = document.getElementById('transfer-shift-total');
+    if (!el) return;
+    const log = data.transferLog || [];
+    
+    if (jetType === 'build') {
+        // Count builds and total volume
+        let count = 0, vol = 0;
+        log.forEach(e => { if (e.type === 'build') { count += (e.batches || 1); vol += (e.volume || 0); } });
+        el.textContent = count + ' builds — ' + vol + ' BBL';
+    } else if (jetType === 'out') {
+        let count = 0, vol = 0;
+        log.forEach(e => { if (e.type === 'out') { count++; vol += (e.volume || 0); } });
+        el.textContent = count + ' jets — ' + vol + ' BBL';
+    } else if (jetType === 'in') {
+        let count = 0, vol = 0;
+        log.forEach(e => { if (e.type === 'in') { count++; vol += (e.volume || 0); } });
+        el.textContent = count + ' jets in — ' + vol + ' BBL';
+    } else {
+        el.textContent = data.jetsShift + ' BBL';
+    }
+}
 
 // === Transfer Tab Fluid Filter ===
 let xferFluidFilter = null;
@@ -5412,7 +5430,7 @@ if(tank.type==='packer'){const tr=tank.treated;badges+='<span class="tank-badge 
 /* EST badge moves to inches input area */
 let estOnInput=tank.estimated?'<span class="inches-est-badge">EST</span>':''; 
 let inchesLabel='<div class="inches-label-row"><label>Inches</label>'+estOnInput+'</div>';
-const keywords=tank.voiceKeywords||[]; const isVoiceWaiting=voiceIsListening&&voiceCurrentTank&&voiceCurrentTank.id===tank.id&&voiceCurrentSide===side&&voiceState==='WAITING_NUMBER'; const isVoiceDone=voiceDoneTankSide===side&&voiceDoneTankId===tank.id; const micClass=isVoiceWaiting?'voice-waiting':isVoiceDone?'voice-done':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const bleClass=bleConnected&&bleActiveTankSide===side&&bleActiveTankId===tank.id?'ble-waiting':bleDoneTankSide===side&&bleDoneTankId===tank.id?'ble-done':'inactive'; const bleBtn='<div class="tank-ble-btn '+bleClass+'" onclick="toggleBleTank(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; const showDelete=(!fbRoom||fbIsAdmin); return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+updateBadgeHtml+(showDelete?'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button>':'')+'<div class="tank-header"><div class="tank-header-top">'+topRow+'</div>'+(badges?'<div class="tank-header-row">'+badges+'</div>':'')+'</div><div class="tank-inputs"><div class="input-group inches-group">'+inchesLabel+'<input type="number" step="0.25" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" oninput="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+bleBtn+'</div></div></div>'; }
+const keywords=tank.voiceKeywords||[]; const isVoiceWaiting=voiceIsListening&&voiceCurrentTank&&voiceCurrentTank.id===tank.id&&voiceCurrentSide===side&&voiceState==='WAITING_NUMBER'; const isVoiceDone=voiceDoneTankSide===side&&voiceDoneTankId===tank.id; const micClass=isVoiceWaiting?'voice-waiting':isVoiceDone?'voice-done':'inactive'; const micBtn='<div class="tank-mic-btn '+micClass+'" onclick="startDirectVoice(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>'; const bleClass=bleConnected&&bleActiveTankSide===side&&bleActiveTankId===tank.id?'ble-waiting':bleDoneTankSide===side&&bleDoneTankId===tank.id?'ble-done':'inactive'; const bleBtn='<div class="tank-ble-btn '+bleClass+'" onclick="toggleBleTank(\''+side+'\','+tank.id+')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>'; const fillStyle='background:linear-gradient(to right, '+fc.fill+' '+fillPct+'%, '+fc.bg+' '+fillPct+'%)'; const showDelete=(!fbRoom||fbIsAdmin); return '<div class="tank-card border-'+color+'" style="'+fillStyle+'" data-side="'+side+'" data-id="'+tank.id+'">'+fullBtn+updateBadgeHtml+(showDelete?'<button class="delete-btn" onclick="deleteTank(\''+side+'\','+tank.id+')">×</button>':'')+'<div class="tank-header"><div class="tank-header-top">'+topRow+'</div>'+(badges?'<div class="tank-header-row">'+badges+'</div>':'')+'</div><div class="tank-inputs"><div class="input-group inches-group">'+inchesLabel+'<input type="number" step="0.25" class="'+(tank.estimated?'estimated':'')+'" value="'+tank.inches+'" oninput="updateTank(\''+side+'\','+tank.id+',\'inches\',this.value)"></div>'+dd+'<div class="bbl-mic-group"><div class="bbl-display"><div class="bbl-label">BBL</div><div class="bbl-value">'+tank.bbls+'</div></div>'+micBtn+bleBtn+'</div></div></div>'; }
 function render() { 
     const pumpEl = document.getElementById('pump-tanks');
     const returnEl = document.getElementById('return-tanks');
@@ -5472,7 +5490,7 @@ function render() {
     if(el('system-total')) el('system-total').textContent=totals.system+' BBL'; 
     if(el('jetted-total')) el('jetted-total').textContent=data.jetsShift+' BBL'; 
     if(el('jets-hour')) el('jets-hour').textContent=data.jetsHour; 
-    if(el('transfer-shift-total')) el('transfer-shift-total').textContent=data.jetsShift+' BBL';
+    updateTransferShiftTotal();
     
     // Update filter button active states
     ['brine','packer','mud','recirc','freshwater','other'].forEach(type => {
@@ -6423,6 +6441,57 @@ function startVoiceListening() {
     setTimeout(() => voicePlayDing(), 100);
 }
 
+// Direct voice: tap mic icon on a tank, skip keyword, go straight to listening for inches
+function startDirectVoice(side, tankId) {
+    // If BLE is active on this tank, ignore mic tap (accidental press)
+    if (bleConnected && bleActiveTankSide === side && bleActiveTankId === tankId) return;
+    
+    // If already in direct voice for this tank, stop it
+    if (voiceIsListening && voiceCurrentTank && voiceCurrentTank.id === tankId && voiceCurrentSide === side && voiceState === 'WAITING_NUMBER') {
+        stopVoiceListening();
+        render();
+        return;
+    }
+    
+    // Stop any existing voice session
+    if (voiceIsListening) stopVoiceListening();
+    
+    if (!SpeechRecognition) { alert('Speech recognition not supported'); return; }
+    
+    // Find the tank
+    const tanks = side === 'pump' ? data.pumpTanks : data.returnTanks;
+    const tank = tanks.find(t => t.id === tankId);
+    if (!tank) return;
+    
+    // Go directly to WAITING_NUMBER state
+    voiceIsListening = true;
+    voiceState = 'WAITING_NUMBER';
+    voiceCurrentTank = { ...tank, side: side };
+    voiceCurrentSide = side;
+    
+    requestWakeLock();
+    
+    document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
+    updateVoiceStatus(tank.name, 'Say the inches');
+    document.getElementById('voice-status').classList.add('show');
+    
+    voiceRecognition = new SpeechRecognition();
+    voiceRecognition.continuous = true;
+    voiceRecognition.interimResults = false;
+    voiceRecognition.lang = 'en-US';
+    
+    voiceRecognition.onresult = (event) => {
+        const last = event.results[event.results.length - 1];
+        if (last.isFinal) processVoiceInput(last[0].transcript.toLowerCase().trim());
+    };
+    voiceRecognition.onend = () => { if (voiceIsListening && !voiceSpeaking) try { voiceRecognition.start(); } catch(e) {} };
+    voiceRecognition.onerror = (e) => { if (voiceIsListening && !voiceSpeaking && e.error !== 'aborted') setTimeout(() => { try { voiceRecognition.start(); } catch(e) {} }, 100); };
+    
+    try { voiceRecognition.start(); } catch(e) {}
+    render();
+    setTimeout(() => voicePlayDing(), 100);
+}
+
 function stopVoiceListening() {
     voiceIsListening = false;
     voiceState = 'IDLE';
@@ -6865,6 +6934,9 @@ async function toggleBleMaster() {
 
 // Per-tank icon toggle still works for manual selection
 async function toggleBleTank(side, tankId) {
+    // If voice is active on this tank, ignore BLE tap (accidental press)
+    if (voiceIsListening && voiceCurrentTank && voiceCurrentTank.id === tankId && voiceCurrentSide === side) return;
+    
     if (bleActiveTankSide === side && bleActiveTankId === tankId) {
         bleActiveTankSide = null; bleActiveTankId = null;
         if (bleMasterActive) updateBleStatus('Paused', 'Tap a tank or shoot laser');
