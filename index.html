@@ -1724,18 +1724,31 @@ Lat: 31.907   Long: -101.949"></textarea>
         </div>
 
         <div id="wb-swivel" class="wb-content">
-            <div style="padding:20px;text-align:center">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#4fc3f7" stroke-width="1.5" style="width:48px;height:48px;margin-bottom:12px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                <h3 style="color:var(--accent);margin:0 0 6px;font-size:18px">Well Records</h3>
-                <p style="color:var(--text-secondary);font-size:13px;margin:0 0 20px">Upload and reference well documents to support completions operations.</p>
-                <div style="text-align:left;max-width:320px;margin:0 auto">
-                    <div style="color:#ffa726;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Coming Soon</div>
-                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:var(--accent);margin-right:8px">&#8226;</span>CBL / VDL Log Upload &amp; Viewer</div>
-                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:var(--accent);margin-right:8px">&#8226;</span>RRC Well Records Integration</div>
-                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:var(--accent);margin-right:8px">&#8226;</span>Casing &amp; Tubing Tally Sheets</div>
-                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:var(--accent);margin-right:8px">&#8226;</span>Well Deviation / Directional Survey</div>
-                    <div style="padding:8px 0;border-bottom:1px solid #1a3050;color:#ccc;font-size:13px"><span style="color:var(--accent);margin-right:8px">&#8226;</span>Targeted Zone Identification</div>
-                    <div style="padding:8px 0;color:#ccc;font-size:13px"><span style="color:var(--accent);margin-right:8px">&#8226;</span>Auto-Calculate Volumes from Records</div>
+            <div style="padding:12px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                    <div style="font-size:14px;font-weight:700;color:var(--accent)">Well Records</div>
+                    <button onclick="document.getElementById('records-file-input').click()" style="background:var(--btn-header);border:none;color:var(--text-primary);padding:8px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">+ Upload</button>
+                </div>
+                <input type="file" id="records-file-input" accept="image/*,.pdf" style="display:none" onchange="handleRecordUpload(this)" multiple>
+                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Upload plug sheets, well diagrams, casing tallies, or any well reference docs. Claude reads each file once and builds a context summary for smarter parsing.</div>
+                
+                <!-- AI Context Summary -->
+                <div id="records-ai-context" style="display:none;padding:10px 12px;background:var(--bg-body);border:1px solid var(--border);border-radius:8px;margin-bottom:10px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                        <div style="font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px">AI Well Context</div>
+                        <button onclick="clearWellContext()" style="background:none;border:none;color:#ef5350;font-size:10px;cursor:pointer">Clear</button>
+                    </div>
+                    <div id="records-ai-context-text" style="font-size:11px;color:var(--text-secondary);white-space:pre-wrap;max-height:150px;overflow-y:auto"></div>
+                </div>
+
+                <!-- Uploaded files list -->
+                <div id="records-file-list"></div>
+                
+                <!-- Empty state -->
+                <div id="records-empty" style="text-align:center;padding:30px 16px;color:var(--text-muted)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;margin-bottom:8px;opacity:0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <div style="font-size:13px">No records uploaded</div>
+                    <div style="font-size:11px;margin-top:4px">Plug sheets, well diagrams, casing tallies</div>
                 </div>
             </div>
         </div>
@@ -2090,25 +2103,58 @@ function loadTheme() {
 // System prompt — gives Claude context about the operation (like Projects instructions)
 const CLAUDE_SYSTEM_PROMPT = `You are a data extraction assistant for an oilfield drilling operations app called IPS Tracker. You work on completions operations in the Permian Basin (West Texas).
 
-CONTEXT: The crew is performing frac plug drillout operations on horizontal production wells. They drill out composite frac plugs from cased hole using coiled tubing or workover rigs, managing drilling fluids (brine, mud, packer fluid) across surface tank systems.
+CONTEXT: The crew is performing frac plug drillout operations on horizontal production wells. They drill out composite frac plugs from cased hole using coiled tubing or workover rigs, managing drilling fluids (brine, mud, packer fluid) across surface tank systems. Pumping is down tubing, returns come up the casing annulus.
 
 YOUR JOB: Extract structured operational data from field messages. These messages come from WhatsApp/Viber group chats and may be informal, abbreviated, misspelled, or in mixed formats. Ignore non-operational messages (food orders, personal chat, etc).
 
-EXTRACT THESE DATA TYPES WHEN PRESENT:
-- plug_update: {current_plug, total_plugs, depth_ft, status}
-- fluid_volumes: {fluid_type, volume_bbl, action (system/jetted/transferred/built)}
-- mud_weight: {value, unit (ppg)}
-- pressures: {type (pump/annular/surface), value_psi}
-- flow_rate: {value, unit (bpm/gpm)}
-- chlorides: {value_ppm}
-- viscosity: {value_sec, type (marsh_funnel)}
-- tank_reading: {tank_name, inches, bbls}
-- general_status: {message} - operational notes worth logging
+FIELD ABBREVIATIONS AND DEFINITIONS:
+- Plug: current plug number and total (e.g. "10 of 79")
+- JNT: tubing joint number in the elevators. May include feet sticking out above air slips (e.g. "721 (-3 ft out)")
+- Depth: measured depth in feet
+- Time: clock time of the report
+- Drill Time / Drill: time to drill through the plug (minutes)
+- Wash Time / Wash: time spent washing after drilling plug (minutes)
+- WOB: weight on bit (usually in thousands, e.g. "2k" = 2,000 lbs)
+- PR: pump rate in barrels per minute (BPM)
+- RR: return rate in barrels per minute (BPM)
+- PP: pump pressure (PSI)
+- WHP: wellhead pressure (PSI) - on the tubing/pump side
+- SURF: surface casing pressure (PSI)
+- INT: intermediate casing pressure (PSI)
+- MP: motor pressure (PSI)
+- Circ Time: circulating time on the plug before moving to next. "None" = no circulation
+- PU Wt / Pick Up: pick up weight (string weight pulling up)
+- NW Wt / Neutral: neutral weight (string hanging free)
+- SO Wt / Slack Off / Set Down: slack off weight (setting down)
+- RIH Wt: running in hole weight
+- RPM: rotary speed
+- Torque On: torque making up connection
+- Torque Off: torque breaking connection
+- Chk Size: choke size. "Gutline" or "GL" = manifold bypass, no backpressure
+- Mud Wt In/Out: mud weight going in and coming out (PPG). Format: "8.7 / 8.7"
+- Mud Visc In/Out: mud viscosity in and out (seconds, Marsh funnel). Format: "27/27"
+- Chlorides In/Out: chloride levels in and out (PPM). "k" = thousands. Format: "50k / 52k"
+- Mkr Sent / Marker Sent: clock time marker dye was pumped downhole
+- Surface Time: predicted time for marker to reach surface at the desander
+- Sand: sand returns (none/light/medium/heavy)
+- Gas: gas returns (none/light/medium/heavy)
+- FR: friction reducer concentration (e.g. "1/2 gal per 10 bbls")
+- POP: pipe on pipe lube concentration (same format as FR)
+- BTS ETA / ETA: bit to surface estimated time of arrival
+- Stalls: motor stalls during drilling
+- Plug Wt: weight indicator when tagging plug
+- Comments: free text notes
 
-FLUID TYPES: brine, brine10 (10# brine / 10lb brine), packer, mud, freshwater, recirc, sandcat, mixed, other
+ALSO EXTRACT these when present outside plug reports:
+- fluid_volumes: {fluid_type, volume_bbl, action}
+- tank_reading: {tank_name, inches, bbls}
+
+FLUID TYPES: brine, brine10, packer, mud, freshwater, recirc, sandcat, mixed, other
 
 RESPOND WITH ONLY valid JSON — no markdown, no backticks, no explanation. Format:
 {"items": [{"type": "plug_update", "data": {...}}, ...], "ignored": ["non-operational message text"]}
+
+For plug reports, put ALL fields into a single item with type "plug_report" and include every field you can extract in the data object using the field keys listed above (e.g. jnt, depth, wob, pr, rr, pp, whp, surf, int, circ_time, pu_wt, nw_wt, so_wt, rpm, torque_on, torque_off, chk_size, mud_wt_in, mud_wt_out, mud_visc_in, mud_visc_out, chlorides_in, chlorides_out, marker_sent, surface_time, sand, gas, fr, pop, eta, stalls, plug_wt, drill_time, wash_time, comments).
 
 If no operational data found, return: {"items": [], "ignored": ["original message"]}`;
 
@@ -2235,8 +2281,10 @@ async function runClaudeTest() {
 
     try {
         const startTime = Date.now();
+        const wellContext = localStorage.getItem('ips_well_context');
+        const contextPrefix = wellContext ? 'WELL CONTEXT (extracted from uploaded records):\n' + wellContext + '\n\n---\nPARSE THIS MESSAGE:\n' : '';
         const result = await callClaudeAPI([
-            { role: 'user', content: input }
+            { role: 'user', content: contextPrefix + input }
         ]);
 
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -2294,13 +2342,261 @@ async function runClaudeTest() {
 // Parse field messages through Claude and return structured data
 async function parseFieldMessage(text) {
     try {
-        const result = await callClaudeAPI([{ role: 'user', content: text }]);
+        // Include well context if available
+        const wellContext = localStorage.getItem('ips_well_context');
+        const contextPrefix = wellContext ? 'WELL CONTEXT (extracted from uploaded records):\n' + wellContext + '\n\n---\nPARSE THIS MESSAGE:\n' : '';
+        
+        const result = await callClaudeAPI([{ role: 'user', content: contextPrefix + text }]);
         let responseText = result.content?.[0]?.text || '';
         responseText = responseText.replace(/^```json\s*/i, '').replace(/^```\s*/m, '').replace(/\s*```$/m, '').trim();
         return JSON.parse(responseText);
     } catch (e) {
         console.error('[CLAUDE] Parse error:', e);
         return null;
+    }
+}
+
+// ========== WELL RECORDS & AI CONTEXT ==========
+let wellRecords = [];
+
+function loadWellRecords() {
+    try {
+        wellRecords = JSON.parse(localStorage.getItem('ips_well_records') || '[]');
+    } catch (e) { wellRecords = []; }
+    renderRecordsList();
+    updateWellContextDisplay();
+}
+
+async function handleRecordUpload(input) {
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    
+    const hasApiKey = !!localStorage.getItem('ips_claude_api_key');
+    
+    for (const file of files) {
+        // Convert to base64
+        const base64 = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result);
+            r.onerror = () => rej(new Error('Read failed'));
+            r.readAsDataURL(file);
+        });
+        
+        const isImage = file.type.startsWith('image/');
+        const isPDF = file.type === 'application/pdf';
+        
+        // Create thumbnail for images
+        let thumbnail = null;
+        if (isImage) {
+            thumbnail = await createThumbnail(base64, 120);
+        }
+        
+        const record = {
+            id: Date.now() + Math.random(),
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            thumbnail: thumbnail,
+            uploadedAt: new Date().toLocaleString(),
+            base64: base64 // keep full data for viewing
+        };
+        
+        wellRecords.push(record);
+        console.log('[RECORDS] Uploaded: ' + file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)');
+    }
+    
+    // Save records list
+    try {
+        localStorage.setItem('ips_well_records', JSON.stringify(wellRecords));
+    } catch (e) {
+        // localStorage full — remove base64 from oldest records
+        console.warn('[RECORDS] Storage full, trimming old file data');
+        while (wellRecords.length > 1) {
+            wellRecords[0].base64 = null;
+            try { localStorage.setItem('ips_well_records', JSON.stringify(wellRecords)); break; }
+            catch (e2) { wellRecords.shift(); }
+        }
+    }
+    
+    renderRecordsList();
+    input.value = '';
+    
+    // Auto-extract context with Claude if API key is set
+    if (hasApiKey) {
+        await extractWellContext();
+    }
+}
+
+function createThumbnail(base64DataUrl, maxSize) {
+    return new Promise(res => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            res(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.onerror = () => res(null);
+        img.src = base64DataUrl;
+    });
+}
+
+async function extractWellContext() {
+    const hasApiKey = !!localStorage.getItem('ips_claude_api_key');
+    if (!hasApiKey || wellRecords.length === 0) return;
+    
+    const contextEl = document.getElementById('records-ai-context');
+    const textEl = document.getElementById('records-ai-context-text');
+    contextEl.style.display = 'block';
+    textEl.textContent = 'Analyzing uploaded records...';
+    
+    // Build message content array with all files that have base64 data
+    const content = [];
+    let fileCount = 0;
+    
+    for (const rec of wellRecords) {
+        if (!rec.base64) continue;
+        
+        const isImage = rec.type.startsWith('image/');
+        const isPDF = rec.type === 'application/pdf';
+        
+        if (isImage) {
+            const mediaType = rec.type || 'image/jpeg';
+            const b64data = rec.base64.split(',')[1];
+            content.push({
+                type: 'image',
+                source: { type: 'base64', media_type: mediaType, data: b64data }
+            });
+            fileCount++;
+        } else if (isPDF) {
+            const b64data = rec.base64.split(',')[1];
+            content.push({
+                type: 'document',
+                source: { type: 'base64', media_type: 'application/pdf', data: b64data }
+            });
+            fileCount++;
+        }
+    }
+    
+    if (fileCount === 0) {
+        textEl.textContent = 'No readable files to analyze.';
+        return;
+    }
+    
+    content.push({
+        type: 'text',
+        text: 'Extract all useful well information from these ' + fileCount + ' document(s). Include: well name, operator, API number, county/state, total plug count, lateral length, casing sizes and weights, tubing size, TD/KOP/landing point depths, packer depth, mud/fluid specs, any volumes or capacities, perforation intervals, and anything else operationally relevant for a frac plug drillout crew. Be thorough. Return ONLY a concise plain text summary, no JSON, no markdown formatting.'
+    });
+    
+    try {
+        const result = await callClaudeAPI(
+            [{ role: 'user', content: content }],
+            {
+                system: 'You are a well data extraction specialist. Read the uploaded well documents and extract all operationally relevant information. Be thorough and precise with numbers and depths. Return plain text only.',
+                maxTokens: 2048
+            }
+        );
+        
+        const summary = result.content?.[0]?.text || '';
+        if (summary) {
+            localStorage.setItem('ips_well_context', summary);
+            textEl.textContent = summary;
+            console.log('[RECORDS] Well context extracted: ' + summary.length + ' chars, ' + (result.usage?.input_tokens || '?') + ' in / ' + (result.usage?.output_tokens || '?') + ' out tokens');
+        } else {
+            textEl.textContent = 'Claude returned empty response.';
+        }
+    } catch (e) {
+        textEl.textContent = 'Error: ' + e.message;
+        console.error('[RECORDS] Context extraction failed:', e);
+    }
+}
+
+function renderRecordsList() {
+    const listEl = document.getElementById('records-file-list');
+    const emptyEl = document.getElementById('records-empty');
+    if (!listEl) return;
+    
+    if (wellRecords.length === 0) {
+        listEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+    
+    if (emptyEl) emptyEl.style.display = 'none';
+    
+    let html = '';
+    for (let i = 0; i < wellRecords.length; i++) {
+        const rec = wellRecords[i];
+        const sizeKB = (rec.size / 1024).toFixed(0);
+        const isImage = rec.type && rec.type.startsWith('image/');
+        
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg-body);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">';
+        
+        // Thumbnail or icon
+        if (rec.thumbnail) {
+            html += '<img src="' + rec.thumbnail + '" style="width:44px;height:44px;border-radius:4px;object-fit:cover;cursor:pointer" onclick="viewRecord(' + i + ')">';
+        } else {
+            html += '<div style="width:44px;height:44px;border-radius:4px;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer" onclick="viewRecord(' + i + ')">📄</div>';
+        }
+        
+        // Info
+        html += '<div style="flex:1;min-width:0">';
+        html += '<div style="font-size:12px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + rec.name + '</div>';
+        html += '<div style="font-size:10px;color:var(--text-secondary)">' + sizeKB + ' KB · ' + rec.uploadedAt + '</div>';
+        html += '</div>';
+        
+        // Delete
+        html += '<button onclick="deleteRecord(' + i + ')" style="background:none;border:none;color:#ef5350;font-size:16px;cursor:pointer;padding:4px">✕</button>';
+        html += '</div>';
+    }
+    
+    listEl.innerHTML = html;
+}
+
+function viewRecord(idx) {
+    const rec = wellRecords[idx];
+    if (!rec || !rec.base64) { alert('File data no longer available'); return; }
+    
+    // Open in new tab
+    const win = window.open();
+    if (win) {
+        if (rec.type && rec.type.startsWith('image/')) {
+            win.document.write('<html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="' + rec.base64 + '" style="max-width:100%;max-height:100vh"></body></html>');
+        } else {
+            win.document.write('<html><body style="margin:0"><embed src="' + rec.base64 + '" width="100%" height="100%" type="application/pdf"></body></html>');
+        }
+    }
+}
+
+function deleteRecord(idx) {
+    if (!confirm('Remove "' + wellRecords[idx].name + '"?')) return;
+    wellRecords.splice(idx, 1);
+    localStorage.setItem('ips_well_records', JSON.stringify(wellRecords));
+    renderRecordsList();
+    
+    // Re-extract context if we still have files, otherwise clear it
+    if (wellRecords.length > 0 && localStorage.getItem('ips_claude_api_key')) {
+        extractWellContext();
+    } else {
+        clearWellContext();
+    }
+}
+
+function clearWellContext() {
+    localStorage.removeItem('ips_well_context');
+    const contextEl = document.getElementById('records-ai-context');
+    if (contextEl) contextEl.style.display = 'none';
+}
+
+function updateWellContextDisplay() {
+    const ctx = localStorage.getItem('ips_well_context');
+    const contextEl = document.getElementById('records-ai-context');
+    const textEl = document.getElementById('records-ai-context-text');
+    if (ctx && contextEl && textEl) {
+        contextEl.style.display = 'block';
+        textEl.textContent = ctx;
     }
 }
 
@@ -7314,7 +7610,7 @@ function applyWellSiteData(data) {
     document.body.appendChild(toast);
     setTimeout(function() { toast.remove(); }, 3000);
 }
-function processChatFeed() {
+async function processChatFeed() {
     let text = '';
     
     if (chatFeedCurrentTab === 'paste') {
@@ -7336,6 +7632,49 @@ function processChatFeed() {
     }
     
     const records = parseDrillingReport(text);
+    
+    // Count data lines in input vs what regex caught
+    const inputLines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0 && /[:\s]/.test(l) && !/^(exxon|pioneer|conocophillips|chevron|oxy|devon)/i.test(l));
+    const regexFieldCount = records.length > 0 ? Object.keys(records[0].fields).length : 0;
+    const hasApiKey = !!localStorage.getItem('ips_claude_api_key');
+    
+    // If regex missed ANY fields and we have an API key, send to Claude
+    if (hasApiKey && (records.length === 0 || regexFieldCount < inputLines.length)) {
+        const btn = document.getElementById('cf-process-btn');
+        const origBtnText = btn.innerHTML;
+        const regexNote = regexFieldCount > 0 ? ' (regex got ' + regexFieldCount + ', checking rest)' : '';
+        btn.innerHTML = '<svg class="chat-feed-process-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Claude analyzing' + regexNote + '...';
+        btn.style.pointerEvents = 'none';
+        
+        try {
+            const claudeResult = await parseFieldMessage(text);
+            if (claudeResult && claudeResult.items && claudeResult.items.length > 0) {
+                const claudeRecord = convertClaudeToRecord(claudeResult, text);
+                
+                if (records.length > 0) {
+                    // Merge: keep regex fields, fill in what Claude found that regex missed
+                    const regexFields = records[0].fields;
+                    const claudeFields = claudeRecord.fields;
+                    let added = 0;
+                    for (const key in claudeFields) {
+                        if (!regexFields[key] || regexFields[key].value === '—') {
+                            regexFields[key] = claudeFields[key];
+                            added++;
+                        }
+                    }
+                    console.log('[CLAUDE] Merged: regex had ' + regexFieldCount + ', Claude added ' + added + ', total ' + Object.keys(regexFields).length);
+                } else {
+                    records.push(claudeRecord);
+                    console.log('[CLAUDE] Regex found 0, Claude extracted ' + Object.keys(claudeRecord.fields).length + ' fields');
+                }
+            }
+        } catch (e) {
+            console.error('[CLAUDE] Fallback parse failed:', e);
+        }
+        
+        btn.innerHTML = origBtnText;
+        btn.style.pointerEvents = '';
+    }
     
     if (records.length === 0) {
         document.getElementById('cf-results-container').innerHTML = `
@@ -7380,6 +7719,87 @@ function processChatFeed() {
     
     // Clear input
     document.getElementById('cf-text-input').value = '';
+}
+
+// Convert Claude API response into the same record format that applyChatFeedToApp expects
+function convertClaudeToRecord(claudeResult, rawText) {
+    const fields = {};
+    const raw = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    for (const item of claudeResult.items) {
+        const d = item.data;
+        
+        if (item.type === 'plug_report') {
+            // Full plug report — map all fields
+            if (d.current_plug) fields.plug = { label: 'Plug', value: d.current_plug + (d.total_plugs ? ' of ' + d.total_plugs : '') };
+            if (d.jnt) fields.jnt = { label: 'JNT', value: String(d.jnt) + (d.jnt_out ? ' (' + d.jnt_out + ' ft out)' : '') };
+            if (d.depth) fields.depth = { label: 'Depth', value: String(d.depth) };
+            if (d.time) fields.time = { label: 'Time', value: d.time };
+            if (d.drill_time) fields.drill = { label: 'Drill Time', value: String(d.drill_time) };
+            if (d.wash_time) fields.washTime = { label: 'Wash Time', value: String(d.wash_time) };
+            if (d.wob) fields.wob = { label: 'WOB', value: String(d.wob) };
+            if (d.pr) fields.pr = { label: 'PR', value: String(d.pr) };
+            if (d.rr) fields.rr = { label: 'RR', value: String(d.rr) };
+            if (d.pp) fields.circ = { label: 'CIRC', value: String(d.pp) };
+            if (d.whp) fields.whp = { label: 'WHP', value: String(d.whp) };
+            if (d.surf) fields.surfPressure = { label: 'SURF', value: String(d.surf) };
+            if (d.int) fields.interval = { label: 'INT', value: String(d.int) };
+            if (d.mp) fields.mp = { label: 'MP', value: String(d.mp) };
+            if (d.circ_time) fields.circTime = { label: 'Circ Time', value: d.circ_time };
+            if (d.pu_wt) fields.puWt = { label: 'P/U Wt', value: String(d.pu_wt) };
+            if (d.nw_wt) fields.nw = { label: 'Nw', value: String(d.nw_wt) };
+            if (d.so_wt) fields.soWt = { label: 'SO Wt', value: String(d.so_wt) };
+            if (d.rih_wt) fields.rihWt = { label: 'RIH Wt', value: String(d.rih_wt) };
+            if (d.rpm) fields.rpm = { label: 'RPM', value: String(d.rpm) };
+            if (d.torque_on) fields.torqueOn = { label: 'Torque On', value: String(d.torque_on) };
+            if (d.torque_off) fields.torqueOff = { label: 'Torque Off', value: String(d.torque_off) };
+            if (d.chk_size) fields.chkSize = { label: 'Chk Size', value: d.chk_size };
+            if (d.mud_wt_in || d.mud_wt_out) fields.mudWt = { label: 'Mud Wt In/Out', value: (d.mud_wt_in || '?') + ' / ' + (d.mud_wt_out || '?') };
+            if (d.mud_visc_in || d.mud_visc_out) fields.mudVisc = { label: 'Mud Visc In/Out', value: (d.mud_visc_in || '?') + ' / ' + (d.mud_visc_out || '?') };
+            if (d.chlorides_in || d.chlorides_out) fields.chlorides = { label: 'Chlorides In/Out', value: (d.chlorides_in || '?') + ' / ' + (d.chlorides_out || '?') };
+            if (d.marker_sent) fields.marker = { label: 'Marker Sent', value: d.marker_sent };
+            if (d.surface_time) fields.surfaceTime = { label: 'Surface Time', value: d.surface_time };
+            if (d.sand) fields.sand = { label: 'Sand', value: d.sand };
+            if (d.gas) fields.gas = { label: 'Gas', value: d.gas };
+            if (d.fr) fields.fr = { label: 'FR', value: d.fr };
+            if (d.pop) fields.pop = { label: 'POP', value: d.pop };
+            if (d.eta) fields.eta = { label: 'ETA', value: d.eta };
+            if (d.stalls) fields.stalls = { label: 'Stalls', value: d.stalls };
+            if (d.plug_wt) fields.plugWt = { label: 'Plug Wt', value: d.plug_wt };
+            if (d.comments) fields.comments = { label: 'Comments', value: d.comments };
+            continue;
+        }
+        
+        // Legacy item types for non-plug-report messages
+        switch (item.type) {
+            case 'plug_update':
+                if (d.current_plug) fields.plug = { label: 'Plug', value: d.current_plug + (d.total_plugs ? ' of ' + d.total_plugs : '') };
+                if (d.depth_ft) fields.depth = { label: 'Depth', value: String(d.depth_ft) };
+                break;
+            case 'pressures':
+                if (d.type === 'pump') fields.circ = { label: 'CIRC', value: d.value_psi + ' psi' };
+                else if (d.type === 'surface' || d.type === 'wellhead') fields.whp = { label: 'WHP', value: d.value_psi + ' psi' };
+                break;
+            case 'flow_rate':
+                if (!fields.pr) fields.pr = { label: 'PR', value: d.value + ' ' + (d.unit || 'bpm') };
+                else if (!fields.rr) fields.rr = { label: 'RR', value: d.value + ' ' + (d.unit || 'bpm') };
+                break;
+            case 'mud_weight':
+                fields.mudWt = { label: 'Mud Wt In/Out', value: String(d.value) };
+                break;
+            case 'chlorides':
+                fields.chlorides = { label: 'Chlorides In/Out', value: String(d.value_ppm) };
+                break;
+            case 'fluid_volumes':
+            case 'tank_reading':
+                break;
+            case 'general_status':
+                if (d.message && !fields.comments) fields.comments = { label: 'Comments', value: d.message };
+                break;
+        }
+    }
+    
+    return { fields: fields, raw: raw };
 }
 
 function renderChatFeedResults(records, containerId, isNew) {
@@ -7535,6 +7955,7 @@ function inviteUserToRoom() {
 
 function initApp() {
     loadTheme(); // Apply theme ASAP before rendering
+    loadWellRecords();
     console.log('initApp called, data:', data.pumpTanks.length, 'pump tanks,', data.returnTanks.length, 'return tanks');
     loadProfile();
     loadData();
