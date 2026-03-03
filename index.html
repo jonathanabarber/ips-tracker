@@ -2719,6 +2719,7 @@ const FIREBASE_CONFIG = {
 let fbApp = null, fbDb = null, fbRoom = null, fbListeners = [], fbPresenceRef = null;
 let _lastLocalWriteTime = 0; // Timestamp of our last write to Firebase
 let _lastLocalWriteBy = ''; // Who wrote last (our initials)
+let _initialSyncDone = false; // Track if we've received initial Firebase state
 let fbIsAdmin = false; // Whether current user is the room admin
 let fbAdminInitials = ''; // The admin's initials for display
 
@@ -2765,6 +2766,7 @@ function wellNameToRoomKey(wellName) {
 function firebaseJoinRoom(wellName) {
     if (!fbDb || !wellName) return;
     fbRoom = wellNameToRoomKey(wellName);
+    _initialSyncDone = false; // Reset for new room join
     console.log('Joining Firebase room:', fbRoom);
     setSyncStatus('syncing', 'Connecting...');
     
@@ -2962,6 +2964,9 @@ function firebaseSaveTanks() {
     if (!fbDb || !fbRoom) { console.log('[SYNC] Save skipped: no db or room', !!fbDb, fbRoom); return; }
     _lastLocalWriteTime = Date.now();
     _lastLocalWriteBy = profileData.initials || '';
+    // Persist write info so it survives page refresh
+    localStorage.setItem('ips_last_write_ts', String(_lastLocalWriteTime));
+    localStorage.setItem('ips_last_write_by', _lastLocalWriteBy);
     console.log('[SYNC] Writing tanks to Firebase as ' + _lastLocalWriteBy + ' room=' + fbRoom);
     fbDb.ref('rooms/' + fbRoom + '/tanks').set({
         pumpTanks: data.pumpTanks || [],
@@ -3080,13 +3085,43 @@ function onRemoteTanks(snap) {
         const timeSince = Date.now() - _lastLocalWriteTime;
         const myInitials = profileData.initials || '';
         const writerInitials = d._updatedBy || '';
+        const remoteTimestamp = d._updatedAt || 0;
         const isOwnEcho = (timeSince < 3000) && writerInitials !== '' && writerInitials === myInitials;
         
-        console.log('[SYNC] Remote tanks: by=' + writerInitials + ' me=' + myInitials + ' timeSince=' + timeSince + 'ms echo=' + isOwnEcho);
+        console.log('[SYNC] Remote tanks: by=' + writerInitials + ' me=' + myInitials + ' timeSince=' + timeSince + 'ms echo=' + isOwnEcho + ' initialDone=' + _initialSyncDone);
         
         if (isOwnEcho) {
             console.log('[SYNC] Skipping own echo');
             return;
+        }
+        
+        // On initial sync (page load), check if remote data is our own last write
+        // If so, skip it — we already have our data in localStorage
+        if (!_initialSyncDone) {
+            _initialSyncDone = true;
+            const localWriteTs = parseInt(localStorage.getItem('ips_last_write_ts') || '0');
+            const localWriteBy = localStorage.getItem('ips_last_write_by') || '';
+            const localTankCount = (data.pumpTanks || []).length + (data.returnTanks || []).length;
+            
+            // If WE were the last writer and our local data has tanks, keep local
+            if (localWriteBy === myInitials && localTankCount > 0) {
+                console.log('[SYNC] Initial sync: we were last writer (' + localWriteBy + '), keeping local data');
+                // Push our data to Firebase to reassert it
+                setTimeout(() => { firebaseSaveTanks(); }, 500);
+                return;
+            }
+            
+            // If someone else wrote and it's newer than our last write, accept remote
+            if (writerInitials !== myInitials && remoteTimestamp > localWriteTs) {
+                console.log('[SYNC] Initial sync: accepting newer remote data from ' + writerInitials);
+                // Fall through to apply remote data
+            }
+            
+            // If remote is from us but older, skip
+            if (writerInitials === myInitials) {
+                console.log('[SYNC] Initial sync: our own old data, skipping');
+                return;
+            }
         }
         
         // Flash sync strip to show we received data
