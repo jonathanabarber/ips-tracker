@@ -6472,7 +6472,7 @@ function startDirectVoice(side, tankId) {
     requestWakeLock();
     
     document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
-    updateVoiceStatus(tank.name, 'Say the inches');
+    updateVoiceStatus(tank.name, 'Say inches or BBL amount');
     document.getElementById('voice-status').classList.add('show');
     
     voiceRecognition = new SpeechRecognition();
@@ -6588,7 +6588,7 @@ function processVoiceInput(text) {
                 voiceState = 'WAITING_NUMBER';
                 render();
                 document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
-                updateVoiceStatus(match.tank.name, 'Say the inches');
+                updateVoiceStatus(match.tank.name, 'Say inches or BBL amount');
                 // Speak tank name then beep - no waiting
                 voiceSpeak(speakableName(match.tank.name));
                 setTimeout(() => { if (voiceState === 'WAITING_NUMBER') voicePlayDing(); }, 800);
@@ -6619,9 +6619,21 @@ function processVoiceInput(text) {
         }
         
         const num = extractVoiceNumber(text);
-        if (num !== null && num >= 0 && num <= 96) {
+        const isBbls = /barrel|barrels|bbl|bbls|bales/.test(text);
+        
+        if (num !== null && isBbls && num >= 0 && num <= 600) {
+            // User said BBLs — reverse lookup to get inches
+            const inches = bblToInches(num);
+            const actualBbls = inchesToBbl(inches);
+            voicePendingInches = inches;
+            voicePendingBbls = actualBbls;
+            updateVoiceStatus(`${num} BBL → ${inches}" (${actualBbls} BBL)`, speakableName(voiceCurrentTank.name));
+            voiceSpeak(`${actualBbls} barrels, ${inches} inches`);
+            setTimeout(() => { voiceConfirmEntry(); }, 900);
+        } else if (num !== null && num >= 0 && num <= 96) {
+            // Number alone or number + "inches" — treat as inches
             voicePendingInches = num;
-            voicePendingBbls = STICK_CHART[num] || 0;
+            voicePendingBbls = inchesToBbl(num);
             updateVoiceStatus(`${voicePendingInches}" = ${voicePendingBbls} BBL`, speakableName(voiceCurrentTank.name));
             voiceSpeak(`${voicePendingInches}, ${voicePendingBbls} barrels`);
             setTimeout(() => { voiceConfirmEntry(); }, 900);
@@ -6637,13 +6649,28 @@ function extractVoiceNumber(text) {
         'sixteen':16,'seventeen':17,'eighteen':18,'nineteen':19,'twenty':20,
         'thirty':30,'forty':40,'fourty':40,'fifty':50,'sixty':60,'seventy':70,'eighty':80,'ninety':90
     };
-    const numMatch = text.match(/\d+/);
-    if (numMatch) return parseInt(numMatch[0]);
+    const numMatch = text.match(/\d+\.?\d*/);
+    if (numMatch) return parseFloat(numMatch[0]);
     let total = 0, found = false;
-    text.replace(/-/g,' ').split(/\s+/).forEach(w => {
-        const n = wordToNum[w.replace(/[^a-z]/g,'')];
+    const words = text.replace(/-/g,' ').split(/\s+/);
+    words.forEach((w, i) => {
+        const clean = w.replace(/[^a-z]/g,'');
+        const n = wordToNum[clean];
         if (n !== undefined) { found = true; total += n; }
     });
+    // Handle "and a half", "and a quarter", "point five" etc
+    if (found) {
+        if (text.includes('half')) total += 0.5;
+        else if (text.includes('quarter')) total += 0.25;
+        else if (text.includes('three quarter') || text.includes('three-quarter')) total += 0.75;
+        // "point" followed by a number word
+        const pointIdx = text.indexOf('point');
+        if (pointIdx >= 0) {
+            const after = text.slice(pointIdx + 5).trim().split(/\s+/)[0];
+            const dec = wordToNum[after];
+            if (dec !== undefined && dec < 10) total += dec / 10;
+        }
+    }
     return found ? total : null;
 }
 
