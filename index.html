@@ -1089,6 +1089,20 @@
                     </div>
 
                     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+                    <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Tank Input</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+                        <div>
+                            <div style="font-size:13px;color:var(--text-primary);font-weight:600">Auto-advance to next tank</div>
+                            <div style="font-size:11px;color:var(--text-secondary)">After capturing, move to the next tank automatically (mic &amp; laser)</div>
+                        </div>
+                        <label style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;margin-left:10px">
+                            <input type="checkbox" id="setting-auto-advance" onchange="saveAutoAdvanceSetting()" style="opacity:0;width:0;height:0">
+                            <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--bg-body);border:1px solid var(--border);border-radius:26px;transition:.3s"></span>
+                            <span id="auto-advance-knob" style="position:absolute;content:'';height:20px;width:20px;left:3px;bottom:3px;background:var(--text-muted);border-radius:50%;transition:.3s"></span>
+                        </label>
+                    </div>
+
+                    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
                     <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">AI Chat Parser</div>
                     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Connect to Claude AI for smart parsing of field messages. Understands plug counts, depths, fluid volumes, and pressures in any format.</div>
                     <div class="profile-input-group">
@@ -2170,6 +2184,36 @@ function loadClaudeApiKey() {
     }
 }
 
+function saveAutoAdvanceSetting() {
+    const on = document.getElementById('setting-auto-advance').checked;
+    localStorage.setItem('ips_auto_advance', on ? '1' : '0');
+    updateAutoAdvanceUI(on);
+}
+
+function loadAutoAdvanceSetting() {
+    const on = localStorage.getItem('ips_auto_advance') === '1';
+    const cb = document.getElementById('setting-auto-advance');
+    if (cb) cb.checked = on;
+    updateAutoAdvanceUI(on);
+}
+
+function updateAutoAdvanceUI(on) {
+    const knob = document.getElementById('auto-advance-knob');
+    const cb = document.getElementById('setting-auto-advance');
+    if (knob) {
+        knob.style.left = on ? '25px' : '3px';
+        knob.style.background = on ? 'var(--accent)' : 'var(--text-muted)';
+    }
+    if (cb && cb.parentElement) {
+        const track = cb.parentElement.querySelector('span');
+        if (track) track.style.background = on ? 'rgba(79,195,247,0.25)' : 'var(--bg-body)';
+    }
+}
+
+function isAutoAdvanceOn() {
+    return localStorage.getItem('ips_auto_advance') === '1';
+}
+
 function toggleApiKeyVis() {
     const el = document.getElementById('claude-api-key');
     el.type = el.type === 'password' ? 'text' : 'password';
@@ -2603,6 +2647,7 @@ function openProfileModal() {
     renderPackerTreatedControls();
     loadTimecardConfigUI();
     loadClaudeApiKey();
+    loadAutoAdvanceSetting();
     const oi = document.getElementById('ble-offset-input');
     if (oi) { oi.value = bleOffsetInches; updateOffsetDisplay(); }
     // Highlight active theme swatch
@@ -6701,12 +6746,45 @@ function voiceConfirmEntry() {
     
     setTimeout(() => {
         if (voiceIsListening) {
-            voiceState = 'LISTENING';
-            voiceCurrentTank = null;
-            voicePendingInches = null;
-            voicePendingBbls = null;
-            updateVoiceStatus('Listening...', 'Say a tank keyword');
-            clearTankHighlights();
+            if (isAutoAdvanceOn()) {
+                // Auto-advance to next tank
+                const visibleTanks = getFilteredTanks();
+                const currentIdx = visibleTanks.findIndex(t => t.tank.id === voiceCurrentTank.id && t.side === voiceCurrentSide);
+                if (currentIdx >= 0 && currentIdx < visibleTanks.length - 1) {
+                    const next = visibleTanks[currentIdx + 1];
+                    voiceCurrentTank = { ...next.tank, side: next.side };
+                    voiceCurrentSide = next.side;
+                    voiceState = 'WAITING_NUMBER';
+                    voicePendingInches = null;
+                    voicePendingBbls = null;
+                    render();
+                    document.getElementById('voice-master-btn').className = 'voice-master-btn heard';
+                    updateVoiceStatus(next.tank.name, 'Say inches or BBL amount');
+                    voiceSpeak(speakableName(next.tank.name));
+                    setTimeout(() => { if (voiceState === 'WAITING_NUMBER') voicePlayDing(); }, 800);
+                } else {
+                    // Last tank — done
+                    voiceState = 'LISTENING';
+                    voiceCurrentTank = null;
+                    voicePendingInches = null;
+                    voicePendingBbls = null;
+                    updateVoiceStatus('✓ All done!', 'All visible tanks measured');
+                    voiceSpeak('All done');
+                    setTimeout(() => {
+                        if (voiceIsListening) {
+                            stopVoiceListening();
+                            render();
+                        }
+                    }, 2000);
+                }
+            } else {
+                voiceState = 'LISTENING';
+                voiceCurrentTank = null;
+                voicePendingInches = null;
+                voicePendingBbls = null;
+                updateVoiceStatus('Listening...', 'Say a tank keyword');
+                clearTankHighlights();
+            }
         }
     }, 1500);
 }
@@ -7130,6 +7208,12 @@ function handleBleMeasurement(event) {
 }
 
 function autoAdvanceBle() {
+    if (!isAutoAdvanceOn()) {
+        // Auto-advance off — stay on current tank
+        bleActiveTankSide = null; bleActiveTankId = null;
+        updateBleStatus('✓ Captured', 'Tap a tank or shoot laser');
+        return;
+    }
     const visibleTanks = getFilteredTanks();
     if (!visibleTanks.length) return;
     const currentIdx = visibleTanks.findIndex(t => t.tank.id === bleActiveTankId && t.side === bleActiveTankSide);
