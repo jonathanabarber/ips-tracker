@@ -1148,6 +1148,7 @@
                         <div class="profile-input-group" style="flex:1"><label>Default Rig</label><input type="text" id="tc-rig" placeholder="e.g. Cardinal" oninput="saveTimecardConfig()"></div>
                         <div class="profile-input-group" style="flex:1"><label>Default County</label><input type="text" id="tc-county" placeholder="e.g. upton, TX" oninput="saveTimecardConfig()"></div>
                     </div>
+                    <div class="profile-input-group"><label>Submit To (Email)</label><input type="email" id="tc-submit-email" placeholder="e.g. office@company.com" oninput="saveTimecardConfig()"></div>
                 </div>
             </div>
             <!-- Shift Actions -->
@@ -3361,11 +3362,12 @@ function saveTimecardConfig() {
     tcConfig.operator = (document.getElementById('tc-operator')||{}).value || '';
     tcConfig.rig = (document.getElementById('tc-rig')||{}).value || '';
     tcConfig.county = (document.getElementById('tc-county')||{}).value || '';
+    tcConfig.submitEmail = (document.getElementById('tc-submit-email')||{}).value || '';
     localStorage.setItem('ipsTcConfig', JSON.stringify(tcConfig));
 }
 function loadTimecardConfigUI() {
     const f = (id, key) => { const el = document.getElementById(id); if (el && tcConfig[key]) el.value = tcConfig[key]; };
-    f('tc-operator','operator'); f('tc-rig','rig'); f('tc-county','county');
+    f('tc-operator','operator'); f('tc-rig','rig'); f('tc-county','county'); f('tc-submit-email','submitEmail');
     tcUpdateTemplateStatus();
 }
 async function tcLoadExcelJSThenUpload() {
@@ -3829,42 +3831,79 @@ function tcApproveAndShare() {
     });
 }
 function tcEmailTimecard() {
-    tcGenerateXLSX().then(blob => {
-        if (!blob) return;
-        const startDate = document.getElementById('tc-start-date').value;
-        const endDate = document.getElementById('tc-end-date').value;
-        const fileName = (profileData.name || 'Timecard').replace(/\s+/g, '_') + '_' + startDate + '_to_' + endDate + '.xlsx';
-        var name = profileData.name || '';
-        var llc = profileData.llc || '';
-        var phone = profileData.phone || '';
-        var subject = 'Timecard - ' + name + ' - ' + startDate + ' to ' + endDate;
-        var bodyLines = ['Hi,', '', 'I\'m submitting my timecard for the period ' + startDate + ' to ' + endDate + '. Please find the attached timesheet for review.', '', 'If any adjustments or corrections are needed, please don\'t hesitate to let me know and I\'ll get them updated right away.', '', 'Thank you,', name];
-        if (llc) bodyLines.push(llc);
-        if (phone) bodyLines.push(phone);
-        var bodyText = bodyLines.join('\n');
-        // Try Web Share API with file (attaches to Gmail on mobile)
+    const startDate = document.getElementById('tc-start-date').value;
+    const endDate = document.getElementById('tc-end-date').value;
+    var name = profileData.name || '';
+    var llc = profileData.llc || '';
+    var phone = profileData.phone || '';
+    var operator = tcConfig.operator || '';
+    var rig = tcConfig.rig || '';
+    var subject = 'Timecard – ' + (name || 'Consultant') + ' – ' + startDate + ' to ' + endDate;
+    var bodyLines = [
+        'Hi' + (operator ? ' ' + operator + ' Team' : '') + ',',
+        '',
+        'Please find my timecard for the period ' + startDate + ' through ' + endDate + ' attached for your review.' + (rig ? ' Rig: ' + rig + '.' : ''),
+        '',
+        'If any adjustments or corrections are needed, please let me know and I\'ll get them updated right away.',
+        '',
+        'Thank you,',
+        name
+    ];
+    if (llc) bodyLines.push(llc);
+    if (phone) bodyLines.push(phone);
+
+    var hasTemplate = !!localStorage.getItem('ipsTcTemplate');
+
+    function openMailto(extraLines) {
+        var lines = bodyLines.concat(extraLines || []);
+        var to = tcConfig.submitEmail || '';
+        window.location.href = 'mailto:' + to
+            + '?subject=' + encodeURIComponent(subject)
+            + '&body=' + encodeURIComponent(lines.join('\n'));
+    }
+
+    // Close preview first
+    document.getElementById('tc-preview-overlay').classList.remove('show');
+    document.body.style.overflow = '';
+
+    if (!hasTemplate) {
+        // No template — just open the pre-filled email directly
+        openMailto(['', '(Timecard attachment not available — no template uploaded in Settings → Timecard)']);
+        return;
+    }
+
+    tcGenerateXLSX().then(function(blob) {
+        if (!blob) {
+            // XLSX failed for another reason — still open email
+            openMailto(['', '(Unable to generate XLSX attachment — please attach manually)']);
+            return;
+        }
+        var fileName = (name || 'Timecard').replace(/\s+/g, '_') + '_' + startDate + '_to_' + endDate + '.xlsx';
         var file = new File([blob], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        // Try Web Share API with file attachment (works on iOS/Android Gmail)
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             navigator.share({
                 title: subject,
-                text: bodyText,
+                text: bodyLines.join('\n'),
                 files: [file]
-            }).catch(function() {});
+            }).catch(function() {
+                // Share cancelled or failed — fall back to download + mailto
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url; a.download = fileName;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+                openMailto(['', '(Attach the downloaded file: ' + fileName + ')']);
+            });
         } else {
-            // Fallback: download + mailto
+            // Desktop fallback: download file then open mailto
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
             a.href = url; a.download = fileName;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
-            bodyLines.push('', '(Please attach the downloaded file: ' + fileName + ')');
-            var body = encodeURIComponent(bodyLines.join('\n'));
-            var to = tcConfig.submitEmail || '';
-            window.location.href = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + body;
+            openMailto(['', '(Attach the downloaded file: ' + fileName + ')']);
         }
-        // Close preview
-        document.getElementById('tc-preview-overlay').classList.remove('show');
-        document.body.style.overflow = '';
     });
 }
 async function tcGenerateXLSX() {
