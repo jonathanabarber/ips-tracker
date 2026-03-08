@@ -1148,7 +1148,10 @@
                         <div class="profile-input-group" style="flex:1"><label>Default Rig</label><input type="text" id="tc-rig" placeholder="e.g. Cardinal" oninput="saveTimecardConfig()"></div>
                         <div class="profile-input-group" style="flex:1"><label>Default County</label><input type="text" id="tc-county" placeholder="e.g. upton, TX" oninput="saveTimecardConfig()"></div>
                     </div>
-                    <div class="profile-input-group"><label>Submit To (Email)</label><input type="email" id="tc-submit-email" placeholder="e.g. office@company.com" oninput="saveTimecardConfig()"></div>
+                    <div style="display:flex;gap:8px">
+                        <div class="profile-input-group" style="flex:1"><label>Submit To (Name)</label><input type="text" id="tc-submit-name" placeholder="e.g. Upstream" oninput="saveTimecardConfig()"></div>
+                        <div class="profile-input-group" style="flex:1"><label>Submit To (Email)</label><input type="email" id="tc-submit-email" placeholder="e.g. mgmt@upstintl.com" oninput="saveTimecardConfig()"></div>
+                    </div>
                 </div>
             </div>
             <!-- Shift Actions -->
@@ -3356,18 +3359,21 @@ function tcInitDateListeners() {
 
 // ========== TIMECARD SYSTEM ==========
 let tcConfig = JSON.parse(localStorage.getItem('ipsTcConfig') || '{}');
+if (!tcConfig.submitName) tcConfig.submitName = 'Upstream';
+if (!tcConfig.submitEmail) tcConfig.submitEmail = 'mgmt@upstintl.com';
 let tcLog = JSON.parse(localStorage.getItem('ipsTcLog') || '[]');
 
 function saveTimecardConfig() {
     tcConfig.operator = (document.getElementById('tc-operator')||{}).value || '';
     tcConfig.rig = (document.getElementById('tc-rig')||{}).value || '';
     tcConfig.county = (document.getElementById('tc-county')||{}).value || '';
+    tcConfig.submitName = (document.getElementById('tc-submit-name')||{}).value || '';
     tcConfig.submitEmail = (document.getElementById('tc-submit-email')||{}).value || '';
     localStorage.setItem('ipsTcConfig', JSON.stringify(tcConfig));
 }
 function loadTimecardConfigUI() {
     const f = (id, key) => { const el = document.getElementById(id); if (el && tcConfig[key]) el.value = tcConfig[key]; };
-    f('tc-operator','operator'); f('tc-rig','rig'); f('tc-county','county'); f('tc-submit-email','submitEmail');
+    f('tc-operator','operator'); f('tc-rig','rig'); f('tc-county','county'); f('tc-submit-name','submitName'); f('tc-submit-email','submitEmail');
     tcUpdateTemplateStatus();
 }
 async function tcLoadExcelJSThenUpload() {
@@ -3836,11 +3842,12 @@ function tcEmailTimecard() {
     var name = profileData.name || '';
     var llc = profileData.llc || '';
     var phone = profileData.phone || '';
+    var submitName = tcConfig.submitName || '';
     var operator = tcConfig.operator || '';
     var rig = tcConfig.rig || '';
     var subject = 'Timecard – ' + (name || 'Consultant') + ' – ' + startDate + ' to ' + endDate;
     var bodyLines = [
-        'Hi' + (operator ? ' ' + operator + ' Team' : '') + ',',
+        'Hi' + (submitName ? ' ' + submitName + ' Team,' : ','),
         '',
         'Please find my timecard for the period ' + startDate + ' through ' + endDate + ' attached for your review.' + (rig ? ' Rig: ' + rig + '.' : ''),
         '',
