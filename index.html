@@ -1596,6 +1596,7 @@ Lat: 31.907   Long: -101.949"></textarea>
                     <div class="tit-row"><span class="tit-label">Torque On</span><input type="number" class="tit-input" id="plug-torque-on" onchange="savePlugData()"><span class="tit-unit">ft-lb</span></div>
                     <div class="tit-row"><span class="tit-label">RPM</span><input type="number" class="tit-input" id="plug-rpm" onchange="savePlugData()"><span class="tit-unit"></span></div>
                     <div class="tit-row"><span class="tit-label">WOB</span><input type="number" step="0.1" class="tit-input" id="plug-wob" onchange="savePlugData()"><span class="tit-unit">klb</span></div>
+                    <div class="tit-row"><span class="tit-label">Stalls</span><select class="tit-input" id="plug-stalls" style="width:100px" onchange="savePlugData()"><option value="">--</option><option value="none">None</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4+">4+</option></select><span class="tit-unit"></span></div>
                 </div>
 
                 <!-- Pressures & Rates -->
@@ -1606,6 +1607,7 @@ Lat: 31.907   Long: -101.949"></textarea>
                     <div class="tit-row"><span class="tit-label">Motor Pressure</span><input type="number" class="tit-input" id="plug-mp" onchange="savePlugData()"><span class="tit-unit">PSI</span></div>
                     <div class="tit-row"><span class="tit-label">Return Rate</span><input type="number" step="0.1" class="tit-input" id="plug-rr" onchange="savePlugData()"><span class="tit-unit">BPM</span></div>
                     <div class="tit-row"><span class="tit-label">Choke Size</span><input type="text" class="tit-input" id="plug-choke" style="width:80px" onchange="savePlugData()"><span class="tit-unit"></span></div>
+                    <div class="tit-row"><span class="tit-label">Int Casing</span><input type="text" class="tit-input" id="plug-int" style="width:80px" onchange="savePlugData()"><span class="tit-unit">PSI</span></div>
                 </div>
 
                 <!-- Fluid Properties -->
@@ -1633,8 +1635,6 @@ Lat: 31.907   Long: -101.949"></textarea>
                 <!-- Other -->
                 <div class="tit-card">
                     <div class="tit-title">Other</div>
-                    <div class="tit-row"><span class="tit-label">Int</span><input type="text" class="tit-input" id="plug-int" style="width:80px" onchange="savePlugData()"><span class="tit-unit"></span></div>
-                    <div class="tit-row"><span class="tit-label">Stalls</span><input type="text" class="tit-input" id="plug-stalls" style="width:80px" onchange="savePlugData()"><span class="tit-unit"></span></div>
                     <div class="tit-row"><span class="tit-label">FR</span><input type="text" class="tit-input" id="plug-fr" style="width:80px" onchange="savePlugData()"><span class="tit-unit"></span></div>
                     <div class="tit-row"><span class="tit-label">POP</span><input type="text" class="tit-input" id="plug-pop" style="width:80px" onchange="savePlugData()"><span class="tit-unit"></span></div>
                     <div class="tit-row" style="flex-direction:column;align-items:stretch"><span class="tit-label" style="margin-bottom:6px">Comments</span><textarea id="plug-comments" onchange="savePlugData()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--bg-body);color:var(--text-primary);min-height:60px;resize:vertical;font-family:inherit"></textarea></div>
@@ -2130,7 +2130,7 @@ FIELD ABBREVIATIONS AND DEFINITIONS:
 - PP: pump pressure (PSI)
 - WHP: wellhead pressure (PSI) - on the tubing/pump side
 - SURF: surface casing pressure (PSI)
-- INT: intermediate casing pressure (PSI)
+- INT: intermediate casing pressure (PSI) — belongs in Pressures section
 - MP: motor pressure (PSI)
 - Circ Time: circulating time on the plug before moving to next. "None" = no circulation
 - PU Wt / Pick Up: pick up weight (string weight pulling up)
@@ -2151,7 +2151,7 @@ FIELD ABBREVIATIONS AND DEFINITIONS:
 - FR: friction reducer concentration (e.g. "1/2 gal per 10 bbls")
 - POP: pipe on pipe lube concentration (same format as FR)
 - BTS ETA / ETA: bit to surface estimated time of arrival
-- Stalls: motor stalls during drilling
+- Stalls: power swivel stalls during drilling — belongs in Drilling Parameters
 - Plug Wt: weight indicator when tagging plug
 - Comments: free text notes
 
@@ -5397,8 +5397,10 @@ function logGainLossCheck() {
     // === Snapshot hole volume now (user updates wellbore calc before pressing Capture) ===
     const holeVolSnap = (function(){ var h = getHoleVolume(); return h ? parseFloat(h) : null; })();
     const holeVolNow = holeVolSnap || 0;
-    // Total system = surface tanks + wellbore hole volume
-    const currTotal = Math.round((curr + holeVolNow) * 10) / 10;
+    // When a fluid filter is active, track that fluid's surface + hole.
+    // When no filter, track all surface tanks + hole.
+    const currSurface = glFluidFilter ? (totals[glFluidFilter] || 0) : curr;
+    const currTotal = Math.round((currSurface + holeVolNow) * 10) / 10;
 
     // === System-level calculations (surface + hole) ===
     const prevEntry = data.history.length ? data.history[0] : null;
@@ -5439,8 +5441,8 @@ function logGainLossCheck() {
     data.history.unshift({
         time: now.toISOString(),
         initials: profileData.initials || '',
-        systemTotal: currTotal,        // surface + hole — used by Firebase sync for lastSystemTotal
-        surfaceTotal: curr,            // surface only, for reference
+        systemTotal: currTotal,        // filtered-fluid (or all) surface + hole — used by Firebase sync
+        surfaceTotal: currSurface,     // surface only for the tracked fluid/system, for reference
         apparentChange: sysApp,
         trueChange: sysActual,
         ratePerHour: sysRate,
@@ -7766,7 +7768,19 @@ function applyChatFeedToApp(record) {
         }
     }
     if (f.interval && f.interval.value && f.interval.value !== '—') setField('plug-int', f.interval.value);
-    if (f.stalls && f.stalls.value && f.stalls.value !== '—') setField('plug-stalls', f.stalls.value);
+    if (f.stalls && f.stalls.value && f.stalls.value !== '—') {
+        const stallsSel = document.getElementById('plug-stalls');
+        if (stallsSel) {
+            const sv = f.stalls.value.toLowerCase().trim();
+            let matched = false;
+            for (const opt of stallsSel.options) { if (opt.value === sv) { stallsSel.value = sv; matched = true; break; } }
+            if (!matched && !isNaN(parseInt(sv))) {
+                const n = parseInt(sv);
+                stallsSel.value = n >= 4 ? '4+' : String(n);
+            }
+            stallsSel.dispatchEvent(new Event('change'));
+        }
+    }
     if (f.fr && f.fr.value && f.fr.value !== '—') setField('plug-fr', f.fr.value);
     if (f.pop && f.pop.value && f.pop.value !== '—') setField('plug-pop', f.pop.value);
     if (f.comments && f.comments.value && f.comments.value !== '—') setField('plug-comments', f.comments.value);
