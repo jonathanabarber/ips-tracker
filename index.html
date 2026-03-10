@@ -5437,7 +5437,8 @@ function logGainLossCheck() {
         filterType: glFluidFilter || null,
         transfersByType: xferByType,
         transfersTotal: { out: xferTotalOut, in: xferTotalIn, build: xferTotalBuild },
-        fluidBreakdown: fluidBreakdown
+        fluidBreakdown: fluidBreakdown,
+        holeVolume: (function(){ var h = getHoleVolume(); return h ? parseFloat(h) : null; })()
     });
     
     data.lastSystemTotal = curr;
@@ -5626,8 +5627,13 @@ function render() {
         }
         const surface = ft && last.totals ? (last.totals[ft] || 0) : last.systemTotal;
         if (capSurface) { capSurface.textContent = surface; capSurface.className = 'gl-value neutral'; capSurface.style.color = cssVar('--text-primary'); }
-        if (capWellbore) { capWellbore.textContent = '--'; }
-        if (capTotal) { capTotal.textContent = surface; capTotal.className = 'gl-value neutral'; capTotal.style.color = cssVar('--text-primary'); }
+        const capHoleVol = (last.holeVolume !== undefined && last.holeVolume !== null) ? last.holeVolume : null;
+        if (capWellbore) {
+            capWellbore.textContent = capHoleVol !== null ? capHoleVol : '--';
+            capWellbore.style.color = capHoleVol !== null ? '#b0bec5' : '#888';
+        }
+        const capTotalVal = capHoleVol !== null ? Math.round((surface + capHoleVol) * 10) / 10 : surface;
+        if (capTotal) { capTotal.textContent = capTotalVal; capTotal.className = 'gl-value neutral'; capTotal.style.color = cssVar('--text-primary'); }
         
         // Row 2: Time / Apparent / Actual / Transfers / Hourly
         if (capTime && data.lastCheckTime) {
@@ -5857,8 +5863,9 @@ function renderVolumeLog() {
             surface = h.totals[ft];
         }
         
-        const wellbore = '--';
-        const total = surface;
+        const holeVol = (h.holeVolume !== undefined && h.holeVolume !== null) ? h.holeVolume : null;
+        const wellbore = holeVol !== null ? holeVol : '--';
+        const total = holeVol !== null ? Math.round((surface + holeVol) * 10) / 10 : surface;
         
         // === APPARENT: compare to previous entry's total for this type ===
         const prevEntry = (idx < data.history.length - 1) ? data.history[idx + 1] : null;
@@ -5915,7 +5922,7 @@ function renderVolumeLog() {
                 '<div style="color:var(--accent);font-size:10px">' + t + '</div></td>' +
             '<td style="padding:3px 2px;color:' + fluidClr + ';font-weight:600">' + fluidName + '</td>' +
             '<td style="padding:3px 2px;text-align:right;color:var(--text-primary)">' + surface + '</td>' +
-            '<td style="padding:3px 2px;text-align:right;color:var(--text-muted)">' + wellbore + '</td>' +
+            '<td style="padding:3px 2px;text-align:right;color:' + (holeVol !== null ? '#b0bec5' : 'var(--text-muted)') + '">' + wellbore + '</td>' +
             '<td style="padding:3px 2px;text-align:right;color:var(--text-primary);font-weight:600">' + total + '</td></tr>';
         
         // ROW 2: Apparent / Actual / Transfers / Hourly
