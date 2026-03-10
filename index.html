@@ -7409,7 +7409,9 @@ function renderGLFiltered() {
         // Surface/Total for this type
         const currTypeTotal = last.totals ? (last.totals[glFluidFilter] || 0) : null;
         if (capSurface) { capSurface.textContent = currTypeTotal !== null ? currTypeTotal : '--'; capSurface.style.color = cssVar('--text-primary'); }
-        if (capTotal) { capTotal.textContent = currTypeTotal !== null ? currTypeTotal : '--'; capTotal.style.color = cssVar('--text-primary'); }
+        const glHoleVol = (last.holeVolume !== undefined && last.holeVolume !== null) ? last.holeVolume : null;
+        const glTotalVal = (currTypeTotal !== null && glHoleVol !== null) ? Math.round((currTypeTotal + glHoleVol) * 10) / 10 : (currTypeTotal !== null ? currTypeTotal : '--');
+        if (capTotal) { capTotal.textContent = glTotalVal; capTotal.style.color = cssVar('--text-primary'); }
         
         // Transfers for this type
         if (capTransfers) {
@@ -7447,7 +7449,9 @@ function renderGLFiltered() {
         if (capFluid) { capFluid.textContent = last.filterType ? (fluidNames[last.filterType] || last.filterType) : 'System'; capFluid.style.color = last.filterType ? (fluidBoxColors[last.filterType] || cssVar('--text-primary')) : '#e0e0e0'; }
         const surface = last.filterType && last.totals ? (last.totals[last.filterType] || 0) : last.systemTotal;
         if (capSurface) { capSurface.textContent = surface; capSurface.style.color = cssVar('--text-primary'); }
-        if (capTotal) { capTotal.textContent = surface; capTotal.style.color = cssVar('--text-primary'); }
+        const noFilterHoleVol = (last.holeVolume !== undefined && last.holeVolume !== null) ? last.holeVolume : null;
+        const noFilterTotal = noFilterHoleVol !== null ? Math.round((surface + noFilterHoleVol) * 10) / 10 : surface;
+        if (capTotal) { capTotal.textContent = noFilterTotal; capTotal.style.color = cssVar('--text-primary'); }
         
         // System transfers
         if (capTransfers) {
