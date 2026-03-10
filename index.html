@@ -5394,39 +5394,53 @@ function logGainLossCheck() {
         });
     }
     
-    // === System-level calculations ===
-    // Apparent = simple difference in system total
-    const last = data.lastSystemTotal;
-    const sysApp = last !== null ? curr - last : null;
-    // Actual = Apparent + stuff_removed - stuff_added (jet outs restore, jet ins/builds subtract)
-    const sysActual = sysApp !== null ? sysApp + xferTotalOut - xferTotalIn - xferTotalBuild : null;
-    
+    // === Snapshot hole volume now (user updates wellbore calc before pressing Capture) ===
+    const holeVolSnap = (function(){ var h = getHoleVolume(); return h ? parseFloat(h) : null; })();
+    const holeVolNow = holeVolSnap || 0;
+    // Total system = surface tanks + wellbore hole volume
+    const currTotal = Math.round((curr + holeVolNow) * 10) / 10;
+
+    // === System-level calculations (surface + hole) ===
+    const prevEntry = data.history.length ? data.history[0] : null;
+    const lastTotal = data.lastSystemTotal; // now stores surface+hole since last capture
+    const sysApp = lastTotal !== null ? Math.round((currTotal - lastTotal) * 10) / 10 : null;
+    // Actual = Apparent + jets out − jets in − builds  (transfers are surface events only)
+    const sysActual = sysApp !== null ? Math.round((sysApp + xferTotalOut - xferTotalIn - xferTotalBuild) * 10) / 10 : null;
+
     let elapsedMin = null, sysRate = null;
     if (lastCheckTime) {
         elapsedMin = Math.round((now - lastCheckTime) / 60000);
         if (elapsedMin > 0 && sysActual !== null) sysRate = ((sysActual / elapsedMin) * 60).toFixed(1);
     }
-    
-    // === Store history entry with full transfer data ===
-    // === Per-fluid breakdown: apparent & actual for each fluid type ===
-    const prevEntry = data.history.length ? data.history[0] : null;
+
+    // === Per-fluid breakdown ===
+    // For the active fluid filter, hole volume is attributed to that fluid type.
+    // For system-level (no filter), hole is already included in currTotal.
     const prevTotals = prevEntry ? prevEntry.totals : null;
+    const prevHoleVol = (prevEntry && prevEntry.holeVolume !== undefined && prevEntry.holeVolume !== null) ? prevEntry.holeVolume : null;
     const fluidBreakdown = {};
     fluidTypes.forEach(ft => {
         const currVal = totals[ft] || 0;
         const prevVal = prevTotals ? (prevTotals[ft] || 0) : null;
-        const apparent = prevVal !== null ? currVal - prevVal : null;
+        // If this fluid type is the active filter, include hole volume in the total
+        const isActiveFluid = glFluidFilter === ft;
+        const currFtTotal = isActiveFluid ? Math.round((currVal + holeVolNow) * 10) / 10 : currVal;
+        const prevFtTotal = (isActiveFluid && prevHoleVol !== null && prevVal !== null)
+            ? Math.round((prevVal + prevHoleVol) * 10) / 10
+            : prevVal;
+        const apparent = prevFtTotal !== null ? Math.round((currFtTotal - prevFtTotal) * 10) / 10 : null;
         const xf = xferByType[ft];
-        const actual = apparent !== null ? apparent + xf.out - xf.in - xf.build : null;
+        const actual = apparent !== null ? Math.round((apparent + xf.out - xf.in - xf.build) * 10) / 10 : null;
         let rate = null;
         if (elapsedMin && elapsedMin > 0 && actual !== null) rate = ((actual / elapsedMin) * 60).toFixed(1);
-        fluidBreakdown[ft] = { current: currVal, previous: prevVal, apparent: apparent, actual: actual, ratePerHour: rate, transfers: xf };
+        fluidBreakdown[ft] = { current: currFtTotal, previous: prevFtTotal, apparent: apparent, actual: actual, ratePerHour: rate, transfers: xf };
     });
-    
+
     data.history.unshift({
         time: now.toISOString(),
         initials: profileData.initials || '',
-        systemTotal: curr,
+        systemTotal: currTotal,        // surface + hole — used by Firebase sync for lastSystemTotal
+        surfaceTotal: curr,            // surface only, for reference
         apparentChange: sysApp,
         trueChange: sysActual,
         ratePerHour: sysRate,
@@ -5438,10 +5452,10 @@ function logGainLossCheck() {
         transfersByType: xferByType,
         transfersTotal: { out: xferTotalOut, in: xferTotalIn, build: xferTotalBuild },
         fluidBreakdown: fluidBreakdown,
-        holeVolume: (function(){ var h = getHoleVolume(); return h ? parseFloat(h) : null; })()
+        holeVolume: holeVolSnap
     });
-    
-    data.lastSystemTotal = curr;
+
+    data.lastSystemTotal = currTotal;  // store surface+hole for next capture's delta
     data.lastCheckTime = now.toISOString();
     data.jetsHour = 0;
     saveData(); render(); renderVolumeLog();
@@ -5857,28 +5871,20 @@ function renderVolumeLog() {
         const fluidName = ft ? (fluidLabels[ft] || ft) : 'System';
         const fluidClr = ft ? (fluidColors[ft] || cssVar('--text-primary')) : '#e0e0e0';
         
-        // Surface = fluid type total (or system total)
-        let surface = h.systemTotal;
-        if (ft && h.totals && h.totals[ft] !== undefined) {
-            surface = h.totals[ft];
-        }
-        
+        // Surface = fluid type surface only (for surface column)
         const holeVol = (h.holeVolume !== undefined && h.holeVolume !== null) ? h.holeVolume : null;
+        let surface = ft && h.totals && h.totals[ft] !== undefined ? h.totals[ft]
+                    : (h.surfaceTotal !== undefined ? h.surfaceTotal : h.systemTotal);
         const wellbore = holeVol !== null ? holeVol : '--';
-        const total = holeVol !== null ? Math.round((surface + holeVol) * 10) / 10 : surface;
-        
-        // === APPARENT: compare to previous entry's total for this type ===
-        const prevEntry = (idx < data.history.length - 1) ? data.history[idx + 1] : null;
+        // Total = systemTotal which now stores surface+hole; fallback to surface+hole calc
+        const total = h.systemTotal !== undefined ? h.systemTotal
+                    : (holeVol !== null ? Math.round((surface + holeVol) * 10) / 10 : surface);
+
+        // === APPARENT / ACTUAL — use stored fluidBreakdown (includes hole) or stored system values ===
         let apparent = null, actual = null;
-        
-        if (ft) {
-            const prevTypeTotal = prevEntry && prevEntry.totals ? (prevEntry.totals[ft] || 0) : null;
-            if (prevTypeTotal !== null) {
-                apparent = surface - prevTypeTotal;
-                const xf = h.transfersByType && h.transfersByType[ft] 
-                    ? h.transfersByType[ft] : { out: 0, in: 0, build: 0 };
-                actual = apparent + xf.out - xf.in - xf.build;
-            }
+        if (ft && h.fluidBreakdown && h.fluidBreakdown[ft]) {
+            apparent = h.fluidBreakdown[ft].apparent;
+            actual = h.fluidBreakdown[ft].actual;
         } else {
             apparent = h.apparentChange;
             actual = h.trueChange;
@@ -7424,34 +7430,22 @@ function renderGLFiltered() {
             capTransfers.style.color = parts.length ? '' : '#888';
         }
         
-        // Apparent / Actual / Hourly
-        const prevEntry = data.history.length > 1 ? data.history[1] : null;
-        const prevTypeTotal = prevEntry && prevEntry.totals ? (prevEntry.totals[glFluidFilter] || 0) : null;
-        
-        if (prevTypeTotal !== null && currTypeTotal !== null) {
-            const fApp = currTypeTotal - prevTypeTotal;
-            const xf = last.transfersByType && last.transfersByType[glFluidFilter] ? last.transfersByType[glFluidFilter] : { out: 0, in: 0, build: 0 };
-            const fActual = fApp + xf.out - xf.in - xf.build;
-            
-            fmtVal(appEl, fApp);
-            fmtVal(truEl, fActual);
-            
-            if (last.elapsedMin && last.elapsedMin > 0) {
-                fmtRate(rateEl, ((fActual / last.elapsedMin) * 60).toFixed(1));
-            } else {
-                fmtRate(rateEl, null);
-            }
+        // Apparent / Actual / Hourly — use fluidBreakdown which already includes hole volume in totals
+        const bd = last.fluidBreakdown && last.fluidBreakdown[glFluidFilter] ? last.fluidBreakdown[glFluidFilter] : null;
+        if (bd && bd.apparent !== null) {
+            fmtVal(appEl, bd.apparent);
+            fmtVal(truEl, bd.actual);
+            fmtRate(rateEl, bd.ratePerHour);
         } else {
             fmtVal(appEl, null); fmtVal(truEl, null); fmtRate(rateEl, null);
         }
     } else {
         // No filter — show system values
         if (capFluid) { capFluid.textContent = last.filterType ? (fluidNames[last.filterType] || last.filterType) : 'System'; capFluid.style.color = last.filterType ? (fluidBoxColors[last.filterType] || cssVar('--text-primary')) : '#e0e0e0'; }
-        const surface = last.filterType && last.totals ? (last.totals[last.filterType] || 0) : last.systemTotal;
+        const surface = last.surfaceTotal !== undefined ? last.surfaceTotal : (last.filterType && last.totals ? (last.totals[last.filterType] || 0) : last.systemTotal);
         if (capSurface) { capSurface.textContent = surface; capSurface.style.color = cssVar('--text-primary'); }
-        const noFilterHoleVol = (last.holeVolume !== undefined && last.holeVolume !== null) ? last.holeVolume : null;
-        const noFilterTotal = noFilterHoleVol !== null ? Math.round((surface + noFilterHoleVol) * 10) / 10 : surface;
-        if (capTotal) { capTotal.textContent = noFilterTotal; capTotal.style.color = cssVar('--text-primary'); }
+        // systemTotal now stores surface+hole
+        if (capTotal) { capTotal.textContent = last.systemTotal !== undefined ? last.systemTotal : surface; capTotal.style.color = cssVar('--text-primary'); }
         
         // System transfers
         if (capTransfers) {
