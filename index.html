@@ -1942,7 +1942,7 @@ const PUMP_CHART = {
 const TREAT_LABELS = { 0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4' };
 
 let injData = { pumpRate: null, frTreat: null, lubeTreat: null, history: [] };
-function loadInjData() { const s = localStorage.getItem('ipsInjV5'); if (s) injData = JSON.parse(s); }
+function loadInjData() { const s = localStorage.getItem('ipsInjV5'); if (s) injData = JSON.parse(s); if (!injData.history || !Array.isArray(injData.history)) injData.history = []; }
 function saveInjData() { localStorage.setItem('ipsInjV5', JSON.stringify(injData)); firebaseSaveInjData(); }
 function updatePumpRate() {
     const rate = document.getElementById('pump-rate-select').value;
@@ -1950,6 +1950,7 @@ function updatePumpRate() {
         const old = injData.pumpRate;
         injData.pumpRate = rate;
         document.getElementById('current-pump-rate').innerHTML = rate + '<span style="font-size:18px;color:var(--text-secondary)"> BPM</span>';
+        if (!injData.history || !Array.isArray(injData.history)) injData.history = [];
         if (old && old !== rate) injData.history.unshift({ time: new Date().toISOString(), type: 'pump', from: old, to: rate });
         saveInjData(); updateInjTargets(); renderInjHist();
     }
@@ -1963,9 +1964,14 @@ function updateInjTargets() {
     document.getElementById('lube-target').textContent = (rate && lubeT && PUMP_CHART[rate]) ? PUMP_CHART[rate][parseFloat(lubeT)].toFixed(3) : '--';
 }
 function logInjChange(chem) {
-    const rate = injData.pumpRate, treat = chem === 'fr' ? document.getElementById('fr-treatment').value : document.getElementById('lube-treatment').value;
-    if (!rate || !treat) { alert('Set pump rate and treatment first'); return; }
-    const target = PUMP_CHART[rate][parseFloat(treat)];
+    const rate = String(injData.pumpRate);
+    const treat = chem === 'fr' ? document.getElementById('fr-treatment').value : document.getElementById('lube-treatment').value;
+    if (!rate || rate === 'null' || !treat) { alert('Set pump rate and treatment first'); return; }
+    const chart = PUMP_CHART[rate];
+    if (!chart) { alert('Pump rate ' + rate + ' not found in chart. Select a valid rate.'); return; }
+    const target = chart[parseFloat(treat)];
+    if (target === undefined) { alert('Treatment value not found in chart.'); return; }
+    if (!injData.history || !Array.isArray(injData.history)) injData.history = [];
     injData.history.unshift({ time: new Date().toISOString(), type: chem, pumpRate: rate, treat: TREAT_LABELS[parseFloat(treat)], gpm: target });
     saveInjData(); renderInjHist();
     alert((chem === 'fr' ? 'FR' : 'Lube') + ' logged!\nRate: ' + rate + ' BPM\nTreatment: ' + TREAT_LABELS[parseFloat(treat)] + '/10bbl\nTarget: ' + target.toFixed(3) + ' GPM');
@@ -3203,7 +3209,7 @@ function onRemoteTitData(snap) {
 function onRemoteInjData(snap) {
     if (!snap.exists()) return;
     injData = snap.val();
-    if (injData.history) injData.history = fbToArray(injData.history);
+    injData.history = injData.history ? fbToArray(injData.history) : [];
     localStorage.setItem('ipsInjV5', JSON.stringify(injData));
     try { loadInjUI(); renderInjHist(); } catch(e) {}
 }
