@@ -1991,10 +1991,24 @@ function logInjChange(chem) {
 function renderInjHist() {
     const el = document.getElementById('inj-history');
     if (!injData.history || !injData.history.length) { el.innerHTML = '<em style="color:var(--text-muted)">No changes logged</em>'; return; }
+    const typeColor = { pump: '#4fc3f7', fr: '#66bb6a', lube: '#ffa726' };
     el.innerHTML = injData.history.slice(0, 20).map(h => {
         const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-        if (h.type === 'pump') return '<div style="font-size:11px;color:#aaa;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--accent)">' + t + '</span> Pump: ' + h.from + ' → ' + h.to + ' BPM</div>';
-        return '<div style="font-size:11px;color:#aaa;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--accent)">' + t + '</span> ' + (h.type === 'fr' ? 'FR' : 'Lube') + ': ' + h.treat + '/10bbl @ ' + h.pumpRate + ' → ' + h.gpm.toFixed(3) + ' GPM</div>';
+        const clr = typeColor[h.type] || '#aaa';
+        const typeLabel = '<span style="color:' + clr + ';font-weight:700;display:inline-block;width:38px">' + (h.type === 'fr' ? 'FR' : h.type === 'lube' ? 'Lube' : 'Pump') + '</span>';
+        let detail;
+        if (h.type === 'pump') {
+            detail = '<span style="display:inline-block;min-width:80px">' + h.from + ' → ' + h.to + ' BPM</span>';
+        } else {
+            detail = '<span style="display:inline-block;min-width:80px">' + h.treat + '/10bbl</span>'
+                   + '<span style="color:var(--text-secondary)"> @ ' + h.pumpRate + ' BPM → </span>'
+                   + '<span style="color:#66bb6a">' + h.gpm.toFixed(3) + ' GPM</span>';
+        }
+        return '<div style="font-size:11px;color:#aaa;padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">'
+            + '<span style="color:var(--accent);min-width:62px;flex-shrink:0">' + t + '</span>'
+            + typeLabel
+            + detail
+            + '</div>';
     }).join('');
 }
 function loadInjUI() {
@@ -7178,6 +7192,7 @@ async function toggleBleMaster() {
 
 // Per-tank icon toggle still works for manual selection
 async function toggleBleTank(side, tankId) {
+    tankId = typeof tankId === 'string' ? parseInt(tankId) : tankId; // normalize type
     // If voice is active on this tank, ignore BLE tap (accidental press)
     if (voiceIsListening && voiceCurrentTank && voiceCurrentTank.id === tankId && voiceCurrentSide === side) return;
     
@@ -7320,7 +7335,7 @@ function handleBleMeasurement(event) {
 
     if (bleActiveTankSide && bleActiveTankId) {
         const tanks = bleActiveTankSide === 'pump' ? data.pumpTanks : data.returnTanks;
-        const tank = tanks.find(t => t.id === bleActiveTankId);
+        const tank = tanks.find(t => t.id == bleActiveTankId); // loose equality handles string/number mismatch
         if (tank) {
             tank.inches = adjustedInches;
             tank.bbls = inchesToBbl(adjustedInches);
