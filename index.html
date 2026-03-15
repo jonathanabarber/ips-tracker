@@ -1409,21 +1409,39 @@ Lat: 31.907   Long: -101.949"></textarea>
             <div style="background:var(--bg-card);border-radius:8px;padding:16px;margin-bottom:12px;border:2px solid #4fc3f7">
                 <div style="font-size:12px;color:var(--accent);text-transform:uppercase;margin-bottom:8px">Current Pump Rate (BPM)</div>
                 <div style="font-size:48px;font-weight:700;color:#ffd54f;text-align:center" id="current-pump-rate">--<span style="font-size:18px;color:var(--text-secondary)"> BPM</span></div>
-                <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
-                    <label style="font-size:12px;color:var(--text-secondary);min-width:70px">Set Rate:</label>
-                    <select id="pump-rate-select" onchange="updatePumpRate()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--bg-body);color:var(--text-primary)">
-                        <option value="">Select...</option>
-                        <option value="0">0</option><option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option>
-                        <option value="2.25">2.25</option><option value="2.5">2.5</option><option value="2.75">2.75</option>
-                        <option value="3">3</option><option value="3.25">3.25</option><option value="3.5">3.5</option>
-                        <option value="3.75">3.75</option><option value="4">4</option><option value="4.25">4.25</option>
-                        <option value="4.5">4.5</option><option value="4.75">4.75</option><option value="5">5</option>
-                        <option value="5.25">5.25</option><option value="5.5">5.5</option><option value="5.75">5.75</option>
-                        <option value="6">6</option><option value="6.25">6.25</option><option value="6.5">6.5</option>
-                        <option value="6.75">6.75</option><option value="7">7</option><option value="7.25">7.25</option>
-                        <option value="7.5">7.5</option><option value="7.75">7.75</option><option value="8">8</option>
-                    </select>
+                <div style="display:flex;gap:10px;margin-top:12px">
+                    <div style="flex:1">
+                        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px">Pump Rate:</label>
+                        <select id="pump-rate-select" onchange="updatePumpRate()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--bg-body);color:var(--text-primary)">
+                            <option value="">Select...</option>
+                            <option value="0">0</option><option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option>
+                            <option value="2.25">2.25</option><option value="2.5">2.5</option><option value="2.75">2.75</option>
+                            <option value="3">3</option><option value="3.25">3.25</option><option value="3.5">3.5</option>
+                            <option value="3.75">3.75</option><option value="4">4</option><option value="4.25">4.25</option>
+                            <option value="4.5">4.5</option><option value="4.75">4.75</option><option value="5">5</option>
+                            <option value="5.25">5.25</option><option value="5.5">5.5</option><option value="5.75">5.75</option>
+                            <option value="6">6</option><option value="6.25">6.25</option><option value="6.5">6.5</option>
+                            <option value="6.75">6.75</option><option value="7">7</option><option value="7.25">7.25</option>
+                            <option value="7.5">7.5</option><option value="7.75">7.75</option><option value="8">8</option>
+                        </select>
+                    </div>
+                    <div style="flex:1">
+                        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px">Return Rate:</label>
+                        <select id="return-rate-select" onchange="updateReturnRate()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--bg-body);color:var(--text-primary)">
+                            <option value="">Select...</option>
+                            <option value="0.5">0.5</option><option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option>
+                            <option value="2.25">2.25</option><option value="2.5">2.5</option><option value="2.75">2.75</option>
+                            <option value="3">3</option><option value="3.25">3.25</option><option value="3.5">3.5</option>
+                            <option value="3.75">3.75</option><option value="4">4</option><option value="4.25">4.25</option>
+                            <option value="4.5">4.5</option><option value="4.75">4.75</option><option value="5">5</option>
+                            <option value="5.25">5.25</option><option value="5.5">5.5</option><option value="5.75">5.75</option>
+                            <option value="6">6</option><option value="6.25">6.25</option><option value="6.5">6.5</option>
+                            <option value="6.75">6.75</option><option value="7">7</option><option value="7.25">7.25</option>
+                            <option value="7.5">7.5</option><option value="7.75">7.75</option><option value="8">8</option>
+                        </select>
+                    </div>
                 </div>
+                <button onclick="openMarkerModal()" style="width:100%;padding:12px;background:#7b1fa2;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px;letter-spacing:0.5px">💧 Send Marker</button>
             </div>
             <div style="background:var(--bg-card);border-radius:8px;padding:16px;margin-bottom:12px;border-left:4px solid #66bb6a">
                 <div style="font-size:14px;font-weight:600;color:#66bb6a;margin-bottom:12px;display:flex;align-items:center;gap:8px"><svg width="24" height="24" viewBox="0 0 100 100" fill="white"><rect x="15" y="25" width="70" height="60" rx="5" stroke="white" stroke-width="3" fill="white"/><rect x="20" y="15" width="60" height="15" rx="3" fill="white"/><line x1="15" y1="45" x2="85" y2="45" stroke="#243447" stroke-width="2"/><line x1="15" y1="65" x2="85" y2="65" stroke="#243447" stroke-width="2"/><line x1="38" y1="25" x2="38" y2="85" stroke="#243447" stroke-width="2"/><line x1="62" y1="25" x2="62" y2="85" stroke="#243447" stroke-width="2"/><rect x="10" y="85" width="80" height="8" fill="white"/></svg> Friction Reducer (FR)</div>
@@ -1466,6 +1484,72 @@ Lat: 31.907   Long: -101.949"></textarea>
                 <div id="inj-history"><em style="color:var(--text-muted)">No changes logged</em></div>
             </div>
             <button class="report-btn" onclick="showInjReport()">Generate Injection Report</button>
+        </div>
+    </div>
+
+    <!-- MARKER MODAL -->
+    <div class="modal" id="marker-modal" onclick="if(event.target===this)closeMarkerModal()" style="z-index:400">
+        <div style="background:var(--bg-card);border-radius:12px;padding:20px;width:92%;max-width:420px;max-height:90vh;overflow-y:auto">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <div style="font-size:16px;font-weight:700;color:#ce93d8">💧 Dye Marker</div>
+                <button onclick="closeMarkerModal()" style="background:none;border:1px solid var(--border);color:var(--text-primary);width:32px;height:32px;border-radius:6px;font-size:16px;cursor:pointer">✕</button>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;gap:10px">
+                    <div style="flex:1">
+                        <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:4px">Time Sent</label>
+                        <input type="time" id="marker-time-sent" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
+                    </div>
+                </div>
+
+                <div style="border-top:1px solid var(--border);padding-top:12px">
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Wellbore Volumes (BBL)</div>
+                    <div style="display:flex;gap:10px">
+                        <div style="flex:1">
+                            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">TBG Vol</label>
+                            <input type="number" step="0.1" id="marker-tbg" oninput="calcMarker()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
+                        </div>
+                        <div style="flex:1">
+                            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">ANN Vol</label>
+                            <input type="number" step="0.1" id="marker-ann" oninput="calcMarker()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px">
+                    <div style="flex:1">
+                        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Pump Rate (BPM)</label>
+                        <input type="number" step="0.25" id="marker-pump-rate" oninput="calcMarker()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
+                    </div>
+                    <div style="flex:1">
+                        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Return Rate (BPM)</label>
+                        <input type="number" step="0.25" id="marker-return-rate" oninput="calcMarker()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
+                    </div>
+                </div>
+
+                <!-- Calculated results -->
+                <div style="background:var(--bg-deep);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px" id="marker-calc-box">
+                    <div style="display:flex;justify-content:space-between;font-size:12px">
+                        <span style="color:var(--text-secondary)">Surface → Bit (TBG ÷ pump):</span>
+                        <span style="color:var(--text-primary);font-weight:600" id="marker-time-to-bit">--</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px">
+                        <span style="color:var(--text-secondary)">Bit → Surface (ANN ÷ return):</span>
+                        <span style="color:var(--text-primary);font-weight:600" id="marker-time-to-surface">--</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;border-top:1px solid var(--border);padding-top:8px">
+                        <span style="color:var(--text-secondary)">Total transit time:</span>
+                        <span style="color:#ce93d8;font-weight:700;font-size:14px" id="marker-total-time">--</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px">
+                        <span style="color:var(--text-secondary)">Expected return:</span>
+                        <span style="color:#4fc3f7;font-weight:700;font-size:16px" id="marker-expected-return">--</span>
+                    </div>
+                </div>
+
+                <button onclick="confirmMarker()" style="width:100%;padding:14px;background:#7b1fa2;color:white;border:none;border-radius:6px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px">✓ Log Marker</button>
+            </div>
         </div>
     </div>
 
@@ -1991,14 +2075,18 @@ function logInjChange(chem) {
 function renderInjHist() {
     const el = document.getElementById('inj-history');
     if (!injData.history || !injData.history.length) { el.innerHTML = '<em style="color:var(--text-muted)">No changes logged</em>'; return; }
-    const typeColor = { pump: '#4fc3f7', fr: '#66bb6a', lube: '#ffa726' };
+    const typeColor = { pump: '#4fc3f7', fr: '#66bb6a', lube: '#ffa726', marker: '#ce93d8' };
     el.innerHTML = injData.history.slice(0, 20).map(h => {
         const t = new Date(h.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         const clr = typeColor[h.type] || '#aaa';
-        const typeLabel = '<span style="color:' + clr + ';font-weight:700;display:inline-block;width:38px">' + (h.type === 'fr' ? 'FR' : h.type === 'lube' ? 'Lube' : 'Pump') + '</span>';
+        const typeLabel = '<span style="color:' + clr + ';font-weight:700;display:inline-block;width:46px">' + (h.type === 'fr' ? 'FR' : h.type === 'lube' ? 'Lube' : h.type === 'marker' ? '💧' : 'Pump') + '</span>';
         let detail;
         if (h.type === 'pump') {
             detail = '<span style="display:inline-block;min-width:80px">' + h.from + ' → ' + h.to + ' BPM</span>';
+        } else if (h.type === 'marker') {
+            detail = '<span style="color:var(--text-secondary)">Sent ' + h.timeSent + '</span>'
+                   + '<span style="color:var(--text-muted)"> · transit ' + (h.totalTransitMin || '--') + '</span>'
+                   + '<span style="color:#4fc3f7;font-weight:600"> · ETA ' + (h.expectedReturn || '--') + '</span>';
         } else {
             detail = '<span style="display:inline-block;min-width:80px">' + h.treat + '/10bbl</span>'
                    + '<span style="color:var(--text-secondary)"> @ ' + h.pumpRate + ' BPM → </span>'
@@ -2016,6 +2104,7 @@ function loadInjUI() {
     if (injData.pumpRate) { document.getElementById('pump-rate-select').value = injData.pumpRate; document.getElementById('current-pump-rate').innerHTML = injData.pumpRate + '<span style="font-size:18px;color:var(--text-secondary)"> BPM</span>'; }
     if (injData.frTreat) document.getElementById('fr-treatment').value = injData.frTreat;
     if (injData.lubeTreat) document.getElementById('lube-treatment').value = injData.lubeTreat;
+    if (injData.returnRate) document.getElementById('return-rate-select').value = injData.returnRate;
     updateInjTargets(); renderInjHist();
 }
 function showInjReport() {
@@ -2037,6 +2126,109 @@ function showInjReport() {
 }
 function hideInjReport() { document.getElementById('injection-report').classList.remove('show'); }
 function resetInjHistory() { if(confirm('Clear injection history?')) { injData.history = []; saveInjData(); renderInjHist(); } }
+
+function updateReturnRate() {
+    const rate = document.getElementById('return-rate-select').value;
+    if (rate) {
+        injData.returnRate = rate;
+        saveInjData();
+    }
+}
+
+function openMarkerModal() {
+    // Pre-fill time sent
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('marker-time-sent').value = hh + ':' + mm;
+
+    // Pre-fill TBG and ANN from wellbore calc
+    const tbgEl = document.getElementById('vol-calc-tbg');
+    const annEl = document.getElementById('vol-calc-ann-total');
+    const tbgVal = tbgEl ? parseFloat(tbgEl.textContent) : null;
+    const annVal = annEl ? parseFloat(annEl.textContent) : null;
+    document.getElementById('marker-tbg').value = (tbgVal && !isNaN(tbgVal)) ? tbgVal : '';
+    document.getElementById('marker-ann').value = (annVal && !isNaN(annVal)) ? annVal : '';
+
+    // Pre-fill rates
+    document.getElementById('marker-pump-rate').value = injData.pumpRate || '';
+    document.getElementById('marker-return-rate').value = injData.returnRate || '';
+
+    calcMarker();
+    document.getElementById('marker-modal').classList.add('show');
+}
+
+function closeMarkerModal() {
+    document.getElementById('marker-modal').classList.remove('show');
+}
+
+function calcMarker() {
+    const tbg = parseFloat(document.getElementById('marker-tbg').value);
+    const ann = parseFloat(document.getElementById('marker-ann').value);
+    const pump = parseFloat(document.getElementById('marker-pump-rate').value);
+    const ret = parseFloat(document.getElementById('marker-return-rate').value);
+    const timeSent = document.getElementById('marker-time-sent').value;
+
+    const toBitMin = (tbg && pump) ? tbg / pump : null;
+    const toSurfMin = (ann && ret) ? ann / ret : null;
+    const totalMin = (toBitMin !== null && toSurfMin !== null) ? toBitMin + toSurfMin : null;
+
+    const fmt = (m) => {
+        if (m === null) return '--';
+        const h = Math.floor(m / 60);
+        const min = Math.round(m % 60);
+        return h > 0 ? h + 'h ' + min + 'm' : min + ' min';
+    };
+
+    document.getElementById('marker-time-to-bit').textContent = fmt(toBitMin);
+    document.getElementById('marker-time-to-surface').textContent = fmt(toSurfMin);
+    document.getElementById('marker-total-time').textContent = fmt(totalMin);
+
+    if (totalMin !== null && timeSent) {
+        const [sentH, sentM] = timeSent.split(':').map(Number);
+        const sentTotalMin = sentH * 60 + sentM;
+        const returnTotalMin = sentTotalMin + totalMin;
+        const retH = Math.floor(returnTotalMin / 60) % 24;
+        const retM = Math.round(returnTotalMin % 60);
+        const retStr = (retH % 12 || 12) + ':' + String(retM).padStart(2,'0') + ' ' + (retH < 12 ? 'AM' : 'PM');
+        document.getElementById('marker-expected-return').textContent = retStr;
+    } else {
+        document.getElementById('marker-expected-return').textContent = '--';
+    }
+}
+
+function confirmMarker() {
+    const timeSent = document.getElementById('marker-time-sent').value;
+    const tbg = parseFloat(document.getElementById('marker-tbg').value);
+    const ann = parseFloat(document.getElementById('marker-ann').value);
+    const pump = parseFloat(document.getElementById('marker-pump-rate').value);
+    const ret = parseFloat(document.getElementById('marker-return-rate').value);
+    const expectedReturn = document.getElementById('marker-expected-return').textContent;
+    const totalTime = document.getElementById('marker-total-time').textContent;
+
+    if (!timeSent) { alert('Enter a time sent'); return; }
+
+    if (!injData.history || !Array.isArray(injData.history)) injData.history = [];
+    injData.history.unshift({
+        time: new Date().toISOString(),
+        type: 'marker',
+        timeSent: timeSent,
+        tbgVol: tbg || null,
+        annVol: ann || null,
+        pumpRate: pump || null,
+        returnRate: ret || null,
+        totalTransitMin: totalTime,
+        expectedReturn: expectedReturn
+    });
+
+    // Also auto-fill marker sent in plug log
+    const plugMarkerEl = document.getElementById('plug-marker-sent');
+    if (plugMarkerEl) { plugMarkerEl.value = timeSent; savePlugData(); }
+
+    saveInjData(); renderInjHist();
+    closeMarkerModal();
+    alert('Marker logged!\nSent: ' + timeSent + '\nExpected return: ' + expectedReturn);
+}
 
 function bblToInches(bbl) {
     let closest = 1, diff = Math.abs(STICK_CHART[1] - bbl);
