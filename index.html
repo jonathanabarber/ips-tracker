@@ -1102,6 +1102,18 @@
                         </label>
                     </div>
 
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+                        <div>
+                            <div style="font-size:13px;color:var(--text-primary);font-weight:600">Auto-estimate tank levels</div>
+                            <div style="font-size:11px;color:var(--text-secondary)">After a jet or build, estimate inches on affected tanks. Disable if you strap first and log transfers after.</div>
+                        </div>
+                        <label style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;margin-left:10px">
+                            <input type="checkbox" id="setting-auto-estimate" onchange="saveAutoEstimateSetting()" style="opacity:0;width:0;height:0">
+                            <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--bg-body);border:1px solid var(--border);border-radius:26px;transition:.3s"></span>
+                            <span id="auto-estimate-knob" style="position:absolute;content:'';height:20px;width:20px;left:3px;bottom:3px;background:var(--text-muted);border-radius:50%;transition:.3s"></span>
+                        </label>
+                    </div>
+
                     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
                     <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">AI Chat Parser</div>
                     <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Connect to Claude AI for smart parsing of field messages. Understands plug counts, depths, fluid volumes, and pressures in any format.</div>
@@ -2224,6 +2236,39 @@ function isAutoAdvanceOn() {
     return localStorage.getItem('ips_auto_advance') === '1';
 }
 
+function saveAutoEstimateSetting() {
+    const on = document.getElementById('setting-auto-estimate').checked;
+    localStorage.setItem('ips_auto_estimate', on ? '1' : '0');
+    updateAutoEstimateUI(on);
+}
+
+function loadAutoEstimateSetting() {
+    // Default ON (existing behaviour)
+    const val = localStorage.getItem('ips_auto_estimate');
+    const on = val === null ? true : val === '1';
+    const cb = document.getElementById('setting-auto-estimate');
+    if (cb) cb.checked = on;
+    updateAutoEstimateUI(on);
+}
+
+function updateAutoEstimateUI(on) {
+    const knob = document.getElementById('auto-estimate-knob');
+    const cb = document.getElementById('setting-auto-estimate');
+    if (knob) {
+        knob.style.left = on ? '25px' : '3px';
+        knob.style.background = on ? 'var(--accent)' : 'var(--text-muted)';
+    }
+    if (cb && cb.parentElement) {
+        const track = cb.parentElement.querySelector('span');
+        if (track) track.style.background = on ? 'rgba(79,195,247,0.25)' : 'var(--bg-body)';
+    }
+}
+
+function isAutoEstimateOn() {
+    const val = localStorage.getItem('ips_auto_estimate');
+    return val === null ? true : val === '1';
+}
+
 function toggleApiKeyVis() {
     const el = document.getElementById('claude-api-key');
     el.type = el.type === 'password' ? 'text' : 'password';
@@ -2658,6 +2703,7 @@ function openProfileModal() {
     loadTimecardConfigUI();
     loadClaudeApiKey();
     loadAutoAdvanceSetting();
+    loadAutoEstimateSetting();
     const oi = document.getElementById('ble-offset-input');
     if (oi) { oi.value = bleOffsetInches; updateOffsetDisplay(); }
     // Highlight active theme swatch
@@ -4944,7 +4990,8 @@ function showBuildEqualizeModal(dest, eqTanks, vol) {
 }
 function finalizeBuild(tanks, totalVol) {
     const per = Math.round(totalVol / tanks.length);
-    tanks.forEach(t => { t.bbls += per; t.inches = bblToInches(t.bbls); t.estimated = true; });
+    const autoEstBuild = isAutoEstimateOn();
+    tanks.forEach(t => { t.bbls += per; if(autoEstBuild){t.inches = bblToInches(t.bbls); t.estimated = true;} });
     if (!data.transferLog) data.transferLog = [];
     data.transferLog.unshift({ time: new Date().toISOString(), initials: profileData.initials || '', type: 'build', volume: totalVol, batches: buildCount, perBatch: parseFloat(document.getElementById('jet-volume').value) || 35, tanks: tanks.map(t => t.name) });
     buildCount = 0;
@@ -5326,7 +5373,7 @@ function startJetProcess() { const srcId=parseInt(document.getElementById('jet-s
 function showEqualizeModal(src,eqTanks,vol) { const all=[src,...eqTanks],per=Math.round(vol/all.length); document.getElementById('equalize-question').innerHTML='Is <strong>'+src.name+'</strong> equalized?<br><br>'+vol+' BBL split = <strong>'+per+' BBL</strong> each'; document.getElementById('equalize-tanks-list').innerHTML=all.map(t=>t.name).join(', '); document.getElementById('equalize-modal').classList.add('show'); }
 function hideEqualizeModal() { document.getElementById('equalize-modal').classList.remove('show'); pendingJet=null; }
 function confirmEqualize(isEq) { if(!pendingJet)return; const{tank,volume,equalizableTanks,isBuild}=pendingJet; if(isBuild){finalizeBuild(isEq?[tank,...equalizableTanks]:[tank],volume);}else{executeJet(isEq?[tank,...equalizableTanks]:[tank],volume);} hideEqualizeModal(); }
-function executeJet(tanks,totalVol) { const per=Math.round(totalVol/tanks.length); tanks.forEach(t=>{if(jetType==='out')t.bbls=Math.max(0,t.bbls-per);else t.bbls+=per;t.inches=bblToInches(t.bbls);t.estimated=true;}); if(jetType==='out'){data.jetsHour+=totalVol;data.jetsShift+=totalVol;} if(!data.transferLog)data.transferLog=[]; data.transferLog.unshift({time:new Date().toISOString(),initials:profileData.initials||'',type:jetType,volume:totalVol,tanks:tanks.map(t=>t.name)}); document.getElementById('jet-volume').value='120'; saveData();render();renderTransferLog();firebaseSaveTransferLogDirect(); const act=jetType==='out'?'Jetted out':'Jetted in'; if(tanks.length===1)alert(act+' '+totalVol+' BBL\n'+tanks[0].name+': '+tanks[0].bbls+' BBL (est '+tanks[0].inches+'")'); else alert(act+' '+totalVol+' BBL across '+tanks.length+' tanks'); }
+function executeJet(tanks,totalVol) { const per=Math.round(totalVol/tanks.length); const autoEst=isAutoEstimateOn(); tanks.forEach(t=>{if(jetType==='out')t.bbls=Math.max(0,t.bbls-per);else t.bbls+=per;if(autoEst){t.inches=bblToInches(t.bbls);t.estimated=true;}}); if(jetType==='out'){data.jetsHour+=totalVol;data.jetsShift+=totalVol;} if(!data.transferLog)data.transferLog=[]; data.transferLog.unshift({time:new Date().toISOString(),initials:profileData.initials||'',type:jetType,volume:totalVol,tanks:tanks.map(t=>t.name)}); document.getElementById('jet-volume').value='120'; saveData();render();renderTransferLog();firebaseSaveTransferLogDirect(); const act=jetType==='out'?'Jetted out':'Jetted in'; if(tanks.length===1)alert(act+' '+totalVol+' BBL\n'+tanks[0].name+': '+tanks[0].bbls+' BBL (est '+tanks[0].inches+'")'); else alert(act+' '+totalVol+' BBL across '+tanks.length+' tanks'); }
 function logGainLossCheck() { 
     const totals = calculateTotals(), curr = totals.system, now = new Date();
     const lastCheckTime = data.lastCheckTime ? new Date(data.lastCheckTime) : null;
