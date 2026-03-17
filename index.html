@@ -1686,11 +1686,11 @@ Lat: 31.907   Long: -101.949"></textarea>
                 <!-- Plug Info -->
                 <div class="tit-card">
                     <div class="tit-title">Plug Info</div>
-                    <div class="tit-row"><span class="tit-label">Plug #</span><input type="number" class="tit-input" id="plug-num" onchange="updatePlugHeader(); savePlugData()"><span class="tit-unit"></span></div>
-                    <div class="tit-row"><span class="tit-label">Total Plugs</span><input type="number" class="tit-input" id="plug-total" onchange="updatePlugHeader(); savePlugData()"><span class="tit-unit"></span></div>
-                    <div class="tit-row"><span class="tit-label">JNT (Total)</span><input type="number" class="tit-input" id="plug-jnt" onchange="updatePlugHeader(); savePlugData()"><span class="tit-unit"></span></div>
+                    <div class="tit-row"><span class="tit-label">Plug #</span><input type="number" class="tit-input" id="plug-num" onchange="updatePlugHeader(); calcVolumes(); savePlugData()"><span class="tit-unit"></span></div>
+                    <div class="tit-row"><span class="tit-label">Total Plugs</span><input type="number" class="tit-input" id="plug-total" onchange="updatePlugHeader(); calcVolumes(); savePlugData()"><span class="tit-unit"></span></div>
+                    <div class="tit-row"><span class="tit-label">JNT (Total)</span><input type="number" class="tit-input" id="plug-jnt" onchange="updatePlugHeader(); calcVolumes(); savePlugData()"><span class="tit-unit"></span></div>
                     <div class="tit-row"><span class="tit-label">JNT Out</span><input type="number" class="tit-input" id="plug-jnt-out" onchange="savePlugData()"><span class="tit-unit"></span></div>
-                    <div class="tit-row"><span class="tit-label">Depth</span><input type="number" class="tit-input" id="plug-depth" onchange="updatePlugHeader(); savePlugData()"><span class="tit-unit">ft</span></div>
+                    <div class="tit-row"><span class="tit-label">Depth</span><input type="number" class="tit-input" id="plug-depth" onchange="updatePlugHeader(); calcVolumes(); savePlugData()"><span class="tit-unit">ft</span></div>
                     <div class="tit-row"><span class="tit-label">Time</span><input type="time" class="tit-input" id="plug-time" style="width:110px" onchange="savePlugData()"><span class="tit-unit"></span></div>
                 </div>
 
@@ -4713,6 +4713,7 @@ function loadPlugData() {
             if (el && data[id] !== undefined) el.value = data[id];
         });
         updatePlugHeader();
+        calcVolumes(); // re-run with real depth now that plug-depth is populated
     } catch(e) {}
 }
 
