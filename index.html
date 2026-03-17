@@ -1406,13 +1406,21 @@ Lat: 31.907   Long: -101.949"></textarea>
     <!-- INJECTION TAB -->
     <div id="injection-tab" class="tab-content">
         <div style="padding:12px;padding-bottom:80px">
-            <div style="background:var(--bg-card);border-radius:8px;padding:16px;margin-bottom:12px;border:2px solid #4fc3f7">
-                <div style="font-size:12px;color:var(--accent);text-transform:uppercase;margin-bottom:8px">Current Pump Rate (BPM)</div>
-                <div style="font-size:48px;font-weight:700;color:#ffd54f;text-align:center" id="current-pump-rate">--<span style="font-size:18px;color:var(--text-secondary)"> BPM</span></div>
-                <div style="display:flex;gap:10px;margin-top:12px">
+
+            <!-- Pill Toggle -->
+            <div style="display:flex;gap:0;margin-bottom:12px;background:var(--bg-card);border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+                <button id="inj-pill-unit" onclick="switchInjMode('unit')" style="flex:1;padding:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:#1565c0;color:white;transition:all 0.2s">Injection Unit</button>
+                <button id="inj-pill-manual" onclick="switchInjMode('manual')" style="flex:1;padding:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:rgba(255,255,255,0.4);transition:all 0.2s">Manual Treatment</button>
+            </div>
+
+            <!-- Pump Rate + Return Rate + Marker (always visible) -->
+            <div style="background:var(--bg-card);border-radius:8px;padding:12px;margin-bottom:10px;border:2px solid #4fc3f7">
+                <div style="font-size:11px;color:var(--accent);text-transform:uppercase;margin-bottom:6px">Current Pump Rate (BPM)</div>
+                <div style="font-size:36px;font-weight:700;color:#ffd54f;text-align:center;margin-bottom:8px" id="current-pump-rate">--<span style="font-size:16px;color:var(--text-secondary)"> BPM</span></div>
+                <div style="display:flex;gap:8px;margin-bottom:10px">
                     <div style="flex:1">
-                        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px">Pump Rate:</label>
-                        <select id="pump-rate-select" onchange="updatePumpRate()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--bg-body);color:var(--text-primary)">
+                        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:3px">Pump Rate:</label>
+                        <select id="pump-rate-select" onchange="updatePumpRate()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--bg-body);color:var(--text-primary)">
                             <option value="">Select...</option>
                             <option value="0">0</option><option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option>
                             <option value="2.25">2.25</option><option value="2.5">2.5</option><option value="2.75">2.75</option>
@@ -1426,8 +1434,8 @@ Lat: 31.907   Long: -101.949"></textarea>
                         </select>
                     </div>
                     <div style="flex:1">
-                        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px">Return Rate:</label>
-                        <select id="return-rate-select" onchange="updateReturnRate()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--bg-body);color:var(--text-primary)">
+                        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:3px">Return Rate:</label>
+                        <select id="return-rate-select" onchange="updateReturnRate()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--bg-body);color:var(--text-primary)">
                             <option value="">Select...</option>
                             <option value="0.5">0.5</option><option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option>
                             <option value="2.25">2.25</option><option value="2.5">2.5</option><option value="2.75">2.75</option>
@@ -1441,44 +1449,128 @@ Lat: 31.907   Long: -101.949"></textarea>
                         </select>
                     </div>
                 </div>
-                <button onclick="openMarkerModal()" style="width:100%;padding:12px;background:#7b1fa2;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px;letter-spacing:0.5px">💧 Send Marker</button>
+                <button onclick="openMarkerModal()" style="width:100%;padding:10px;background:#7b1fa2;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:0.5px">Send Marker</button>
             </div>
-            <div style="background:var(--bg-card);border-radius:8px;padding:16px;margin-bottom:12px;border-left:4px solid #66bb6a">
-                <div style="font-size:14px;font-weight:600;color:#66bb6a;margin-bottom:12px;display:flex;align-items:center;gap:8px"><svg width="24" height="24" viewBox="0 0 100 100" fill="white"><rect x="15" y="25" width="70" height="60" rx="5" stroke="white" stroke-width="3" fill="white"/><rect x="20" y="15" width="60" height="15" rx="3" fill="white"/><line x1="15" y1="45" x2="85" y2="45" stroke="#243447" stroke-width="2"/><line x1="15" y1="65" x2="85" y2="65" stroke="#243447" stroke-width="2"/><line x1="38" y1="25" x2="38" y2="85" stroke="#243447" stroke-width="2"/><line x1="62" y1="25" x2="62" y2="85" stroke="#243447" stroke-width="2"/><rect x="10" y="85" width="80" height="8" fill="white"/></svg> Friction Reducer (FR)</div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                    <label style="font-size:12px;color:var(--text-secondary);min-width:70px">Treatment:</label>
-                    <select id="fr-treatment" onchange="updateInjTargets()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--bg-body);color:var(--text-primary)">
-                        <option value="">Select...</option>
-                        <option value="0.125">1/8 per 10 bbl</option><option value="0.25">1/4 per 10 bbl</option>
-                        <option value="0.375">3/8 per 10 bbl</option><option value="0.5">1/2 per 10 bbl</option>
-                        <option value="0.625">5/8 per 10 bbl</option><option value="0.75">3/4 per 10 bbl</option>
-                    </select>
+
+            <!-- ===== INJECTION UNIT VIEW ===== -->
+            <div id="inj-unit-view">
+                <!-- FR -->
+                <div style="background:var(--bg-card);border-radius:8px;padding:12px;margin-bottom:10px;border-left:4px solid #66bb6a">
+                    <div style="font-size:13px;font-weight:600;color:#66bb6a;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                        <svg width="18" height="18" viewBox="0 0 100 100" fill="white"><rect x="15" y="25" width="70" height="60" rx="5" stroke="white" stroke-width="3" fill="white"/><rect x="20" y="15" width="60" height="15" rx="3" fill="white"/><line x1="15" y1="45" x2="85" y2="45" stroke="#243447" stroke-width="2"/><line x1="15" y1="65" x2="85" y2="65" stroke="#243447" stroke-width="2"/><line x1="38" y1="25" x2="38" y2="85" stroke="#243447" stroke-width="2"/><line x1="62" y1="25" x2="62" y2="85" stroke="#243447" stroke-width="2"/><rect x="10" y="85" width="80" height="8" fill="white"/></svg>
+                        Friction Reducer (FR)
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <label style="font-size:11px;color:var(--text-secondary);min-width:70px">Treatment:</label>
+                        <select id="fr-treatment" onchange="updateInjTargets()" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--bg-body);color:var(--text-primary)">
+                            <option value="">Select...</option>
+                            <option value="0.125">1/8 per 10 bbl</option><option value="0.25">1/4 per 10 bbl</option>
+                            <option value="0.375">3/8 per 10 bbl</option><option value="0.5">1/2 per 10 bbl</option>
+                            <option value="0.625">5/8 per 10 bbl</option><option value="0.75">3/4 per 10 bbl</option>
+                        </select>
+                    </div>
+                    <div style="background:var(--bg-deep);border-radius:6px;padding:10px;text-align:center;margin-bottom:8px">
+                        <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:2px">Target GPM</div>
+                        <div style="font-size:28px;font-weight:700;color:#4caf50" id="fr-target">--</div>
+                        <div style="font-size:11px;color:var(--text-secondary)">Set Dayton dial until IFM shows this</div>
+                    </div>
+                    <button onclick="logInjChange('fr')" style="width:100%;padding:10px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Log FR Change</button>
                 </div>
-                <div style="background:var(--bg-deep);border-radius:8px;padding:16px;text-align:center">
-                    <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px">Target GPM</div>
-                    <div style="font-size:36px;font-weight:700;color:#4caf50" id="fr-target">--</div>
-                    <div style="font-size:12px;color:var(--text-secondary)">Set Dayton dial until IFM shows this (if equipped)</div>
+
+                <!-- Lube -->
+                <div style="background:var(--bg-card);border-radius:8px;padding:12px;margin-bottom:10px;border-left:4px solid #ffa726">
+                    <div style="font-size:13px;font-weight:600;color:#ffa726;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                        <svg width="18" height="18" viewBox="0 0 100 100"><rect x="15" y="25" width="70" height="60" rx="5" stroke="white" stroke-width="3" fill="#1b2838"/><rect x="20" y="15" width="60" height="15" rx="3" stroke="white" stroke-width="2" fill="#1b2838"/><line x1="15" y1="45" x2="85" y2="45" stroke="white" stroke-width="2"/><line x1="15" y1="65" x2="85" y2="65" stroke="white" stroke-width="2"/><line x1="38" y1="25" x2="38" y2="85" stroke="white" stroke-width="2"/><line x1="62" y1="25" x2="62" y2="85" stroke="white" stroke-width="2"/><rect x="10" y="85" width="80" height="8" stroke="white" stroke-width="2" fill="#1b2838"/></svg>
+                        Pipe-on-Pipe Lube
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <label style="font-size:11px;color:var(--text-secondary);min-width:70px">Treatment:</label>
+                        <select id="lube-treatment" onchange="updateInjTargets()" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--bg-body);color:var(--text-primary)">
+                            <option value="">Select...</option>
+                            <option value="0.125">1/8 per 10 bbl</option><option value="0.25">1/4 per 10 bbl</option>
+                            <option value="0.375">3/8 per 10 bbl</option><option value="0.5">1/2 per 10 bbl</option>
+                            <option value="0.625">5/8 per 10 bbl</option><option value="0.75">3/4 per 10 bbl</option>
+                        </select>
+                    </div>
+                    <div style="background:var(--bg-deep);border-radius:6px;padding:10px;text-align:center;margin-bottom:8px">
+                        <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:2px">Target GPM</div>
+                        <div style="font-size:28px;font-weight:700;color:#4caf50" id="lube-target">--</div>
+                        <div style="font-size:11px;color:var(--text-secondary)">Set Dayton dial until IFM shows this</div>
+                    </div>
+                    <button onclick="logInjChange('lube')" style="width:100%;padding:10px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Log Lube Change</button>
                 </div>
-                <button onclick="logInjChange('fr')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">Log FR Change</button>
             </div>
-            <div style="background:var(--bg-card);border-radius:8px;padding:16px;margin-bottom:12px;border-left:4px solid #ffa726">
-                <div style="font-size:14px;font-weight:600;color:#ffa726;margin-bottom:12px;display:flex;align-items:center;gap:8px"><svg width="24" height="24" viewBox="0 0 100 100"><rect x="15" y="25" width="70" height="60" rx="5" stroke="white" stroke-width="3" fill="#1b2838"/><rect x="20" y="15" width="60" height="15" rx="3" stroke="white" stroke-width="2" fill="#1b2838"/><line x1="15" y1="45" x2="85" y2="45" stroke="white" stroke-width="2"/><line x1="15" y1="65" x2="85" y2="65" stroke="white" stroke-width="2"/><line x1="38" y1="25" x2="38" y2="85" stroke="white" stroke-width="2"/><line x1="62" y1="25" x2="62" y2="85" stroke="white" stroke-width="2"/><rect x="10" y="85" width="80" height="8" stroke="white" stroke-width="2" fill="#1b2838"/></svg> Pipe-on-Pipe Lube</div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                    <label style="font-size:12px;color:var(--text-secondary);min-width:70px">Treatment:</label>
-                    <select id="lube-treatment" onchange="updateInjTargets()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:16px;background:var(--bg-body);color:var(--text-primary)">
-                        <option value="">Select...</option>
-                        <option value="0.125">1/8 per 10 bbl</option><option value="0.25">1/4 per 10 bbl</option>
-                        <option value="0.375">3/8 per 10 bbl</option><option value="0.5">1/2 per 10 bbl</option>
-                        <option value="0.625">5/8 per 10 bbl</option><option value="0.75">3/4 per 10 bbl</option>
-                    </select>
+
+            <!-- ===== MANUAL TREATMENT VIEW ===== -->
+            <div id="inj-manual-view" style="display:none">
+                <div style="background:var(--bg-card);border-radius:8px;padding:12px;margin-bottom:10px;border-left:4px solid #4fc3f7">
+                    <div style="font-size:13px;font-weight:600;color:#4fc3f7;margin-bottom:10px">⏱ Vis Cup Timing</div>
+                    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">Time to fill vis cup to the line — use to verify chemical injection rate without IFM meter.</div>
+
+                    <div style="display:flex;gap:8px;margin-bottom:12px">
+                        <div style="flex:1">
+                            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:3px">Chemical</label>
+                            <select id="manual-chem" onchange="calcManualTreatment()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--bg-body);color:var(--text-primary)">
+                                <option value="fr">FR</option>
+                                <option value="lube">Lube</option>
+                            </select>
+                        </div>
+                        <div style="flex:1">
+                            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:3px">Treatment</label>
+                            <select id="manual-treatment" onchange="calcManualTreatment()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--bg-body);color:var(--text-primary)">
+                                <option value="0.125">1/8 per 10</option>
+                                <option value="0.25">1/4 per 10</option>
+                                <option value="0.375">3/8 per 10</option>
+                                <option value="0.5" selected>1/2 per 10</option>
+                                <option value="0.625">5/8 per 10</option>
+                                <option value="0.75">3/4 per 10</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div style="background:var(--bg-deep);border-radius:8px;padding:14px;margin-bottom:10px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+                            <div>
+                                <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Pump Rate</div>
+                                <div style="font-size:12px;color:var(--text-muted)">from current setting</div>
+                            </div>
+                            <div style="font-size:22px;font-weight:700;color:#ffd54f" id="manual-pump-display">-- BPM</div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+                            <div>
+                                <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Time to Fill Vis Cup</div>
+                                <div style="font-size:11px;color:var(--text-muted)">Fill to the line, time it</div>
+                            </div>
+                            <div style="font-size:26px;font-weight:700;color:#4fc3f7" id="manual-fill-time">--</div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+                            <div>
+                                <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Inches Lost / Hour</div>
+                                <div style="font-size:11px;color:var(--text-muted)">From tote at this rate</div>
+                            </div>
+                            <div style="font-size:26px;font-weight:700;color:#ce93d8" id="manual-inches-hr">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Full table for current treatment -->
+                    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px" id="manual-table-title">Rate Reference</div>
+                    <div style="overflow-x:auto">
+                        <table style="width:100%;border-collapse:collapse;font-size:11px" id="manual-ref-table">
+                            <thead>
+                                <tr style="color:var(--text-muted);border-bottom:1px solid var(--border)">
+                                    <th style="padding:5px 4px;text-align:left">BPM</th>
+                                    <th style="padding:5px 4px;text-align:center">Fill Time</th>
+                                    <th style="padding:5px 4px;text-align:right">In/Hr</th>
+                                </tr>
+                            </thead>
+                            <tbody id="manual-ref-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
-                <div style="background:var(--bg-deep);border-radius:8px;padding:16px;text-align:center">
-                    <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px">Target GPM</div>
-                    <div style="font-size:36px;font-weight:700;color:#4caf50" id="lube-target">--</div>
-                    <div style="font-size:12px;color:var(--text-secondary)">Set Dayton dial until IFM shows this (if equipped)</div>
-                </div>
-                <button onclick="logInjChange('lube')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:12px">Log Lube Change</button>
             </div>
+
+            <!-- Injection Log -->
             <div style="background:var(--bg-body);border-radius:6px;padding:10px;max-height:150px;overflow-y:auto">
                 <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">Injection Log <button onclick="openLogEdit('injection')" style="background:var(--btn-header);border:none;color:var(--text-primary);padding:4px 8px;border-radius:4px;font-size:9px;cursor:pointer">Edit</button></div>
                 <div id="inj-history"><em style="color:var(--text-muted)">No changes logged</em></div>
@@ -1486,73 +1578,6 @@ Lat: 31.907   Long: -101.949"></textarea>
             <button class="report-btn" onclick="showInjReport()">Generate Injection Report</button>
         </div>
     </div>
-
-    <!-- MARKER MODAL -->
-    <div class="modal" id="marker-modal" onclick="if(event.target===this)closeMarkerModal()" style="z-index:400">
-        <div style="background:var(--bg-card);border-radius:12px;padding:20px;width:92%;max-width:420px;max-height:90vh;overflow-y:auto">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                <div style="font-size:16px;font-weight:700;color:#ce93d8">💧 Dye Marker</div>
-                <button onclick="closeMarkerModal()" style="background:none;border:1px solid var(--border);color:var(--text-primary);width:32px;height:32px;border-radius:6px;font-size:16px;cursor:pointer">✕</button>
-            </div>
-
-            <div style="display:flex;flex-direction:column;gap:12px">
-                <div style="display:flex;gap:10px">
-                    <div style="flex:1">
-                        <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:4px">Time Sent</label>
-                        <input type="time" id="marker-time-sent" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
-                    </div>
-                </div>
-
-                <div style="border-top:1px solid var(--border);padding-top:12px">
-                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Wellbore Volumes (BBL)</div>
-                    <div style="display:flex;gap:10px">
-                        <div style="flex:1">
-                            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">TBG Vol</label>
-                            <input type="number" step="0.1" id="marker-tbg" oninput="calcMarker()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
-                        </div>
-                        <div style="flex:1">
-                            <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">ANN Vol</label>
-                            <input type="number" step="0.1" id="marker-ann" oninput="calcMarker()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display:flex;gap:10px">
-                    <div style="flex:1">
-                        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Pump Rate (BPM)</label>
-                        <input type="number" step="0.25" id="marker-pump-rate" oninput="calcMarker()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
-                    </div>
-                    <div style="flex:1">
-                        <label style="font-size:11px;color:var(--text-secondary);display:block;margin-bottom:4px">Return Rate (BPM)</label>
-                        <input type="number" step="0.25" id="marker-return-rate" oninput="calcMarker()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-body);color:var(--text-primary);font-size:15px">
-                    </div>
-                </div>
-
-                <!-- Calculated results -->
-                <div style="background:var(--bg-deep);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px" id="marker-calc-box">
-                    <div style="display:flex;justify-content:space-between;font-size:12px">
-                        <span style="color:var(--text-secondary)">Surface → Bit (TBG ÷ pump):</span>
-                        <span style="color:var(--text-primary);font-weight:600" id="marker-time-to-bit">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px">
-                        <span style="color:var(--text-secondary)">Bit → Surface (ANN ÷ return):</span>
-                        <span style="color:var(--text-primary);font-weight:600" id="marker-time-to-surface">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;border-top:1px solid var(--border);padding-top:8px">
-                        <span style="color:var(--text-secondary)">Total transit time:</span>
-                        <span style="color:#ce93d8;font-weight:700;font-size:14px" id="marker-total-time">--</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px">
-                        <span style="color:var(--text-secondary)">Expected return:</span>
-                        <span style="color:#4fc3f7;font-weight:700;font-size:16px" id="marker-expected-return">--</span>
-                    </div>
-                </div>
-
-                <button onclick="confirmMarker()" style="width:100%;padding:14px;background:#7b1fa2;color:white;border:none;border-radius:6px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px">✓ Log Marker</button>
-            </div>
-        </div>
-    </div>
-
     <!-- INJECTION REPORT SCREEN -->
     <div class="report-screen" id="injection-report">
         <div class="report-header"><button class="report-close" onclick="hideInjReport()">×</button><h1>Chemical Injection Report</h1><p id="inj-report-time"></p></div>
@@ -2125,7 +2150,169 @@ function showInjReport() {
     document.getElementById('injection-report').classList.add('show');
 }
 function hideInjReport() { document.getElementById('injection-report').classList.remove('show'); }
+function recalcVolumeEntry(idx) {
+    if (fbRoom && !fbIsAdmin) { alert('Only the room admin can recalculate.'); return; }
+    const entries = data.history;
+    if (!entries || !entries[idx]) return;
+
+    const entry = entries[idx];
+    const prevEntry = entries[idx + 1] || null; // history is newest-first, so idx+1 is older
+
+    // Save any pending edits first
+    saveLogEditEntry(idx);
+
+    const entryTime = new Date(entry.time);
+    const prevTime = prevEntry ? new Date(prevEntry.time) : null;
+
+    // Elapsed minutes
+    let elapsedMin = null;
+    if (prevTime) {
+        elapsedMin = Math.round((entryTime - prevTime) / 60000);
+        entry.elapsedMin = elapsedMin;
+    }
+
+    // Surface and hole
+    const holeVol = (entry.holeVolume !== undefined && entry.holeVolume !== null) ? entry.holeVolume : 0;
+    const surfaceVol = entry.surfaceTotal !== undefined ? entry.surfaceTotal : (entry.systemTotal || 0);
+    const ft = entry.filterType || null;
+    const currTotal = Math.round((surfaceVol + holeVol) * 10) / 10;
+    entry.surfaceTotal = surfaceVol;
+    entry.systemTotal = currTotal;
+
+    // Previous total for apparent
+    let prevTotal = null;
+    if (prevEntry) {
+        const prevHole = (prevEntry.holeVolume !== undefined && prevEntry.holeVolume !== null) ? prevEntry.holeVolume : 0;
+        const prevSurface = prevEntry.surfaceTotal !== undefined ? prevEntry.surfaceTotal
+            : (ft && prevEntry.totals ? (prevEntry.totals[ft] || 0) : (prevEntry.systemTotal || 0));
+        prevTotal = Math.round((prevSurface + prevHole) * 10) / 10;
+    }
+
+    // Re-scan transfer log between prevTime and entryTime
+    let xferOut = 0, xferIn = 0, xferBuild = 0;
+    if (data.transferLog && prevTime) {
+        data.transferLog.forEach(tl => {
+            const tlTime = new Date(tl.time);
+            if (tlTime > prevTime && tlTime <= entryTime) {
+                if (tl.type === 'out') xferOut += tl.volume;
+                else if (tl.type === 'in') xferIn += tl.volume;
+                else if (tl.type === 'build') xferBuild += tl.volume;
+            }
+        });
+    }
+
+    // Recalculate apparent, actual, hourly
+    const apparent = prevTotal !== null ? Math.round((currTotal - prevTotal) * 10) / 10 : null;
+    const actual = apparent !== null ? Math.round((apparent + xferOut - xferIn - xferBuild) * 10) / 10 : null;
+    let ratePerHour = null;
+    if (elapsedMin && elapsedMin > 0 && actual !== null) {
+        ratePerHour = ((actual / elapsedMin) * 60).toFixed(1);
+    }
+
+    entry.apparentChange = apparent;
+    entry.trueChange = actual;
+    entry.ratePerHour = ratePerHour;
+
+    entries[idx] = entry;
+    data.history = entries;
+    // Also update lastCheckTime/lastSystemTotal if this is the most recent entry
+    if (idx === 0) {
+        data.lastCheckTime = entry.time;
+        data.lastSystemTotal = currTotal;
+    }
+    saveData(); renderVolumeLog(); render(); firebaseSaveHistory();
+    renderLogEditEntries('volume');
+
+    const el = document.getElementById('log-edit-entry-' + idx);
+    if (el) { el.style.borderColor = '#1565c0'; setTimeout(() => { el.style.borderColor = ''; }, 1200); }
+    alert('Recalculated!\nApparent: ' + (apparent !== null ? (apparent >= 0 ? '+' : '') + apparent : '--')
+        + '\nActual: ' + (actual !== null ? (actual >= 0 ? '+' : '') + actual : '--')
+        + '\nHourly: ' + (ratePerHour !== null ? (parseFloat(ratePerHour) >= 0 ? '+' : '') + ratePerHour : '--')
+        + (elapsedMin !== null ? '\nElapsed: ' + elapsedMin + ' min' : ''));
+}
+
 function resetInjHistory() { if(confirm('Clear injection history?')) { injData.history = []; saveInjData(); renderInjHist(); } }
+
+function switchInjMode(mode) {
+    const unitView = document.getElementById('inj-unit-view');
+    const manualView = document.getElementById('inj-manual-view');
+    const pillUnit = document.getElementById('inj-pill-unit');
+    const pillManual = document.getElementById('inj-pill-manual');
+    if (mode === 'unit') {
+        unitView.style.display = ''; manualView.style.display = 'none';
+        pillUnit.style.background = '#1565c0'; pillUnit.style.color = 'white';
+        pillManual.style.background = 'transparent'; pillManual.style.color = 'rgba(255,255,255,0.4)';
+    } else {
+        unitView.style.display = 'none'; manualView.style.display = '';
+        pillManual.style.background = '#1565c0'; pillManual.style.color = 'white';
+        pillUnit.style.background = 'transparent'; pillUnit.style.color = 'rgba(255,255,255,0.4)';
+        calcManualTreatment();
+    }
+}
+
+function fmtFillTime(totalSec) {
+    if (!totalSec || !isFinite(totalSec)) return '--';
+    const m = Math.floor(totalSec / 60);
+    const s = Math.round(totalSec % 60);
+    if (m === 0) return s + ' sec';
+    if (s === 0) return m + ' min';
+    return m + ' min ' + s + ' sec';
+}
+
+function fmtInchesHr(val) {
+    if (!val || !isFinite(val)) return '--';
+    // Convert decimal to nearest 1/16 fraction display
+    const whole = Math.floor(val);
+    const frac = val - whole;
+    const sixteenths = Math.round(frac * 16);
+    const fracMap = {0:'',1:'1/16',2:'1/8',3:'3/16',4:'1/4',5:'5/16',6:'3/8',7:'7/16',8:'1/2',
+                     9:'9/16',10:'5/8',11:'11/16',12:'3/4',13:'13/16',14:'7/8',15:'15/16',16:''};
+    let display = '';
+    const adjWhole = sixteenths === 16 ? whole + 1 : whole;
+    const adjFrac = sixteenths === 16 ? '' : fracMap[sixteenths];
+    if (adjWhole > 0 && adjFrac) display = adjWhole + ' & ' + adjFrac + '"';
+    else if (adjWhole > 0) display = adjWhole + '"';
+    else display = adjFrac + '"';
+    return display || (val.toFixed(3) + '"');
+}
+
+function calcManualTreatment() {
+    const treat = parseFloat(document.getElementById('manual-treatment').value) || 0;
+    const pump = parseFloat(injData.pumpRate) || 0;
+    const pumpDisplay = document.getElementById('manual-pump-display');
+    if (pumpDisplay) pumpDisplay.textContent = pump ? pump + ' BPM' : '-- BPM';
+
+    // fill_time_seconds = 150 / (treatment * pumpRate)  [derived from reference chart]
+    const fillSec = (treat && pump) ? 150 / (treat * pump) : null;
+    // inches_per_hour = 0.75 * treatment * pumpRate
+    const inchesHr = (treat && pump) ? 0.75 * treat * pump : null;
+
+    const fillEl = document.getElementById('manual-fill-time');
+    const inchEl = document.getElementById('manual-inches-hr');
+    if (fillEl) fillEl.textContent = fmtFillTime(fillSec);
+    if (inchEl) inchEl.textContent = fmtInchesHr(inchesHr);
+
+    // Build reference table for all pump rates at this treatment
+    const rates = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5];
+    const tbody = document.getElementById('manual-ref-tbody');
+    const treatLabel = document.getElementById('manual-treatment');
+    const treatText = treatLabel ? treatLabel.options[treatLabel.selectedIndex].text : '';
+    const titleEl = document.getElementById('manual-table-title');
+    if (titleEl) titleEl.textContent = treatText + ' — Rate Reference';
+    if (tbody && treat) {
+        tbody.innerHTML = rates.map(r => {
+            const fs = 150 / (treat * r);
+            const ih = 0.75 * treat * r;
+            const isCurrentRate = pump && Math.abs(r - pump) < 0.1;
+            const rowStyle = isCurrentRate ? 'background:rgba(79,195,247,0.1);font-weight:700;' : '';
+            return '<tr style="border-bottom:1px solid var(--border);' + rowStyle + '">'
+                + '<td style="padding:5px 4px;color:' + (isCurrentRate ? '#ffd54f' : 'var(--text-primary)') + '">' + r + '</td>'
+                + '<td style="padding:5px 4px;text-align:center;color:#4fc3f7">' + fmtFillTime(fs) + '</td>'
+                + '<td style="padding:5px 4px;text-align:right;color:#ce93d8">' + fmtInchesHr(ih) + '</td>'
+                + '</tr>';
+        }).join('');
+    }
+}
 
 function updateReturnRate() {
     const rate = document.getElementById('return-rate-select').value;
@@ -4693,20 +4880,18 @@ function getEntryTitle(type, entry, idx) {
 function getEditableFields(type, entry) {
     if (type === 'volume') {
         return [
+            {key:'_editTime',label:'Timestamp',type:'datetime-local',_isTime:true},
             {key:'initials',label:'Initials',type:'text'},
             {key:'filterType',label:'Fluid Type',type:'select',options:[{v:'',l:'System'},{v:'brine',l:'Brine'},{v:'packer',l:'Packer'},{v:'mud',l:'Mud'},{v:'recirc',l:'Recirc'},{v:'freshwater',l:'Freshwater'},{v:'other',l:'Other'}]},
-            {key:'systemTotal',label:'System Total',type:'number'},
-            {key:'apparentChange',label:'Apparent',type:'number'},
-            {key:'trueChange',label:'Actual G/L',type:'number'},
-            {key:'ratePerHour',label:'Hourly Rate',type:'text'},
-            {key:'elapsedMin',label:'Elapsed Min',type:'number'}
+            {key:'surfaceTotal',label:'Surface Vol (BBL)',type:'number'},
+            {key:'holeVolume',label:'Wellbore Vol (BBL)',type:'number'}
         ];
     }
     if (type === 'transfer') {
         return [
+            {key:'_editTime',label:'Timestamp',type:'datetime-local',_isTime:true},
             {key:'initials',label:'Initials',type:'text'},
             {key:'type',label:'Type',type:'select',options:[{v:'out',l:'Out'},{v:'in',l:'In'},{v:'build',l:'Build'}]},
-            {key:'fluidType',label:'Fluid Type',type:'select',options:[{v:'',l:'--'},{v:'brine',l:'Brine'},{v:'packer',l:'Packer'},{v:'mud',l:'Mud'},{v:'recirc',l:'Recirc'},{v:'freshwater',l:'Freshwater'},{v:'other',l:'Other'}]},
             {key:'volume',label:'Volume (BBL)',type:'number'},
             {key:'tanks',label:'Tanks',type:'text',isArray:true}
         ];
@@ -4824,12 +5009,34 @@ function renderLogEditEntries(type) {
                     html += '<option value="' + o.v + '"' + (String(val) === String(o.v) ? ' selected' : '') + '>' + o.l + '</option>';
                 });
                 html += '</select>';
+            } else if (f.type === 'datetime-local') {
+                // Convert ISO timestamp to datetime-local format
+                const ts = entry.time || '';
+                let dtVal = '';
+                if (ts) {
+                    const d = new Date(ts);
+                    const pad = n => String(n).padStart(2,'0');
+                    dtVal = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+                }
+                html += '<input class="log-edit-field-input" type="datetime-local" value="' + dtVal + '" data-idx="' + realIdx + '" data-key="' + f.key + '" data-istime="1">';
             } else {
                 html += '<input class="log-edit-field-input" type="' + (f.type === 'number' ? 'number' : 'text') + '" value="' + String(val).replace(/"/g, '&quot;') + '" data-idx="' + realIdx + '" data-key="' + f.key + '"' + (f.isArray ? ' data-array="1"' : '') + '>';
             }
             html += '</div>';
         });
-        html += '<button class="log-edit-save-btn" onclick="saveLogEditEntry(' + realIdx + ')">✓ Confirm Changes</button>';
+        // Admin guard for volume and transfer logs
+        const isAdminOrNoRoom = !fbRoom || fbIsAdmin;
+        const isTimeSensitive = (type === 'volume' || type === 'transfer');
+        if (isTimeSensitive && !isAdminOrNoRoom) {
+            html += '<div style="font-size:11px;color:#ef5350;padding:8px 0">⚠ Admin only — contact room admin to edit</div>';
+        } else {
+            html += '<div style="display:flex;gap:8px;margin-top:8px">';
+            html += '<button class="log-edit-save-btn" style="flex:1" onclick="saveLogEditEntry(' + realIdx + ')">✓ Save Changes</button>';
+            if (type === 'volume') {
+                html += '<button style="flex:1;padding:10px;background:#1565c0;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer" onclick="recalcVolumeEntry(' + realIdx + ')">⟳ Recalculate</button>';
+            }
+            html += '</div>';
+        }
         html += '</div></div>';
     });
 
@@ -4842,6 +5049,8 @@ function toggleLogEditEntry(idx) {
 }
 
 function deleteLogEditEntry(idx) {
+    const isTimeSensitive = (_logEditType === 'volume' || _logEditType === 'transfer');
+    if (isTimeSensitive && fbRoom && !fbIsAdmin) { alert('Only the room admin can delete from this log.'); return; }
     if (!confirm('Delete this entry?')) return;
     const entries = getLogEntries(_logEditType);
     entries.splice(idx, 1);
@@ -4859,6 +5068,11 @@ function saveLogEditEntry(idx) {
     inputs.forEach(inp => {
         const key = inp.dataset.key;
         let val = inp.value;
+        if (inp.dataset.istime === '1') {
+            // datetime-local → ISO string stored in entry.time
+            if (val) entry.time = new Date(val).toISOString();
+            return; // don't set _editTime key
+        }
         if (inp.dataset.array === '1') {
             val = val.split(',').map(s => s.trim()).filter(s => s);
         } else if (inp.type === 'number' && val !== '') {
