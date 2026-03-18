@@ -2206,7 +2206,16 @@ function showInjReport() {
     html += '</div>';
     if (injData.history && injData.history.length) {
         html += '<div class="report-section"><div class="report-section-title">Injection Log</div>';
-        injData.history.forEach(h => { const d = new Date(h.time), ts = d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); if (h.type === 'pump') html += '<div class="report-row"><span class="report-row-label">' + ts + '</span><span class="report-row-value">Pump: ' + h.from + ' → ' + h.to + '</span></div>'; else html += '<div class="report-row"><span class="report-row-label">' + ts + '</span><span class="report-row-value">' + (h.type === 'fr' ? 'FR' : 'Lube') + ': ' + h.treat + ' @ ' + h.pumpRate + ' = ' + h.gpm.toFixed(3) + '</span></div>'; });
+        injData.history.forEach(h => {
+            const d = new Date(h.time), ts = d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            if (h.type === 'pump') {
+                html += '<div class="report-row"><span class="report-row-label">' + ts + '</span><span class="report-row-value">Pump: ' + h.from + ' → ' + h.to + ' BPM</span></div>';
+            } else if (h.type === 'marker') {
+                html += '<div class="report-row"><span class="report-row-label">' + ts + '</span><span class="report-row-value" style="color:#ce93d8">Marker sent ' + (h.timeSent||'--') + ' · transit ' + (h.totalTransitMin||'--') + ' · ETA ' + (h.expectedReturn||'--') + '</span></div>';
+            } else {
+                html += '<div class="report-row"><span class="report-row-label">' + ts + '</span><span class="report-row-value">' + (h.type === 'fr' ? 'FR' : 'Lube') + ': ' + h.treat + '/10bbl @ ' + h.pumpRate + ' BPM = ' + (h.gpm !== undefined ? h.gpm.toFixed(3) : '--') + ' GPM</span></div>';
+            }
+        });
         html += '</div>';
     }
     html += '<div class="report-timestamp">' + now.toLocaleString() + '</div>';
