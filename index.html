@@ -966,6 +966,12 @@
                     </button>
                     <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase">Bluetooth</div>
                 </div>
+                <div style="text-align:center">
+                    <button id="torch-btn" onclick="toggleTorch()" style="width:56px;height:56px;margin-bottom:6px;border-radius:50%;border:none;background:var(--bg-body);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s">
+                        <svg viewBox="0 0 24 24" fill="currentColor" style="width:28px;height:28px"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                    </button>
+                    <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase">Light</div>
+                </div>
             </div>
             <!-- Profile & Well -->
             <div class="settings-accordion open">
@@ -7104,6 +7110,7 @@ function toggleVoiceMaster() {
 
 function startVoiceListening() {
     if (!SpeechRecognition) { alert('Speech recognition not supported'); return; }
+    torchOn(); // light up — silent fail if not supported
     voiceIsListening = true;
     voiceState = 'LISTENING';
     voiceCurrentTank = null;
@@ -7182,6 +7189,61 @@ function startDirectVoice(side, tankId) {
     setTimeout(() => voicePlayDing(), 100);
 }
 
+// ========== TORCH / FLASHLIGHT ==========
+let _torchStream = null;
+let _torchTrack = null;
+let _torchOn = false;
+let _torchAvailable = null; // null=unknown, true=works, false=not supported
+
+async function torchOn() {
+    if (_torchAvailable === false) return; // already know it won't work
+    try {
+        if (!_torchStream) {
+            _torchStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            _torchTrack = _torchStream.getVideoTracks()[0];
+        }
+        const caps = _torchTrack.getCapabilities();
+        if (!caps.torch) { _torchAvailable = false; return; }
+        await _torchTrack.applyConstraints({ advanced: [{ torch: true }] });
+        _torchOn = true;
+        _torchAvailable = true;
+        updateTorchBtn();
+    } catch(e) {
+        _torchAvailable = false;
+        console.log('Torch not available:', e.message);
+    }
+}
+
+async function torchOff() {
+    if (!_torchTrack || !_torchOn) return;
+    try {
+        await _torchTrack.applyConstraints({ advanced: [{ torch: false }] });
+    } catch(e) {}
+    _torchOn = false;
+    updateTorchBtn();
+}
+
+async function toggleTorch() {
+    if (_torchOn) { await torchOff(); }
+    else { await torchOn(); }
+}
+
+function updateTorchBtn() {
+    const btn = document.getElementById('torch-btn');
+    if (!btn) return;
+    if (_torchOn) {
+        btn.style.background = '#ffd54f';
+        btn.style.color = '#1a1a1a';
+        btn.style.boxShadow = '0 0 12px rgba(255,213,79,0.6)';
+    } else {
+        btn.style.background = 'var(--bg-body)';
+        btn.style.color = 'var(--text-muted)';
+        btn.style.boxShadow = 'none';
+    }
+}
+
 function stopVoiceListening() {
     voiceIsListening = false;
     voiceState = 'IDLE';
@@ -7195,6 +7257,8 @@ function stopVoiceListening() {
     document.getElementById('voice-status').classList.remove('show');
     
     if (voiceRecognition) try { voiceRecognition.stop(); } catch(e) {}
+    // Turn off torch if BLE is also not active
+    if (!bleMasterActive) torchOff();
 }
 
 // Convert tank name for speech (# -> pound)
@@ -7649,6 +7713,8 @@ async function toggleBleMaster() {
         document.getElementById('ble-status').classList.remove('show');
         updateBleMasterBtn();
         render();
+        // Turn off torch if voice also not active
+        if (!voiceIsListening) torchOff();
         return;
     }
     
@@ -7668,6 +7734,7 @@ async function toggleBleMaster() {
         }
     }
     
+    torchOn(); // light up — silent fail if not supported
     // Connected — assign first visible tank
     const visibleTanks = getFilteredTanks();
     if (visibleTanks.length) {
@@ -7812,6 +7879,7 @@ function onBleDisconnect() {
     document.getElementById('ble-status').classList.remove('show');
     updateBleMasterBtn();
     render();
+    if (!voiceIsListening) torchOff();
 }
 
 function handleBleMeasurement(event) {
