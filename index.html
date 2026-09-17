@@ -1665,7 +1665,7 @@ Lat: 31.907   Long: -101.949"></textarea>
                             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
                                 <div>
                                     <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Gallons Needed</div>
-                                    <div style="font-size:10px;color:var(--text-muted)">2.7 lbs / gal</div>
+                                    <div style="font-size:10px;color:var(--text-muted)">2.64 lbs / gal</div>
                                 </div>
                                 <div style="font-size:26px;font-weight:700;color:#4fc3f7" id="div-gallons">--</div>
                             </div>
@@ -2520,7 +2520,7 @@ function calcDiverter() {
         const sacks = totalLbs / 50;
         document.getElementById('div-sacks').textContent = sacks.toFixed(1) + ' sacks';
     } else {
-        const gallons = totalLbs / 2.7;
+        const gallons = totalLbs / 2.64;
         const inches = gallons / 7.4;
         document.getElementById('div-gallons').textContent = gallons.toFixed(1) + ' gal';
         document.getElementById('div-inches').textContent = inches.toFixed(1) + '"';
@@ -2540,8 +2540,8 @@ function logDiverterPill() {
         conc: conc,
         totalLbs: totalLbs,
         sacks: _diverterType === 'c' ? (totalLbs / 50) : null,
-        gallons: _diverterType === 'liquid' ? (totalLbs / 2.7) : null,
-        inches: _diverterType === 'liquid' ? (totalLbs / 2.7 / 7.4) : null,
+        gallons: _diverterType === 'liquid' ? (totalLbs / 2.64) : null,
+        inches: _diverterType === 'liquid' ? (totalLbs / 2.64 / 7.4) : null,
         initials: profileData.initials || ''
     };
     if (!injData.history) injData.history = [];
